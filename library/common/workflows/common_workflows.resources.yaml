@@ -1,0 +1,45 @@
+# Copyright @ 2021 Thought Machine Group Limited. All rights reserved.
+---
+resources:
+  - type: WORKFLOW_DEFINITION_VERSION
+    id: INTERNAL_ACCOUNT_CREATION
+    activate: true
+    payload: |
+      workflow_definition_version:
+          workflow_definition_id: INTERNAL_ACCOUNT_CREATION
+          specification: '@{internal_account_creation.yaml}'
+  - type: WORKFLOW_DEFINITION_VERSION
+    id: POSTING_CREATION
+    activate: true
+    payload: |
+      workflow_definition_version:
+          workflow_definition_id: POSTING_CREATION
+          specification: '@{posting_creation.yaml}'
+  - type: WORKFLOW_DEFINITION_VERSION
+    id: ONBOARD_NEW_CUSTOMER
+    activate: true
+    payload: |
+      workflow_definition_version:
+          workflow_definition_id: ONBOARD_NEW_CUSTOMER
+          specification: '@{onboard_new_customer.yaml}'
+  - type: WORKFLOW_DEFINITION_VERSION
+    id: ADJUSTMENT_CREATION
+    activate: true
+    payload: |
+      workflow_definition_version:
+          workflow_definition_id: ADJUSTMENT_CREATION
+          specification: '@{adjustment_creation.yaml}'
+  - type: WORKFLOW_DEFINITION_VERSION
+    id: INTERNAL_TRANSFER
+    activate: true
+    payload: |
+      workflow_definition_version:
+          workflow_definition_id: INTERNAL_TRANSFER
+          specification: '@{internal_transfer.yaml}'
+  - type: WORKFLOW_DEFINITION_VERSION
+    id: ACCOUNT_SCHEDULE_JOB_EXECUTION_FAILURES
+    activate: true
+    payload: |
+      workflow_definition_version:
+          workflow_definition_id: ACCOUNT_SCHEDULE_JOB_EXECUTION_FAILURES
+          specification: '@{account_schedule_job_execution_failures.yaml}'

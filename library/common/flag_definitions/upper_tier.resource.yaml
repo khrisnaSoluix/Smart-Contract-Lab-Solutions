@@ -1,0 +1,10 @@
+---
+type: FLAG_DEFINITION
+id: UPPER_TIER
+payload: |
+  flag_definition:
+    id: UPPER_TIER
+    name: UPPER_TIER
+    description: Denotes an upper tier account. Account tiers define the configurations of one or more features available on the product
+    required_flag_level: FLAG_LEVEL_ACCOUNT
+    flag_visibility: FLAG_VISIBILITY_OPERATOR

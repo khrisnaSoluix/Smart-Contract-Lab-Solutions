@@ -1,0 +1,31 @@
+# Copyright @ 2021 Thought Machine Group Limited. All rights reserved.
+---
+resources:
+  - type: WORKFLOW_DEFINITION_VERSION
+    id: SAVINGS_SWEEP_ACCOUNT_ASSOCIATION
+    activate: true
+    payload: |
+      workflow_definition_version:
+          workflow_definition_id: SAVINGS_SWEEP_ACCOUNT_ASSOCIATION
+          specification: '@{savings_sweep_account_association.yaml}'
+  - type: WORKFLOW_DEFINITION_VERSION
+    id: SAVINGS_SWEEP_HIERARCHY_MANAGEMENT
+    activate: true
+    payload: |
+      workflow_definition_version:
+          workflow_definition_id: SAVINGS_SWEEP_HIERARCHY_MANAGEMENT
+          specification: '@{savings_sweep_hierarchy_management.yaml}'
+  - type: WORKFLOW_DEFINITION_VERSION
+    id: SAVINGS_SWEEP_SAVINGS_ACCOUNT_DISASSOCIATION
+    activate: true
+    payload: |
+      workflow_definition_version:
+          workflow_definition_id: SAVINGS_SWEEP_SAVINGS_ACCOUNT_DISASSOCIATION
+          specification: '@{savings_sweep_savings_account_disassociation.yaml}'
+  - type: WORKFLOW_DEFINITION_VERSION
+    id: SAVINGS_SWEEP_CHECKING_AND_SAVINGS_ACCOUNT_APPLICATION
+    activate: true
+    payload: |
+      workflow_definition_version:
+          workflow_definition_id: SAVINGS_SWEEP_CHECKING_AND_SAVINGS_ACCOUNT_APPLICATION
+          specification: '@{savings_sweep_checking_and_savings_account_application.yaml}'

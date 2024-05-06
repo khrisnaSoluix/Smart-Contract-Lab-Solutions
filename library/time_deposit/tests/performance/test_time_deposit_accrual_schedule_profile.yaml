@@ -1,0 +1,87 @@
+dataloader_setup:
+  contract_name: "time_deposit"
+  template_param_vals:
+    interest_application_hour: 1
+    interest_application_minute: 2
+    interest_application_second: 3
+  dependency_groups:
+    - instances: 1
+      customer:
+        id_base: 400
+      flags: []
+      accounts:
+        - account_opening_timestamp: "2020-05-01T10:02:03.000000Z"
+          instance_param_vals: &instance_param_vals
+            interest_application_frequency: "monthly"
+            interest_application_day: "1"
+            gross_interest_rate: "0.149"
+            term: "1"
+            term_unit: "months"
+            deposit_period: "7"
+            grace_period: "0"
+            cool_off_period: "0"
+            fee_free_percentage_limit: "0"
+            withdrawal_fee: "10"
+            withdrawal_percentage_fee: "0"
+            account_closure_period: "7"
+            period_end_hour: "0"
+            auto_rollover_type: "no_rollover"
+            partial_principal_amount: "0.01"
+            rollover_term_unit: "months"
+            rollover_term: "12"
+            rollover_gross_interest_rate: "0.149"
+            rollover_interest_application_day: "1"
+            rollover_interest_application_frequency: "monthly"
+            rollover_grace_period: "0"
+            rollover_period_end_hour: "0"
+            rollover_account_closure_period: "7"
+          details:
+            interest_payment_destination: "vault"
+            interest_vault_account_id: "1"
+            maturity_vault_account_id: "1"
+simulation_setup:
+  # Effectively a dummy sim that passes through the posting
+  start: "2020-05-01T10:00:00.000000Z"
+  end: "2020-05-01T11:00:00.000000Z"
+  migrate_balance_ts: False
+  expected_number_of_postings: 1
+  events:
+    - type: create_account_instruction
+      timestamp: start
+      account_id: "1"
+      product_id: "1"
+      instance_param_vals: {}
+    - type: create_account_instruction
+      timestamp: start
+      account_id: "Main account"
+      product_id: "2"
+      instance_param_vals: *instance_param_vals
+    - type: create_inbound_hard_settlement_instruction
+      amount: "1000"
+      event_datetime: start
+      denomination: "GBP"
+      client_transaction_id: "123456"
+      client_batch_id: "123"
+expected_outcome:
+  balances:
+    - address: "DEFAULT"
+      asset: "COMMERCIAL_BANK_MONEY"
+      denomination: "GBP"
+      phase: "POSTING_PHASE_COMMITTED"
+      net: "1000"
+      net_debits: "0"
+      net_credits: "1000"
+    - address: "ACCRUED_INTEREST_PAYABLE"
+      asset: "COMMERCIAL_BANK_MONEY"
+      denomination: "GBP"
+      phase: "POSTING_PHASE_COMMITTED"
+      net: "0.40822"
+      net_debits: "0"
+      net_credits: "0.40822"
+    - address: "INTERNAL_CONTRA"
+      asset: "COMMERCIAL_BANK_MONEY"
+      denomination: "GBP"
+      phase: "POSTING_PHASE_COMMITTED"
+      net: "-0.40822"
+      net_debits: "0.40822"
+      net_credits: "0"

@@ -1,0 +1,18 @@
+---
+pack_version: 1.0.0
+pack_name: GPL Home Loan Redraw
+resource_ids:
+  # --------- SMART CONTRACTS
+  - home_loan_redraw
+  # --------- ACCOUNT SCHEDULE TAGS
+  - HOME_LOAN_REDRAW_ACCRUE_INTEREST_AST
+  - HOME_LOAN_REDRAW_DUE_AMOUNT_CALCULATION_AST
+
+  # --------- INTERNAL ACCOUNT SMART CONTRACTS
+  - accrued_interest_receivable_account_contract
+  - accrued_interest_received_account_contract
+
+  # --------- INTERNAL ACCOUNTS
+  - ACCRUED_INTEREST_RECEIVABLE_ACCOUNT
+  - ACCRUED_INTEREST_RECEIVED_ACCOUNT
+

@@ -1,0 +1,47 @@
+# Code auto-generated
+
+# Objects below have been imported from:
+#    import_multiple_depths.py
+# md5:4a2df79401b408c2205bd806240aa593
+
+
+def function_1() -> str:
+    return attribute_1
+
+
+attribute_1 = module_1_attribute_1
+attribute_2 = module_1_attribute_2
+attribute_4 = module_4_attribute_4
+
+# Objects below have been imported from:
+#    module_3.py
+# md5:a659f299c3a485782879546ee2cafdd7
+
+module_3_attribute_1 = "module_3"
+
+# Objects below have been imported from:
+#    module_2.py
+# md5:3dda80122c0d3dec8bc1ba327768f5ad
+
+module_2_attribute_1 = "module_2"
+module_2_attribute_2 = module_3_attribute_1
+
+# Objects below have been imported from:
+#    module_1.py
+# md5:13bb069aaae95687b6b0dcfc2a2ee438
+
+module_1_attribute_1 = module_2_attribute_2
+module_1_attribute_2 = module_3_attribute_1
+
+# Objects below have been imported from:
+#    module_4.py
+# md5:4affb0948d53415c2d45918a7001a78d
+
+module_4_attribute_4 = module_2_attribute_1
+
+# Objects below have been imported from:
+#    import_multiple_depths.py
+# md5:4a2df79401b408c2205bd806240aa593
+
+api = "4.0.0"
+attribute_3 = module_3_attribute_1

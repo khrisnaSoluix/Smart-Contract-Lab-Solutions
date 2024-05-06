@@ -1,0 +1,255 @@
+dataloader_setup:
+  contract_name: "wallet"
+  dependency_groups:
+    - customer:
+        id_base: 700
+      flags: []
+      accounts:
+        - account_opening_timestamp:
+            delta:
+              days: -2
+          instance_param_vals: &instance_param_vals
+            denomination: "SGD"
+            customer_wallet_limit: "1000"
+            nominated_account: "1"
+            daily_spending_limit: "999"
+            additional_denominations: '["USD","GBP"]'
+          flags:
+            - flag_definition_id: AUTO_TOP_UP_WALLET
+simulation_setup:
+  start:
+    delta:
+      days: -2
+  end:
+    delta:
+      days: -1
+  events:
+    - type: create_account_instruction
+      timestamp: start
+      account_id: "1"
+      product_id: "1"
+      instance_param_vals: {}
+    - type: create_account_instruction
+      timestamp: start
+      account_id: "Main account"
+      product_id: "2"
+      instance_param_vals: *instance_param_vals
+    - type: create_flag_definition_event
+      timestamp: start
+      flag_definition_id: AUTO_TOP_UP_WALLET
+    - type: create_flag_event
+      flag_definition_id: AUTO_TOP_UP_WALLET
+      account_id: "Main account"
+      timestamp: start
+      expiry_timestamp: end
+    - type: create_inbound_hard_settlement_instruction
+      amount: "500"
+      event_datetime: start
+      denomination: "SGD"
+      client_transaction_id: "initial_top_up"
+      client_batch_id: "initial_top_up"
+postings_setup:
+  stage_range:
+    start: 50
+    stop: 101
+    step: 25
+    duration: 300
+    timeout: 600
+  pib_template:
+    # Use following postings to resemble normal account activity
+    # 3x Spends
+    # 3x Deposits
+    # 1x Overspend prompting auto top up from nominated account
+    # 1x Overdeposit prompting transfer of excess deposit to nominated account
+    # 1x Refund
+    # 1x Withdrawal to nominated account
+    - client_id: "AsyncCreatePostingInstructionBatch"
+      client_batch_id: "spend_batch_id_1"
+      posting_instructions:
+        - client_transaction_id: "spend_transaction_id_1"
+          outbound_hard_settlement:
+            amount: "10"
+            denomination: "SGD"
+            target_account:
+              account_id: "Main account"
+            advice: False
+          pics: []
+          instruction_details:
+            description: "Spend some money."
+          override:
+            restrictions:
+          transaction_code:
+      batch_details:
+        description: "test_spend_1"
+      dry_run: False
+    - client_id: "AsyncCreatePostingInstructionBatch"
+      client_batch_id: "spend_batch_id_2"
+      posting_instructions:
+        - client_transaction_id: "spend_transaction_id_2"
+          outbound_hard_settlement:
+            amount: "20"
+            denomination: "SGD"
+            target_account:
+              account_id: "Main account"
+            advice: False
+          pics: []
+          instruction_details:
+            description: "Spend some money."
+          override:
+            restrictions:
+          transaction_code:
+      batch_details:
+        description: "test_spend_2"
+      dry_run: False
+    - client_id: "AsyncCreatePostingInstructionBatch"
+      client_batch_id: "spend_batch_id_3"
+      posting_instructions:
+        - client_transaction_id: "spend_transaction_id_3"
+          outbound_hard_settlement:
+            amount: "30"
+            denomination: "SGD"
+            target_account:
+              account_id: "Main account"
+            advice: False
+          pics: []
+          instruction_details:
+            description: "Spend some money."
+          override:
+            restrictions:
+          transaction_code:
+      batch_details:
+        description: "test_spend_3"
+      dry_run: False
+    - client_id: "AsyncCreatePostingInstructionBatch"
+      client_batch_id: "deposit_batch_id_1"
+      posting_instructions:
+        - client_transaction_id: "deposit_transaction_id_1"
+          inbound_hard_settlement:
+            amount: "10"
+            denomination: "SGD"
+            target_account:
+              account_id: "Main account"
+            advice: False
+          pics: []
+          instruction_details:
+            description: "Make a deposit."
+          override:
+            restrictions:
+          transaction_code:
+      batch_details:
+        description: "test_deposit_1"
+      dry_run: False
+    - client_id: "AsyncCreatePostingInstructionBatch"
+      client_batch_id: "deposit_batch_id_2"
+      posting_instructions:
+        - client_transaction_id: "deposit_transaction_id_2"
+          inbound_hard_settlement:
+            amount: "20"
+            denomination: "SGD"
+            target_account:
+              account_id: "Main account"
+            advice: False
+          pics: []
+          instruction_details:
+            description: "Make a deposit."
+          override:
+            restrictions:
+          transaction_code:
+      batch_details:
+        description: "test_deposit_2"
+      dry_run: False
+    - client_id: "AsyncCreatePostingInstructionBatch"
+      client_batch_id: "deposit_batch_id_3"
+      posting_instructions:
+        - client_transaction_id: "deposit_transaction_id_2"
+          inbound_hard_settlement:
+            amount: "30"
+            denomination: "SGD"
+            target_account:
+              account_id: "Main account"
+            advice: False
+          pics: []
+          instruction_details:
+            description: "Make a deposit."
+          override:
+            restrictions:
+          transaction_code:
+      batch_details:
+        description: "test_deposit_3"
+      dry_run: False
+    - client_id: "AsyncCreatePostingInstructionBatch"
+      client_batch_id: "overspend_batch_id"
+      posting_instructions:
+        - client_transaction_id: "overspend_transaction_id"
+          outbound_hard_settlement:
+            amount: "900"
+            denomination: "SGD"
+            target_account:
+              account_id: "Main account"
+            advice: False
+          pics: []
+          instruction_details:
+            description: "Spend over the wallet balance which will trigger an automatic top up from the nominated account."
+          override:
+            restrictions:
+          transaction_code:
+      batch_details:
+        description: "test_overspend"
+      dry_run: False
+    - client_id: "AsyncCreatePostingInstructionBatch"
+      client_batch_id: "overdeposit_batch_id"
+      posting_instructions:
+        - client_transaction_id: "overdeposit_transaction_id"
+          inbound_hard_settlement:
+            amount: "2000"
+            denomination: "SGD"
+            target_account:
+              account_id: "Main account"
+            advice: False
+          pics: []
+          instruction_details:
+            description: "Make an overdeposit which will trigger a transfer of the remainder sum to the nominated account."
+          override:
+            restrictions:
+          transaction_code:
+      batch_details:
+        description: "test_overdeposit"
+      dry_run: False
+    - client_id: "AsyncCreatePostingInstructionBatch"
+      client_batch_id: "refund_batch_id"
+      posting_instructions:
+        - client_transaction_id: "refund_transaction_id"
+          inbound_hard_settlement:
+            amount: "15"
+            denomination: "SGD"
+            target_account:
+              account_id: "Main account"
+            advice: False
+          pics: []
+          instruction_details:
+            description: "Refund on an earlier purchase."
+          override:
+            restrictions:
+          transaction_code:
+      batch_details:
+        refund: "True"
+      dry_run: False
+    - client_id: "AsyncCreatePostingInstructionBatch"
+      client_batch_id: "withdrawal_batch_id"
+      posting_instructions:
+        - client_transaction_id: "withdrawal_transaction_id"
+          outbound_hard_settlement:
+            amount: "50"
+            denomination: "SGD"
+            target_account:
+              account_id: "Main account"
+            advice: False
+          pics: []
+          instruction_details:
+            description: "Withdrawal to nominated account."
+          override:
+            restrictions:
+          transaction_code:
+      batch_details:
+        withdrawal_to_nominated_account: "True"
+      dry_run: False

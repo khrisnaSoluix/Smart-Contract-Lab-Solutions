@@ -1,0 +1,11 @@
+# Copyright @ 2021 Thought Machine Group Limited. All rights reserved.
+---
+type: INTERNAL_ACCOUNT
+id: PRINCIPAL_WRITEOFF_ACCOUNT
+vault_id: PRINCIPAL_WRITEOFF
+payload: |
+  internal_account:
+      id: PRINCIPAL_WRITEOFF
+      product_id: '&{principal_writeoff_account_contract:product_id}'
+      accounting:
+        tside: TSIDE_LIABILITY

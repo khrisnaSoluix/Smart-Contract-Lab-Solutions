@@ -1,0 +1,52 @@
+# Copyright @ 2021 Thought Machine Group Limited. All rights reserved.
+---
+resources:
+  - type: WORKFLOW_DEFINITION_VERSION
+    id: CASA_APPLICATION
+    activate: true
+    payload: |
+      workflow_definition_version:
+          workflow_definition_id: CASA_APPLICATION
+          specification: '@{casa_application.yaml}'
+  - type: WORKFLOW_DEFINITION_VERSION
+    id: CASA_CLOSURE
+    activate: true
+    payload: |
+      workflow_definition_version:
+          workflow_definition_id: CASA_CLOSURE
+          specification: '@{casa_closure.yaml}'
+  - type: WORKFLOW_DEFINITION_VERSION
+    id: CASA_OVERDRAFT_ADJUSTMENT
+    activate: true
+    payload: |
+      workflow_definition_version:
+          workflow_definition_id: CASA_OVERDRAFT_ADJUSTMENT
+          specification: '@{casa_overdraft_adjustment.yaml}'
+  - type: WORKFLOW_DEFINITION_VERSION
+    id: CASA_OVERDRAFT_CANCELLATION
+    activate: true
+    payload: |
+      workflow_definition_version:
+          workflow_definition_id: CASA_OVERDRAFT_CANCELLATION
+          specification: '@{casa_overdraft_cancellation.yaml}'
+  - type: WORKFLOW_DEFINITION_VERSION
+    id: CASA_OVERDRAFT_CREATION
+    activate: true
+    payload: |
+      workflow_definition_version:
+          workflow_definition_id: CASA_OVERDRAFT_CREATION
+          specification: '@{casa_overdraft_creation.yaml}'
+  - type: WORKFLOW_DEFINITION_VERSION
+    id: CASA_INTEREST_PAYMENT_DATE_CHANGE
+    activate: true
+    payload: |
+      workflow_definition_version:
+          workflow_definition_id: CASA_INTEREST_PAYMENT_DATE_CHANGE
+          specification: '@{casa_interest_payment_date_change.yaml}'
+  - type: WORKFLOW_DEFINITION_VERSION
+    id: CASA_TRANSACTION_LIMIT_WARNING
+    activate: true
+    payload: |
+      workflow_definition_version:
+          workflow_definition_id: CASA_TRANSACTION_LIMIT_WARNING
+          specification: '@{../../common/workflows/simple_notification.yaml}'

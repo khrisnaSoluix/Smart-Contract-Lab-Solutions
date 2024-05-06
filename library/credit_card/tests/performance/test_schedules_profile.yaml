@@ -1,0 +1,220 @@
+dataloader_setup:
+  contract_name: "credit_card"
+  dependency_groups:
+    - instances: 1
+      customer:
+        id_base: 900
+      flags: []
+      accounts:
+        - account_id_base: credit_card_
+          account_opening_timestamp: "2021-05-20 09:00:00 UTC"
+          instance_param_vals: &instance_param_vals
+            overlimit: "500"
+            overlimit_opt_in: "True"
+            credit_limit: "2000"
+            payment_due_period: "24"
+            late_repayment_fee: "100"
+            annual_fee: "100"
+            overlimit_fee: "100"
+            transaction_type_fees: "{\"cash_advance\": {\"over_deposit_only\": \"False\", \"percentage_fee\": \"0.05\", \"flat_fee\": \"5\"}}"
+            transaction_type_limits: '{"cash_advance": {"flat": "200"}, "transfer": {"flat": "1000"}}'
+            transaction_references: '{"balance_transfer": []}'
+            transaction_annual_percentage_rate: '{"balance_transfer": {}}'
+            transaction_base_interest_rates: '{"balance_transfer": {}}'
+            interest_free_expiry: "{}"
+            transaction_interest_free_expiry: "{}"
+simulation_setup:
+  start: "2021-05-20 09:00:00 UTC"
+  end: "2021-06-20 00:00:00 UTC"
+  expected_number_of_postings: 30
+  tside: 'ASSET'
+  postings_to_skip:
+    - name: "Initialise balances from post activate code"
+      client_batch_id_regex: "^POST_ACTIVATION.*"
+      from:
+        delta:
+          days: -1
+      to:
+        delta:
+          days: 1
+    - name: "Annual fee charged on day 1"
+      client_batch_id_regex: "^ANNUAL_FEE.*"
+      from:
+        delta:
+          days: -1
+      to:
+        delta:
+          days: 1
+  events:
+    # generic setup events
+    - type: create_account_instruction
+      timestamp: start
+      account_id: "1"
+      product_id: "1"
+      instance_param_vals: {}
+    - type: create_account_instruction
+      timestamp: start
+      account_id: "Main account"
+      product_id: "2"
+      instance_param_vals: *instance_param_vals
+    - type: create_inbound_hard_settlement_instruction
+      amount: "100"
+      event_datetime:
+        delta:
+          days: 1
+      denomination: "GBP"
+      client_transaction_id: "3"
+      client_batch_id: "pay off annual fee"
+    - type: create_outbound_hard_settlement_instruction
+      amount: "1000"
+      event_datetime:
+        delta:
+          days: 5
+      denomination: "GBP"
+      client_transaction_id: "15"
+      client_batch_id: "purchase"
+    - type: create_inbound_hard_settlement_instruction
+      amount: "1000"
+      event_datetime:
+        delta:
+          days: 10
+      denomination: "GBP"
+      client_transaction_id: "20"
+      client_batch_id: "repayment"
+    - type: create_outbound_hard_settlement_instruction
+      amount: "1000"
+      event_datetime:
+        delta:
+          days: 15
+      denomination: "GBP"
+      client_transaction_id: "25"
+      client_batch_id: "purchase"
+expected_outcome:
+  balances:
+    - address: "DEFAULT"
+      asset: "COMMERCIAL_BANK_MONEY"
+      denomination: "GBP"
+      phase: "POSTING_PHASE_COMMITTED"
+      net: "1113.86"
+      net_credits: "1100"
+      net_debits: "2213.86"
+    - address: "PURCHASE_INTEREST_CHARGED"
+      asset: "COMMERCIAL_BANK_MONEY"
+      denomination: "GBP"
+      phase: "POSTING_PHASE_COMMITTED"
+      net: "13.86"
+      net_credits: "0"
+      net_debits: "13.86"
+    - address: "OVERDUE_1"
+      asset: "COMMERCIAL_BANK_MONEY"
+      denomination: "GBP"
+      phase: "POSTING_PHASE_COMMITTED"
+      net: "200"
+      net_credits: "0"
+      net_debits: "200"
+    - address: "PURCHASE_UNPAID"
+      asset: "COMMERCIAL_BANK_MONEY"
+      denomination: "GBP"
+      phase: "POSTING_PHASE_COMMITTED"
+      net: "1000"
+      net_credits: "0"
+      net_debits: "1000"
+    - address: "REVOLVER"
+      asset: "COMMERCIAL_BANK_MONEY"
+      denomination: "GBP"
+      phase: "POSTING_PHASE_COMMITTED"
+      net: "-1"
+      net_credits: "1"
+      net_debits: "0"
+    - address: "LATE_REPAYMENT_FEES_CHARGED"
+      asset: "COMMERCIAL_BANK_MONEY"
+      denomination: "GBP"
+      phase: "POSTING_PHASE_COMMITTED"
+      net: "100"
+      net_credits: "0"
+      net_debits: "100"
+    - address: "PURCHASE_INTEREST_POST_SCOD_UNCHARGED"
+      asset: "COMMERCIAL_BANK_MONEY"
+      denomination: "GBP"
+      phase: "POSTING_PHASE_COMMITTED"
+      net: "0"
+      net_credits: "13.86"
+      net_debits: "13.86"
+    - address: "STATEMENT_BALANCE"
+      asset: "COMMERCIAL_BANK_MONEY"
+      denomination: "GBP"
+      phase: "POSTING_PHASE_COMMITTED"
+      net: "1000"
+      net_credits: "0"
+      net_debits: "1000"
+    - address: "PURCHASE_BILLED"
+      asset: "COMMERCIAL_BANK_MONEY"
+      denomination: "GBP"
+      phase: "POSTING_PHASE_COMMITTED"
+      net: "0"
+      net_credits: "1000"
+      net_debits: "1000"
+    - address: "MAD_BALANCE"
+      asset: "COMMERCIAL_BANK_MONEY"
+      denomination: "GBP"
+      phase: "POSTING_PHASE_COMMITTED"
+      net: "200"
+      net_credits: "0"
+      net_debits: "200"
+    - address: "PURCHASE_INTEREST_PRE_SCOD_UNCHARGED"
+      asset: "COMMERCIAL_BANK_MONEY"
+      denomination: "GBP"
+      phase: "POSTING_PHASE_COMMITTED"
+      net: "0"
+      net_credits: "13.86"
+      net_debits: "13.86"
+    - address: "PURCHASE_CHARGED"
+      asset: "COMMERCIAL_BANK_MONEY"
+      denomination: "GBP"
+      phase: "POSTING_PHASE_COMMITTED"
+      net: "0"
+      net_credits: "2000"
+      net_debits: "2000"
+    - address: "TOTAL_REPAYMENTS_LAST_STATEMENT"
+      asset: "COMMERCIAL_BANK_MONEY"
+      denomination: "GBP"
+      phase: "POSTING_PHASE_COMMITTED"
+      net: "0"
+      net_credits: "1100"
+      net_debits: "1100"
+    - address: "ANNUAL_FEES_CHARGED"
+      asset: "COMMERCIAL_BANK_MONEY"
+      denomination: "GBP"
+      phase: "POSTING_PHASE_COMMITTED"
+      net: "0"
+      net_credits: "100"
+      net_debits: "100"
+    - address: "OUTSTANDING_BALANCE"
+      asset: "COMMERCIAL_BANK_MONEY"
+      denomination: "GBP"
+      phase: "POSTING_PHASE_COMMITTED"
+      net: "1100"
+      net_credits: "1101"
+      net_debits: "2201"
+    - address: "AVAILABLE_BALANCE"
+      asset: "COMMERCIAL_BANK_MONEY"
+      denomination: "GBP"
+      phase: "POSTING_PHASE_COMMITTED"
+      net: "900"
+      net_credits: "2200"
+      net_debits: "3100"
+    - address: "INTERNAL"
+      asset: "COMMERCIAL_BANK_MONEY"
+      denomination: "GBP"
+      phase: "POSTING_PHASE_COMMITTED"
+      net: "-6740.58"
+      net_credits: "14457.44"
+      net_debits: "7716.86"
+    - address: "FULL_OUTSTANDING_BALANCE"
+      asset: "COMMERCIAL_BANK_MONEY"
+      denomination: "GBP"
+      phase: "POSTING_PHASE_COMMITTED"
+      net: "1113.86"
+      net_credits: "1101"
+      net_debits: "2214.86"
+

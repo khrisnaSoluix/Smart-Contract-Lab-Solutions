@@ -1,0 +1,186 @@
+# Copyright @ 2020 Thought Machine Group Limited. All rights reserved.
+---
+name: US Savings Account application
+instance_title: US Savings Account application
+description: A workflow to apply for a US Savings Account
+schema_version: 3.2.0
+definition_version: 1.0.3
+starting_state: capture_account_tier
+end_states:
+  - state: account_opened_successfully
+    result: SUCCESSFUL
+  - state: account_opening_failed
+    result: FAILED
+
+states:
+  capture_account_tier:
+    display_name: Capture account tier
+    entry_actions:
+      save_to_global_state:
+        context_keys:
+          - user_id
+        new_key_value_pairs:
+          customer_id: ${user_id}
+    state_ui:
+      ui_actions:
+        - action_id: account tier
+          event: account_tier_selected
+          display_name: Select account tier
+          ui_inputs:
+            - key: account_tier
+              display_name: Account tier
+              string_input: {}
+              json_definition:
+                value_selector:
+                  values:
+                    - value: "&{US_SAVINGS_ACCOUNT_TIER_UPPER}"
+                      label: "Upper Tier"
+                    - value: "&{US_SAVINGS_ACCOUNT_TIER_MIDDLE}"
+                      label: "Middle Tier"
+                    - value: "&{US_SAVINGS_ACCOUNT_TIER_LOWER}"
+                      label: "Lower Tier"
+    transitions:
+      - to: capture_interest_application_preferences
+        trigger: account_tier_selected
+        description: account tier has been selected
+
+  capture_interest_application_preferences:
+    display_name: Capture interest application preferences for savings account
+    entry_actions:
+      save_to_global_state:
+        context_keys:
+          - account_tier
+    state_ui:
+      ui_actions:
+        - action_id: set_interest_application_day
+          event: interest_application_day_provided
+          display_name: Set interest application day for savings account
+          ui_inputs:
+            - key: interest_application_day
+              display_name: Interest application day (1-31)
+              number_input:
+                default_value: 1
+                min_value: 1
+                max_value: 31
+                precision: 0
+                step: 1
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - interest_application_day
+    transitions:
+      - to: create_account
+        description: Interest application day captured
+        trigger: interest_application_day_provided
+
+  create_account:
+    display_name: Create the account
+    description: Create the requested account by sending a request to core_api accounts.CreateAccount
+    expected_context_keys:
+      - interest_application_day
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/accounts
+        method: POST
+        arguments:
+          request_id: generate_uuid()
+          account:
+            id: generate_uuid()
+            product_id: us_savings_account
+            status: ACCOUNT_STATUS_PENDING
+            stakeholder_ids:
+              - ${customer_id}
+            permitted_denominations:
+              - "USD"
+            instance_param_vals:
+              interest_application_day: ${interest_application_day}
+            details: {}
+        response_fields:
+          - key_name: account_id
+            response_json_path: id
+            extract_singleton_element: true
+        response_event: account_created
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          -  account_id
+    transitions:
+      - to: create_account_tier_flag
+        description: Account created
+        trigger: account_created
+
+  create_account_tier_flag:
+    display_name: Create account tier flag
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/flags
+        method: POST
+        arguments:
+          flag:
+            flagDefinitionId: ${account_tier}
+            accountId: ${account_id}
+            description: Setting savings tier
+          requestId: generate_uuid()
+        response_event: account_tier_flag_created
+    transitions:
+      - to: open_account
+        trigger: account_tier_flag_created
+
+  open_account:
+    display_name: Open account
+    description: Open account
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/accounts/{account.id}
+        method: PUT
+        arguments:
+          request_id: generate_uuid()
+          account:
+            id: ${account_id}
+            status: ACCOUNT_STATUS_OPEN
+          update_mask: status
+        response_event: account_opened
+    transitions:
+      - to: account_opened_successfully
+        trigger: account_open_successful
+        auto_trigger_conditions:
+          streaming_api_conditions:
+            topic: vault.core_api.v1.accounts.account_update.events
+            message_content:
+              - path: "['*'].account_update.status"
+                values:
+                  - ACCOUNT_UPDATE_STATUS_COMPLETED
+                quantifier: any
+      - to: account_opening_failed
+        trigger: account_open_failure
+        auto_trigger_conditions:
+          streaming_api_conditions:
+            topic: vault.core_api.v1.accounts.account_update.events
+            message_content:
+              - path: "['*'].account_update.status"
+                values:
+                  - ACCOUNT_UPDATE_STATUS_COMPLETED
+                  - ACCOUNT_UPDATE_STATUS_PENDING_EXECUTION
+                quantifier: none
+            response_fields:
+            - key_name: failure_reason
+              response_json_path: "['*'].account_update.failure_reason"
+              extract_singleton_element: true
+        actions:
+          save_to_global_state:
+            new_key_value_pairs:
+              failure_message: Account activation failed - ${failure_reason}
+
+  account_opened_successfully:
+    display_name: Account opened successfully
+
+  account_opening_failed:
+    display_name: Account opening failed
+    state_ui:
+      ui_panels:
+        - panel_id: account_opening_failure_panel
+          display_name: Account opening failed
+          json_definition:
+            text:
+              value: ${failure_message}
+              is_error: true

@@ -1,0 +1,455 @@
+# Copyright @ 2020 Thought Machine Group Limited. All rights reserved.
+---
+name: Adjustment Creation
+instance_title: Adjustment Creation
+description: A workflow to make an adjustment to a customer's account by creating a credit or debit transfer between the bank internal account and the customer's account.
+schema_version: 3.2.0
+definition_version: 1.2.0
+
+starting_state: retrieve_permitted_denominations
+end_states:
+  - state: success
+    result: SUCCESSFUL
+  - state: adjustment_rejected
+    result: FAILED
+  - state: adjustment_unknown
+    result: FAILED
+
+states:
+  retrieve_permitted_denominations:
+    display_name: Retrieve customer account permitted denominations
+    description: Retrieve customer account permitted denominations and save account IDs including bank internal account
+    expected_context_keys:
+      - account_id
+    entry_actions:
+      save_to_global_state:
+        new_key_value_pairs:
+          customer_account_id: ${account_id}
+          bank_internal_account_id: ${bank_internal_account_id:1}
+      vault_callback:
+        path: core-api/v1/accounts/{id}
+        method: GET
+        arguments:
+          id: ${account_id}
+        response_event: account_received
+        response_fields:
+          - key_name: permitted_denominations
+            response_json_path: permitted_denominations
+            extract_singleton_element: true
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - permitted_denominations
+    transitions:
+      - to: retrieve_customer_account_balance
+        trigger: account_received
+
+  retrieve_customer_account_balance:
+    display_name: Retrieve customer account balance
+    description: Retrieve customer account balance and denominations
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/balances/live
+        method: GET
+        arguments:
+          account_ids: 
+            - ${customer_account_id}
+          page_size: 100
+        response_event: balance_received
+        response_fields:
+          - key_name: denominations
+            response_json_path: balances[?(@.phase == 'POSTING_PHASE_COMMITTED' & @.account_address == 'DEFAULT')].denomination
+          - key_name: balances
+            response_json_path: balances[?(@.phase == 'POSTING_PHASE_COMMITTED' & @.account_address == 'DEFAULT')].amount
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - denominations
+          - balances
+    transitions:
+      - to: process_customer_denomination_balances
+        trigger: balance_received
+
+  process_customer_denomination_balances:
+    display_name: Process customer account denomination balances
+    entry_actions:
+      save_to_global_state:
+        new_key_value_pairs:
+          current_state: 'process_customer_denomination_balances'
+    type: transform
+    transform_ref: process_denomination_balances
+    exit_actions:
+      add_or_replace_global_ui_panels:
+        - panel_id: customer_balance
+          display_name: Customer account balance
+          json_definition:
+            text:
+              value: ${processed_balance} ${processed_denomination}
+    transitions:
+      - to: select_adjustment_direction
+        trigger: denomination_balances_processed
+        actions:
+          save_to_global_state:
+            new_key_value_pairs:
+              customer_account_denomination: ${processed_denomination}
+
+  select_adjustment_direction:
+    display_name: Choose whether to credit or debit a customer account
+    state_ui:
+      ui_actions:
+        - action_id: create_credit_request
+          event: create_credit_request
+          display_name: Credit customer account
+        - action_id: create_debit_request
+          event: create_debit_request
+          display_name: Debit customer account
+    transitions:
+      - to: setup_credit_adjustment
+        trigger: create_credit_request
+      - to: setup_debit_adjustment
+        trigger: create_debit_request
+
+  setup_credit_adjustment:
+    display_name: Setup credit adjustment
+    entry_actions:
+      save_to_global_state:
+        new_key_value_pairs:
+          current_state: 'setup_credit_adjustment'
+    type: transform
+    transform_ref: generate_timestamp
+    exit_actions:
+      save_to_global_state:
+        new_key_value_pairs:
+          source_account_id: ${bank_internal_account_id}
+          target_account_id: ${customer_account_id}
+          effective_datetime: ${effective_datetime}
+          client_batch_id: generate_uuid()
+          adjustment_direction: credit
+      add_or_replace_global_ui_panels:
+      - panel_id: source_account
+        display_name: Bank internal account (source)
+        json_definition:
+          account:
+            account_id: ${bank_internal_account_id}
+      - panel_id: destination_account
+        display_name: Customer account (destination)
+        json_definition:
+          account:
+            account_id: ${customer_account_id}
+    transitions:
+      - to: capture_posting_instruction_details
+        trigger: credit_adjustment_timestamp_generated
+
+  setup_debit_adjustment:
+    display_name: Setup debit adjustment
+    entry_actions:
+      save_to_global_state:
+        new_key_value_pairs:
+          current_state: 'setup_debit_adjustment'
+    type: transform
+    transform_ref: generate_timestamp
+    exit_actions:
+      save_to_global_state:
+        new_key_value_pairs:
+          source_account_id: ${customer_account_id}
+          target_account_id: ${bank_internal_account_id}
+          effective_datetime: ${effective_datetime}
+          client_batch_id: generate_uuid()
+          adjustment_direction: debit
+      add_or_replace_global_ui_panels:
+      - panel_id: source_account
+        display_name: Customer account (source)
+        json_definition:
+          account:
+            account_id: ${customer_account_id}
+      - panel_id: destination_account
+        display_name: Bank internal account (destination)
+        json_definition:
+          account:
+            account_id: ${bank_internal_account_id}
+    transitions:
+      - to: capture_posting_instruction_details
+        trigger: debit_adjustment_timestamp_generated
+
+  capture_posting_instruction_details:
+    display_name: Enter adjustment details
+    state_ui:
+      ui_actions:
+        - action_id: enter_posting_details
+          event: posting_details_entered
+          display_name: Enter adjustment details
+          ui_inputs:
+            - key: payment_amount
+              string_input:
+                regex: ^\s*(?=.*[1-9])\d*(?:\.\d{1,2})?\s*$
+              display_name: Amount (cannot be negative or more than 2 decimal places)
+            - key: note
+              display_name: Note
+              string_input:
+              json_definition:
+                text:
+                  multiline: true
+    transitions:
+      - to: confirm_adjustment_details
+        trigger: posting_details_entered
+        actions:
+          save_to_global_state:
+            new_key_value_pairs:
+              payment_amount: ${payment_amount}
+              note: ${note}
+
+  confirm_adjustment_details:
+    display_name: Confirm adjustment details
+    state_ui:
+      ui_panels:
+        - panel_id: adjustment_details
+          display_name: Adjustment details
+          json_definition:
+            key_value_table:
+              items:
+                Amount: ${payment_amount}
+                Direction: ${adjustment_direction}
+                Denomination: ${customer_account_denomination}
+                Note: ${note}
+      ui_actions:
+        - action_id: confirm_adjustment_details
+          event: transfer_details_confirmed
+          display_name: Confirm
+        - action_id: reject_adjustment_details
+          event: transfer_details_rejected
+          display_name: Reject
+    transitions:
+      - to: make_request
+        trigger: transfer_details_confirmed
+      - to: select_adjustment_direction
+        trigger: transfer_details_rejected
+
+  make_request:
+    display_name: Make posting instruction batch
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/posting-instruction-batches:asyncCreate
+        method: POST
+        arguments:
+          request_id: generate_uuid()
+          posting_instruction_batch:
+            client_id: AsyncCreatePostingInstructionBatch
+            client_batch_id: ${client_batch_id}
+            posting_instructions:
+              - client_transaction_id: generate_uuid()
+                transfer:
+                  amount: ${payment_amount}
+                  denomination: ${customer_account_denomination}
+                  debtor_target_account:
+                    account_id: ${source_account_id}
+                  creditor_target_account:
+                    account_id: ${target_account_id}
+                instruction_details:
+                  note: ${note}
+            batch_details:
+              note: ${note}
+            value_timestamp: ${effective_datetime}
+        response_event: make_request_response
+    transitions:
+      - to: retrieve_final_customer_account_balance
+        trigger: successful_balance_transfer
+        description: Posting success
+        auto_trigger_conditions:
+          streaming_api_conditions:
+            topic: vault.api.v1.postings.posting_instruction_batch.created
+            message_content:
+              - path: "posting_instruction_batch.status"
+                values:
+                  - POSTING_INSTRUCTION_BATCH_STATUS_ACCEPTED
+                quantifier: any
+            response_fields:
+              - key_name: posting_instruction_batch_id
+                response_json_path: "posting_instruction_batch.id"
+      - to: check_rejection_reason
+        trigger: rejected_balance_transfer
+        description: Posting failed
+        auto_trigger_conditions:
+          streaming_api_conditions:
+            topic: vault.api.v1.postings.posting_instruction_batch.created
+            message_content:
+              - path: "posting_instruction_batch.status"
+                values:
+                  - POSTING_INSTRUCTION_BATCH_STATUS_REJECTED
+                quantifier: any
+            response_fields:
+            - key_name: transfer_status
+              response_json_path: posting_instruction_batch.status
+              extract_singleton_element: true
+            - key_name: posting_violation
+              response_json_path: posting_instruction_batch.posting_instructions[0].posting_violations
+              extract_singleton_element: true
+            - key_name: account_violation
+              response_json_path: posting_instruction_batch.posting_instructions[0].account_violations
+              extract_singleton_element: true
+            - key_name: restriction_violation
+              response_json_path: posting_instruction_batch.posting_instructions[0].restriction_violations
+              extract_singleton_element: true
+            - key_name: contract_violation
+              response_json_path: posting_instruction_batch.posting_instructions[0].contract_violations
+              extract_singleton_element: true
+
+  check_rejection_reason:
+    display_name: Check rejection reason
+    type: transform
+    transform_ref: check_rejection_reason
+    transitions:
+      - to: adjustment_rejected
+        trigger: transfer_rejected
+      - to: adjustment_unknown
+        trigger: transfer_unknown
+
+  retrieve_final_customer_account_balance:
+    display_name: Retrieve final customer account balance
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/balances/live
+        method: GET
+        arguments:
+          account_ids: 
+            - ${customer_account_id}
+          page_size: 100
+        response_event: final_balance_received
+        response_fields:
+          - key_name: denominations
+            response_json_path: balances[?(@.phase == 'POSTING_PHASE_COMMITTED' & @.account_address == 'DEFAULT')].denomination
+          - key_name: balances
+            response_json_path: balances[?(@.phase == 'POSTING_PHASE_COMMITTED' & @.account_address == 'DEFAULT')].amount
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - denominations
+          - balances
+    transitions:
+      - to: process_final_customer_denomination_balances
+        trigger: final_balance_received
+
+  process_final_customer_denomination_balances:
+    display_name: Process customer account denomination balances
+    entry_actions:
+      save_to_global_state:
+        new_key_value_pairs:
+          current_state: 'process_final_customer_denomination_balances'
+    type: transform
+    transform_ref: process_denomination_balances
+    exit_actions:
+      add_or_replace_global_ui_panels:
+        - panel_id: customer_balance
+          display_name: Updated customer account balance
+          json_definition:
+            text:
+              value: ${processed_balance} ${processed_denomination}
+    transitions:
+      - to: success
+        trigger: final_denomination_balances_processed
+
+  success:
+    display_name: Adjustment successful
+    state_ui:
+      ui_panels:
+        - panel_id: posting_instruction_information
+          display_name: Posting instruction information
+          json_definition:
+            key_value_table:
+              items:
+                Amount: ${payment_amount}
+                Denomination: ${customer_account_denomination}
+                Direction: ${adjustment_direction}
+                Client batch ID: ${client_batch_id}
+                Note: ${note}
+
+  adjustment_rejected:
+    display_name: Adjustment unsuccessful
+    state_ui:
+      ui_panels:
+        - panel_id: transfer_status
+          display_name: Transfer status
+          json_definition:
+            text:
+              value: ${transfer_status}
+              is_error: true
+        - panel_id: violation
+          display_name: ${violation_type} violations
+          json_definition:
+            key_value_table:
+              items:
+                Account ID: ${violation_account_id}
+                Type: ${violation_type_subtype}
+
+  adjustment_unknown:
+    display_name: Adjustment status unknown
+    state_ui:
+      ui_panels:
+        - panel_id: transfer_status
+          display_name: Transfer status
+          json_definition:
+            text:
+              value: ${transfer_status}
+              is_error: true
+
+transforms:
+  process_denomination_balances: |
+    # check if balances (and denominations) are present (live balance updates are generated async on a best efforts basis)
+    denominations = json.loads(context['denominations'])
+    balances = json.loads(context['balances'])
+    if not balances or not denominations:
+      den = json.loads(context['permitted_denominations'])[0]
+      bal = "balance temporarily unavailable"
+    else:
+      den = denominations[0]
+      bal = balances[0]
+
+    trigger = ''
+    current_state = context['current_state']
+    if current_state == 'process_customer_denomination_balances':
+      trigger = 'denomination_balances_processed'
+    elif current_state == 'process_final_customer_denomination_balances':
+      trigger = 'final_denomination_balances_processed'
+
+    return [trigger, {'processed_denomination': den, 'processed_balance': bal}]
+
+  generate_timestamp: |
+    trigger = ''
+    current_state = context['current_state']
+    if current_state == 'setup_debit_adjustment':
+      trigger = 'debit_adjustment_timestamp_generated'
+    elif current_state == 'setup_credit_adjustment':
+      trigger = 'credit_adjustment_timestamp_generated'
+
+    return [trigger, {'effective_datetime': str(datetime.strftime(datetime.utcnow(), '%Y-%m-%dT%H:%M:%SZ'))}]
+
+  check_rejection_reason: |
+    status = context['transfer_status']
+
+    if status == 'POSTING_INSTRUCTION_BATCH_STATUS_REJECTED':
+      posting_violation = json.loads(context['posting_violation'])
+      account_violation = json.loads(context['account_violation'])
+      restriction_violation = json.loads(context['restriction_violation'])
+      contract_violation = json.loads(context['contract_violation'])
+      if posting_violation:
+        violation_type = "Posting"
+        violation_account_id = str(posting_violation[0]["account_id"])
+        violation_type_subtype = str(posting_violation[0]["type"])
+      elif account_violation:
+        violation_type = "Account"
+        violation_account_id = str(account_violation[0]["account_id"])
+        violation_type_subtype = str(account_violation[0]["type"])
+      elif restriction_violation:
+        violation_type = "Restriction"
+        violation_account_id = str(restriction_violation[0]["account_id"])
+        violation_type_subtype = str(restriction_violation[0]["type"])
+      elif contract_violation:
+        violation_type = "Contract"
+        violation_account_id = str(contract_violation[0]["account_id"])
+        violation_type_subtype = str(contract_violation[0]["type"])
+      else:
+        violation_type = "No"
+        violation_account_id = "None"
+        violation_type_subtype = "None"
+      return ['transfer_rejected', {'transfer_status': status, 'violation_type': violation_type, 'violation_account_id': violation_account_id, 'violation_type_subtype': violation_type_subtype}]
+    else:
+      return ['transfer_unknown', {'transfer_status': status}]

@@ -1,0 +1,124 @@
+# Copyright @ 2021 Thought Machine Group Limited. All rights reserved.
+---
+type: SMART_CONTRACT_VERSION
+id: us_checking_account_v3
+# In the parameter values below, `DEFAULT_TIER` is intentionally not a CLU dependency.
+# This illustrates the defaulting behaviour as this flag doesn't need to be applied for an
+# account to inherit default values.
+payload: |
+  product_version:
+      display_name: US Checking Account V3
+      code: '@{us_checking_account_v3_rendered.py}'
+      product_id: us_checking_account_v3
+      params:
+        - name: denomination
+          value: 'USD'
+        - name: additional_denominations
+          value: '[]'
+        - name: tier_names
+          value: '["DEFAULT_TIER"]'
+        - name: deposit_interest_application_frequency
+          value: 'monthly'
+        - name: deposit_interest_rate_tiers
+          value: '{
+                "tier1": "0"
+            }'
+        - name: deposit_tier_ranges
+          value: '{
+                "tier1": {"min": "0"}
+            }'
+        - name: standard_overdraft_per_transaction_fee
+          value: '5.00'
+        - name: standard_overdraft_daily_fee
+          value: '0'
+        - name: standard_overdraft_fee_cap
+          value: '0'
+        - name: interest_accrual_days_in_year
+          value: '365'
+        - name: interest_accrual_hour
+          value: '0'
+        - name: interest_accrual_minute
+          value: '0'
+        - name: interest_accrual_second
+          value: '0'
+        - name: interest_application_hour
+          value: '0'
+        - name: interest_application_minute
+          value: '1'
+        - name: interest_application_second
+          value: '0'
+        - name: maintenance_fee_monthly
+          value: '{
+                "DEFAULT_TIER": "10"
+            }'
+        - name: promotional_maintenance_fee_monthly
+          value: '{
+                "DEFAULT_TIER": "0"
+            }'
+        - name: minimum_balance_threshold
+          value: '{
+                "DEFAULT_TIER": "1500"
+            }'
+        - name: minimum_combined_balance_threshold
+          value: '{
+                "DEFAULT_TIER": "5000"
+            }'
+        - name: minimum_deposit_threshold
+          value: '{
+                "DEFAULT_TIER": "500"
+            }'
+        - name: minimum_balance_fee
+          value: '0.00'
+        - name: account_inactivity_fee
+          value: '0.00'
+        - name: fees_application_day
+          value: '1'
+        - name: fees_application_hour
+          value: '0'
+        - name: fees_application_minute
+          value: '1'
+        - name: fees_application_second
+          value: '0'
+        - name: accrued_interest_receivable_account
+          value: '&{ACCRUED_INTEREST_RECEIVABLE_ACCOUNT}'
+        - name: interest_received_account
+          value: '&{INTEREST_RECEIVED_ACCOUNT}'
+        - name: accrued_interest_payable_account
+          value: '&{ACCRUED_INTEREST_PAYABLE_ACCOUNT}'
+        - name: interest_paid_account
+          value: '&{INTEREST_PAID_ACCOUNT}'
+        - name: overdraft_fee_income_account
+          value: '&{OVERDRAFT_FEE_INCOME_ACCOUNT}'
+        - name: overdraft_fee_receivable_account
+          value: '&{OVERDRAFT_FEE_RECEIVABLE_ACCOUNT}'
+        - name: overdraft_protection_sweep_hour
+          value: '0'
+        - name: overdraft_protection_sweep_minute
+          value: '1'
+        - name: overdraft_protection_sweep_second
+          value: '0'
+        - name: maintenance_fee_income_account
+          value: '&{MAINTENANCE_FEE_INCOME_ACCOUNT}'
+        - name: minimum_balance_fee_income_account
+          value: '&{MINIMUM_BALANCE_FEE_INCOME_ACCOUNT}'
+        - name: inactivity_fee_income_account
+          value: '&{INACTIVITY_FEE_INCOME_ACCOUNT}'
+        - name: maximum_daily_atm_withdrawal_limit
+          value: '{
+                "DEFAULT_TIER": "0"
+            }'
+        - name: transaction_code_to_type_map
+          value: '{"6011": "ATM withdrawal", "3123": "eCommerce"}'
+        - name: transaction_types
+          value: '["purchase", "ATM withdrawal", "transfer", "eCommerce"]'
+        - name: autosave_rounding_amount
+          value: '1.00'
+        - name: savings_sweep_fee
+          value: '0'
+        - name: savings_sweep_fee_cap
+          value: '-1'
+        - name: savings_sweep_transfer_unit
+          value: '0'
+        - name: optional_standard_overdraft_coverage
+          value: '["ATM withdrawal", "eCommerce"]'
+  migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_ADD_VERSION_APPLY_NEW_USERS

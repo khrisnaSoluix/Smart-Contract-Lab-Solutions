@@ -1,0 +1,72 @@
+# Copyright @ 2021 Thought Machine Group Limited. All rights reserved.
+---
+pack_version: 1.0.0
+pack_name: GPL Offset Mortgage
+resource_ids:
+  # --------- SMART CONTRACTS
+  # remove Current Account or Savings Account if only one is used
+  - mortgage
+  - current_account
+  - savings_account
+
+  # --------- SUPERVISOR SMART CONTRACTS
+  - offset_mortgage_supervisor_contract
+
+  # --------- SUPERVISOR SMART CONTRACT VERSIONS
+  - offset_mortgage_supervisor_contract_version
+
+  # --------- ACCOUNT SCHEDULE TAGS
+  - MORTGAGE_ACCRUE_INTEREST_AST
+  - OFFSET_MORTGAGE_ACCRUE_OFFSET_INTEREST_AST
+
+  # --------- INTERNAL ACCOUNT SMART CONTRACTS
+  - accrued_interest_receivable_account_contract
+  - capitalised_interest_receivable_account_contract
+  - capitalised_interest_received_account_contract
+  - early_repayment_fee_income_account_contract
+  - interest_received_account_contract
+  - penalty_interest_received_account_contract
+  - late_repayment_fee_income_account_contract
+  - overpayment_allowance_fee_income_account_contract
+  - interest_paid_account_contract
+  - overdraft_interest_receivable_account_contract
+  - unarranged_overdraft_fee_receivable_account_contract
+  - accrued_interest_payable_account_contract
+  - annual_maintenance_fee_income_account_contract
+  - excess_fee_income_account_contract
+  - inactivity_fee_income_account_contract
+  - minimum_balance_fee_income_account_contract
+  - monthly_maintenance_fee_income_account_contract
+  - overdraft_interest_received_account_contract
+  - unarranged_overdraft_fee_income_account_contract
+
+
+  # --------- INTERNAL ACCOUNTS
+  - ACCRUED_INTEREST_RECEIVABLE_ACCOUNT
+  - CAPITALISED_INTEREST_RECEIVABLE_ACCOUNT
+  - CAPITALISED_INTEREST_RECEIVED_ACCOUNT
+  - EARLY_REPAYMENT_FEE_INCOME_ACCOUNT
+  - INTEREST_RECEIVED_ACCOUNT
+  - PENALTY_INTEREST_RECEIVED_ACCOUNT
+  - LATE_REPAYMENT_FEE_INCOME_ACCOUNT
+  - OVERPAYMENT_ALLOWANCE_FEE_INCOME_ACCOUNT
+  - INTEREST_PAID_ACCOUNT
+  - OVERDRAFT_INTEREST_RECEIVABLE_ACCOUNT
+  - UNARRANGED_OVERDRAFT_FEE_RECEIVABLE_ACCOUNT
+  - ACCRUED_INTEREST_PAYABLE_ACCOUNT
+  - ANNUAL_MAINTENANCE_FEE_INCOME_ACCOUNT
+  - EXCESS_FEE_INCOME_ACCOUNT
+  - INACTIVITY_FEE_INCOME_ACCOUNT
+  - MINIMUM_BALANCE_FEE_INCOME_ACCOUNT
+  - MONTHLY_MAINTENANCE_FEE_INCOME_ACCOUNT
+  - OVERDRAFT_INTEREST_RECEIVED_ACCOUNT
+  - UNARRANGED_OVERDRAFT_FEE_INCOME_ACCOUNT
+
+  # --------- FLAG DEFINITIONS
+  # Common
+  - ACCOUNT_DELINQUENT
+  - REPAYMENT_HOLIDAY
+  - ACCOUNT_DORMANT
+  - LOWER_TIER
+  - MIDDLE_TIER
+  - UPPER_TIER

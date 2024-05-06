@@ -1,0 +1,19 @@
+# Copyright @ 2021 Thought Machine Group Limited. All rights reserved.
+---
+resources:
+  - type: SUPERVISOR_CONTRACT
+    id: savings_sweep_supervisor_contract
+    vault_id: savings_sweep_supervisor_contract
+    payload: |
+      supervisor_contract:
+          id: savings_sweep_supervisor_contract
+          display_name: Savings Sweep Supervisor Contract
+  - type: SUPERVISOR_CONTRACT_VERSION
+    id: savings_sweep_supervisor_contract_version
+    vault_id: savings_sweep_supervisor_contract_version
+    payload: |
+      supervisor_contract_version:
+          supervisor_contract_id: '&{savings_sweep_supervisor_contract}'
+          display_name: Savings Sweep Supervisor Contract
+          description: Savings Sweep Supervisor Contract
+          code: '@{savings_sweep.py}'

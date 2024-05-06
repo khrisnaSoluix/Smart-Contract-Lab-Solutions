@@ -1,0 +1,55 @@
+# Copyright @ 2023 Thought Machine Group Limited. All rights reserved.
+---
+pack_version: 1.0.0
+pack_name: GPL Current Account
+resource_ids:
+  # --------- SMART CONTRACTS
+  - current_account
+
+  # --------- FLAG DEFINITIONS
+  # Common
+  - ACCOUNT_DORMANT
+  - LOWER_TIER
+  - MIDDLE_TIER
+  - UPPER_TIER
+
+  # --------- ACCOUNT SCHEDULE TAGS
+  - CURRENT_ACCOUNT_ACCRUE_INTEREST_AST
+  - CURRENT_ACCOUNT_APPLY_ANNUAL_FEE_AST
+  - CURRENT_ACCOUNT_APPLY_INACTIVITY_FEE_AST
+  - CURRENT_ACCOUNT_APPLY_INTEREST_AST
+  - CURRENT_ACCOUNT_APPLY_MINIMUM_BALANCE_FEE_AST
+  - CURRENT_ACCOUNT_APPLY_MONTHLY_FEE_AST
+  - CURRENT_ACCOUNT_APPLY_UNARRANGED_OVERDRAFT_FEE_AST
+
+  # --------- INTERNAL ACCOUNT SMART CONTRACTS
+  - accrued_interest_receivable_account_contract
+  - interest_paid_account_contract
+  - overdraft_interest_receivable_account_contract
+  - unarranged_overdraft_fee_receivable_account_contract
+  - accrued_interest_payable_account_contract
+  - annual_maintenance_fee_income_account_contract
+  - excess_fee_income_account_contract
+  - inactivity_fee_income_account_contract
+  - interest_received_account_contract
+  - minimum_balance_fee_income_account_contract
+  - monthly_maintenance_fee_income_account_contract
+  - overdraft_interest_received_account_contract
+  - unarranged_overdraft_fee_income_account_contract
+  - pnl_account_contract
+
+  # --------- INTERNAL ACCOUNTS
+  - ACCRUED_INTEREST_RECEIVABLE_ACCOUNT
+  - INTEREST_PAID_ACCOUNT
+  - OVERDRAFT_INTEREST_RECEIVABLE_ACCOUNT
+  - UNARRANGED_OVERDRAFT_FEE_RECEIVABLE_ACCOUNT
+  - ACCRUED_INTEREST_PAYABLE_ACCOUNT
+  - ANNUAL_MAINTENANCE_FEE_INCOME_ACCOUNT
+  - EXCESS_FEE_INCOME_ACCOUNT
+  - INACTIVITY_FEE_INCOME_ACCOUNT
+  - INTEREST_RECEIVED_ACCOUNT
+  - MINIMUM_BALANCE_FEE_INCOME_ACCOUNT
+  - MONTHLY_MAINTENANCE_FEE_INCOME_ACCOUNT
+  - OVERDRAFT_INTEREST_RECEIVED_ACCOUNT
+  - UNARRANGED_OVERDRAFT_FEE_INCOME_ACCOUNT
+  - PNL_ACCOUNT

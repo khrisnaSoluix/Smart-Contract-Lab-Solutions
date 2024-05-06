@@ -1,0 +1,11 @@
+# Copyright @ 2021 Thought Machine Group Limited. All rights reserved.
+---
+type: INTERNAL_ACCOUNT
+id: EARLY_CLOSURE_FEE_INCOME_ACCOUNT
+vault_id: EARLY_CLOSURE_FEE_INCOME
+payload: |
+  internal_account:
+      id: EARLY_CLOSURE_FEE_INCOME
+      product_id: '&{early_closure_fee_income_account_contract:product_id}'
+      accounting:
+        tside: TSIDE_LIABILITY

@@ -1,0 +1,762 @@
+# Copyright @ 2021 Thought Machine Group Limited. All rights reserved.
+---
+name: Loan Top Up
+instance_title: Loan Top Up
+description: |
+  Top up an existing loan account,
+  by setting up a new loan disbursement,
+  with loan terms specific to the payment.
+schema_version: 3.2.0
+definition_version: 1.0.1
+starting_state: confirm_product_id
+end_states:
+  - state: top_up_application_success
+    result: SUCCESSFUL
+  - state: account_is_not_open_error
+    result: FAILED
+  - state: account_update_failed
+    result: FAILED
+  - state: top_up_application_rejected
+    result: FAILED
+  - state: account_details_changed_error
+    result: FAILED
+
+states:
+  confirm_product_id:
+    display_name: Confirm product id
+    description: Confirm product id by checking context or defaulting to 'loan'
+    expected_context_keys:
+      - user_id
+      - account_id
+    type: transform
+    transform_ref: confirm_product_id
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - user_id
+          - account_id
+          - product_id
+    transitions:
+      - to: retrieve_account_details
+        trigger: product_id_confirmed
+
+  retrieve_account_details:
+    display_name: Retrieve account details
+    description: Retrieve account details
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/accounts/{id}
+        method: GET
+        arguments:
+          id: ${account_id}
+          fields_to_include:
+            - INCLUDE_FIELD_DERIVED_INSTANCE_PARAM_VALS
+        response_event: account_details_retrieved
+        response_fields:
+          - key_name: account_status
+            response_json_path: status
+            extract_singleton_element: true
+          - key_name: instance_param_vals
+            response_json_path: instance_param_vals
+            extract_singleton_element: true
+          - key_name: derived_instance_param_vals
+            response_json_path: derived_instance_param_vals
+            extract_singleton_element: true
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - account_status
+          - instance_param_vals
+          - derived_instance_param_vals
+    transitions:
+      - to: process_account_details
+        trigger: account_details_retrieved
+        description: Account details retrieved
+
+  process_account_details:
+    display_name: Process account details
+    type: transform
+    transform_ref: process_account_details
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - loan_amount_current
+          - loan_term_current
+          - fixed_interest_loan
+          - fixed_interest_rate_current
+          - variable_rate_adjustment_current
+          - remaining_term_months
+          - outstanding_payments
+          - remaining_principal
+    transitions:
+      - to: account_is_not_open_error
+        trigger: account_is_not_open
+      - to: warning_outstanding_payments
+        trigger: has_outstanding_payments
+      - to: query_contract_parameters
+        trigger: no_outstanding_payments
+
+  warning_outstanding_payments:
+    display_name: Account has outstanding payments
+    state_ui:
+      ui_panels:
+        - panel_id: outstanding_payments
+          display_name: Account has outstanding payments
+          json_definition:
+            text:
+              value: This account has outstanding overdues and fees of ${outstanding_payments}. Are you sure you want to proceed?
+      ui_actions:
+        - action_id: proceed
+          event: proceed_with_topup
+          display_name: Proceed with topup
+    transitions:
+      - to: query_contract_parameters
+        trigger: proceed_with_topup
+
+  query_contract_parameters:
+    display_name: Query loan parameters
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/product-versions
+        method: GET
+        arguments:
+          product_id: ${product_id}
+          view: PRODUCT_VERSION_VIEW_INCLUDE_PARAMETERS
+          page_size: 30
+          page_token: ${next_page_token:}
+        response_event: contract_versions_returned
+        response_fields:
+          - key_name: product_versions
+            response_json_path: product_versions
+            extract_singleton_element: true
+          - key_name: next_page_token
+            response_json_path: next_page_token
+            extract_singleton_element: true
+    transitions:
+      - to: extract_current_parameter_details
+        trigger: contract_versions_returned
+        description: Contracts returned
+
+  extract_current_parameter_details:
+    display_name: Extract parameters
+    expected_context_keys:
+      - next_page_token
+      - product_versions
+    type: transform
+    transform_ref: extract_current_parameter_details
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - min_loan_amount
+          - max_loan_amount
+          - loan_amount_step
+          - min_loan_term
+          - max_loan_term
+          - loan_term_step
+          - max_top_up_amount
+          - min_top_up_amount
+          - min_term_top_up
+          - max_term_top_up
+          - loan_denomination
+          - variable_interest_rate
+          - rate_input_display
+    transitions:
+      - to: request_top_up
+        trigger: parameters_extracted
+        description: Parameters extracted
+      - to: query_contract_parameters
+        trigger: current_product_version_not_found
+        description: Fetch more product versions
+      - to: top_up_application_rejected
+        trigger: no_valid_contract
+        description: No valid contract
+
+  request_top_up:
+    display_name: Request loan top-up
+    state_ui:
+      ui_actions:
+        - action_id: loan_details
+          event: loan_details_given
+          display_name: Choose the terms of the loan top-up
+          ui_inputs:
+            - key: reason_for_loan
+              display_name: Reason for loan top-up
+              string_input: {}
+            - key: desired_principal
+              display_name: "Enter top-up loan amount: ${min_top_up_amount} - ${max_top_up_amount} (${loan_denomination}), adding whole numbers, i.e. ${min_top_up_amount} + 1, 2, 3, ..."
+              number_input:
+                min_value: 0
+                step: 0.01
+                precision: 2
+            - key: loan_term_extension
+              display_name: Enter loan term extension (${min_term_top_up} - ${max_term_top_up} months) ... (${remaining_term_months} months currently remaining)
+              number_input:
+                min_value: 0
+                step: 1
+            - key: new_interest_rate
+              display_name: ${rate_input_display}
+              number_input:
+                min_value: -1
+                max_value: 1
+                precision: 4
+                step: 0.0001
+    transitions:
+      - to: check_loan_details
+        trigger: loan_details_given
+        actions:
+          save_to_global_state:
+            context_keys:
+              - reason_for_loan
+              - desired_principal
+              - loan_term_extension
+              - new_interest_rate
+
+  check_loan_details:
+    display_name: Check loan details
+    type: transform
+    transform_ref: check_loan_details
+    transitions:
+      - to: retrieve_customer_account_details
+        trigger: eligible
+        actions:
+          save_to_global_state:
+            context_keys:
+              - new_loan_amount
+              - new_loan_term
+              - new_fixed_interest_rate
+              - new_variable_rate_adjustment
+      - to: loan_details_invalid
+        trigger: not_eligible
+        actions:
+          save_to_global_state:
+            context_keys:
+              - error_message
+
+  loan_details_invalid:
+    display_name: Show error details
+    description: Details of errors in top-up application
+    state_ui:
+      ui_panels:
+        - panel_id: loan_rejected_errors
+          display_name: Error in loan details
+          json_definition:
+            text:
+              value: ${error_message:Loan details invalid}
+      ui_actions:
+        - action_id: confirm_error
+          event: error_confirmed
+          display_name: Re-enter loan details
+    transitions:
+      - to: request_top_up
+        trigger: error_confirmed
+
+  retrieve_customer_account_details:
+    display_name: Retrieve customer account details
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/accounts
+        method: GET
+        arguments:
+          stakeholder_id: ${user_id}
+          page_size: 30
+          page_token: ${page_token:}
+        response_fields:
+          - key_name: customer_accounts
+            response_json_path: accounts
+            extract_singleton_element: true
+        response_event: account_list_retrieved
+    transitions:
+      - to: find_suitable_disbursement_account
+        trigger: account_list_retrieved
+        actions:
+          save_to_global_state:
+            context_keys:
+              - customer_accounts
+
+  find_suitable_disbursement_account:
+    display_name: Find suitable disbursement account
+    expected_context_keys:
+      - customer_accounts
+    type: transform
+    transform_ref: find_suitable_disbursement_account
+    transitions:
+      - to: capture_vault_account_details
+        trigger: suitable_account_found
+        actions:
+          save_to_global_state:
+            context_keys:
+              - suitable_disbursement_accounts
+      - to: top_up_application_rejected
+        trigger: no_suitable_account_found
+
+  capture_vault_account_details:
+    display_name: Capture loan disbursement account details
+    state_ui:
+      ui_actions:
+        - action_id: vault_loan_account_details
+          event: vault_account_captured
+          display_name: Vault account details
+          ui_inputs:
+            - key: disbursement_account_id
+              display_name: Vault account
+              string_input: {}
+              json_definition:
+                account_selector:
+                  customer_id: ${user_id}
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - disbursement_account_id
+    transitions:
+      - to: check_disbursement_account
+        trigger: vault_account_captured
+        description: Vault account details entered
+
+  check_disbursement_account:
+    display_name: Check disbursement account
+    type: transform
+    transform_ref: check_disbursement_account
+    transitions:
+      - to: invalid_disbursement_account
+        trigger: unsupported_account
+      - to: retrieve_account_details_again
+        trigger: supported_account
+
+  invalid_disbursement_account:
+    display_name: Invalid disbursement account
+    state_ui:
+      ui_panels:
+        - panel_id: invalid_disbursement_account
+          display_name: Error
+          json_definition:
+            text:
+              value: Invalid disbursement account selected
+      ui_actions:
+        - action_id: reselect_disbursement_account
+          display_name: Re-select disbursement account
+          event: reselect_disbursement_account
+    transitions:
+      - to: capture_vault_account_details
+        trigger: reselect_disbursement_account
+
+  retrieve_account_details_again:
+    display_name: Retrieve account details again
+    description: |
+      Double check that the balances haven't
+      changed since we have started this workflow,
+      before we proceed with the disbursement.
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/accounts/{id}
+        method: GET
+        arguments:
+          id: ${account_id}
+          fields_to_include:
+            - INCLUDE_FIELD_DERIVED_INSTANCE_PARAM_VALS
+        response_event: account_details_retrieved_again
+        response_fields:
+          - key_name: account_status
+            response_json_path: status
+            extract_singleton_element: true
+          - key_name: instance_param_vals
+            response_json_path: instance_param_vals
+            extract_singleton_element: true
+          - key_name: derived_instance_param_vals
+            response_json_path: derived_instance_param_vals
+            extract_singleton_element: true
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - account_status
+          - instance_param_vals
+          - derived_instance_param_vals
+    transitions:
+      - to: check_account_details_not_changed
+        trigger: account_details_retrieved_again
+        description: Account details retrieved again
+
+  check_account_details_not_changed:
+    display_name: Check account details have not changed
+    type: transform
+    transform_ref: check_account_details_not_changed
+    transitions:
+      - to: disburse_vault_account
+        trigger: account_details_not_changed
+      - to: account_details_changed_error
+        trigger: account_details_changed
+
+  disburse_vault_account:
+    display_name: Disburse loan amount to Vault account
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/posting-instruction-batches:asyncCreate
+        method: POST
+        arguments:
+          request_id: generate_uuid()
+          posting_instruction_batch:
+            client_id: AsyncCreatePostingInstructionBatch
+            client_batch_id: Loan top up - ${reason_for_loan}
+            posting_instructions:
+              - client_transaction_id: generate_uuid()
+                custom_instruction:
+                  postings:
+                    - credit: true
+                      amount: ${desired_principal}
+                      denomination: ${loan_denomination}
+                      account_id: ${disbursement_account_id}
+                      account_address: DEFAULT
+                      asset: COMMERCIAL_BANK_MONEY
+                      phase: POSTING_PHASE_COMMITTED
+                    - credit: false
+                      amount: ${desired_principal}
+                      denomination: ${loan_denomination}
+                      account_id: ${account_id}
+                      account_address: PRINCIPAL
+                      asset: COMMERCIAL_BANK_MONEY
+                      phase: POSTING_PHASE_COMMITTED
+            batch_details:
+              note: Transfer loan principal to vault account
+              event: PRINCIPAL_PAYMENT_TOP_UP
+              withdrawal_override: "true"
+    transitions:
+      - to: record_loan_start_date
+        trigger: initial_disbursement_made_to_vault_account
+        auto_trigger_conditions:
+          streaming_api_conditions:
+            topic: vault.api.v1.postings.posting_instruction_batch.created
+            message_content:
+              - path: "posting_instruction_batch.status"
+                values:
+                  - POSTING_INSTRUCTION_BATCH_STATUS_ACCEPTED
+                quantifier: any
+      - to: top_up_application_rejected
+        trigger: initial_disbursement_failed_to_vault_account
+        auto_trigger_conditions:
+          streaming_api_conditions:
+            topic: vault.api.v1.postings.posting_instruction_batch.created
+            message_content:
+              - path: "posting_instruction_batch.status"
+                values:
+                  - POSTING_INSTRUCTION_BATCH_STATUS_ACCEPTED
+                quantifier: none
+
+  record_loan_start_date:
+    display_name: Record loan start date
+    type: transform
+    transform_ref: get_loan_start_date
+    transitions:
+      - to: update_parameters
+        trigger: loan_start_date_recorded
+        actions:
+          save_to_global_state:
+            context_keys:
+              - new_loan_start_date
+
+  update_parameters:
+    display_name: Update parameters
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/account-updates
+        method: POST
+        arguments:
+          request_id: generate_uuid()
+          account_update:
+            id: generate_uuid()
+            account_id: ${account_id}
+            instance_param_vals_update:
+              instance_param_vals:
+                principal: ${new_loan_amount}
+                total_term: ${new_loan_term}
+                fixed_interest_rate: ${new_fixed_interest_rate}
+                variable_rate_adjustment: ${new_variable_rate_adjustment}
+                loan_start_date: ${new_loan_start_date}
+    transitions:
+      - to: top_up_application_success
+        trigger: account_update_success
+        description: Successfully updated account with top-up
+        auto_trigger_conditions:
+          streaming_api_conditions:
+            topic: vault.api.v1.accounts.account.instance_param_vals.updated
+            message_content:
+              - path: update_status
+                values:
+                  - ACCOUNT_UPDATE_STATUS_COMPLETED
+                quantifier: any
+      - to: account_update_failed
+        trigger: account_update_failure
+        description: Failure updating account
+        auto_trigger_conditions:
+          streaming_api_conditions:
+            topic: vault.api.v1.accounts.account.instance_param_vals.updated
+            message_content:
+              - path: update_status
+                values:
+                  - ACCOUNT_UPDATE_STATUS_COMPLETED
+                quantifier: none
+
+  account_is_not_open_error:
+    display_name: Account is not open
+    entry_actions:
+      add_or_replace_global_ui_panels:
+        - panel_id: account_error_panel
+          display_name: Account is not open error
+          json_definition:
+            key_value_table:
+              items:
+                Error message: Top-up cannot proceed as the account status is not open
+
+  account_details_changed_error:
+    display_name: Account details changed
+    entry_actions:
+      add_or_replace_global_ui_panels:
+        - panel_id: account_error_panel
+          display_name: Account details have changed
+          json_definition:
+            key_value_table:
+              items:
+                Error message: >
+                  Top-up cannot proceed as some of the account details have changed since
+                  the initiation of the top-up. Please start a new top-up.
+                  ${account_changed_error}
+
+  top_up_application_rejected:
+    display_name: Top-up unsuccessful
+    state_ui:
+      ui_panels:
+        - panel_id: loan_failure_panel
+          display_name: Loan top-up application failure details
+          json_definition:
+            key_value_table:
+              items:
+                Error message: ${rejection_message:Loan top-up application rejected}
+
+  account_update_failed:
+    display_name: account update failed
+    entry_actions:
+      add_or_replace_global_ui_panels:
+        - panel_id: account_error_panel
+          display_name: Account update failed
+          json_definition:
+            key_value_table:
+              items:
+                Error message: Failed to update account instance parameters for top-up
+
+  top_up_application_success:
+    display_name: Loan top-up application successful
+    state_ui:
+      ui_panels:
+        - panel_id: loan_updated_panel
+          display_name: Loan top-up complete
+          json_definition:
+            key_value_table:
+              items:
+                Loan top up amount: ${desired_principal}
+                Repayment period: ${new_loan_term} month(s)
+                New interest rate or adjustment: ${new_interest_rate}
+
+transforms:
+  confirm_product_id: |
+    context['product_id'] = context.get('product_id', 'loan')
+    return ['product_id_confirmed', context]
+
+  process_account_details: |
+    if context.get('account_status') != 'ACCOUNT_STATUS_OPEN':
+      return ['account_is_not_open', {}]
+
+    instance_param_vals = json.loads(context['instance_param_vals'])
+    derived_instance_param_vals = json.loads(context['derived_instance_param_vals'])
+    new_context = {}
+    new_context['loan_amount_current'] = instance_param_vals['principal']
+    new_context['loan_term_current'] = instance_param_vals['total_term']
+    new_context['fixed_interest_loan'] = instance_param_vals['fixed_interest_loan']
+    new_context['fixed_interest_rate_current'] = instance_param_vals['fixed_interest_rate']
+    new_context['variable_rate_adjustment_current'] = instance_param_vals['variable_rate_adjustment']
+    new_context['remaining_term_months'] = derived_instance_param_vals['remaining_term']
+    new_context['outstanding_payments'] = derived_instance_param_vals['outstanding_payments']
+    new_context['remaining_principal'] = derived_instance_param_vals['remaining_principal']
+
+    if decimal.greaterthan(derived_instance_param_vals['outstanding_payments'], '0'):
+      return ['has_outstanding_payments', new_context]
+    else:
+      return ['no_outstanding_payments', new_context]
+
+  extract_current_parameter_details: |
+    product_versions = json.loads(context.get('product_versions', '[]'))
+    for version in product_versions:
+      if version.get('is_current'):
+        new_context = {}
+        params = {param['name']:param for param in version['params']}
+
+        for param in ['principal', 'total_term', 'denomination']:
+          if param not in list(params):
+            return ['no_valid_contract', {'rejection_message': 'Expected parameter(s) not found'}]
+
+        new_context['max_loan_amount'] = params['principal']['number']['max_value']
+        new_context['min_loan_amount'] = params['principal']['number']['min_value']
+        new_context['loan_amount_step'] = params['principal']['number']['step']
+        new_context['min_loan_term'] = params['total_term']['number']['min_value']
+        new_context['max_loan_term'] = params['total_term']['number']['max_value']
+        new_context['loan_term_step'] = params['total_term']['number']['step']
+        new_context['loan_denomination'] = params['denomination']['value']
+        new_context['variable_interest_rate'] = params['variable_interest_rate']['value']
+
+        if context.get('fixed_interest_loan') == 'True':
+          fixed_interest_rate_current = context.get('fixed_interest_rate_current')
+          new_context['rate_input_display'] = 'Enter fixed interest rate (0.0001 - 1) (e.g. 0.1 = 10%) (currently set to ' + fixed_interest_rate_current + ')'
+        else:
+          variable_rate_adjustment_current = context.get('variable_rate_adjustment_current')
+          new_context['rate_input_display'] = 'Enter variable rate adjustment to add to variable rate (-1 - 1) (variable rate adjustment currently set to ' + variable_rate_adjustment_current + ', variable interest rate is ' + new_context['variable_interest_rate'] + ')'
+
+        max_top_up = decimal.minus(new_context['max_loan_amount'], context.get('remaining_principal'))
+        new_context['max_top_up_amount'] = max_top_up
+
+        # min_top_up is first whole number >= min_loan_amount - remaining_principal
+        min_top_up = decimal.minus(new_context['min_loan_amount'], context.get('remaining_principal'))
+        if decimal.lessthan(min_top_up, new_context['min_loan_amount']):
+          remainder = decimal.mod(min_top_up, new_context['loan_amount_step'])
+          min_top_up = decimal.add(new_context['min_loan_amount'], remainder)
+        new_context['min_top_up_amount'] = min_top_up
+
+        min_term_top_up = 0
+        if int(context.get('remaining_term_months')) < int(new_context['min_loan_term']):
+          min_term_top_up = int(new_context['min_loan_term']) - int(context.get('remaining_term_months'))
+        new_context['min_term_top_up'] = min_term_top_up
+
+        max_loan_term_months = int(new_context['max_loan_term'])
+        max_term_top_up = max_loan_term_months - int(context.get('remaining_term_months'))
+        new_context['max_term_top_up'] = max_term_top_up
+
+        return ['parameters_extracted', new_context]
+
+    next_page_token = context.get('next_page_token')
+    if next_page_token:
+      return ['current_product_version_not_found', {'next_page_token': next_page_token}]
+    else:
+      return ['no_valid_contract', {'rejection_message': 'is_current product version not found'}]
+
+  check_loan_details: |
+    new_context = {}
+    error_list = []
+    if decimal.greaterthan(context.get('desired_principal'), context.get('max_top_up_amount')):
+      error_list.append(' - The top-up amount entered is greater than the maximum top-up allowed')
+    if decimal.lessthan(context.get('desired_principal'), context.get('min_top_up_amount')):
+      error_list.append(' - The amount entered is less than the minimum top-up allowed')
+
+    new_loan_amount = decimal.add(context.get('remaining_principal'), context.get('desired_principal'))
+    new_context['new_loan_amount'] = new_loan_amount
+    if decimal.greaterthan(new_loan_amount, context.get('max_loan_amount')):
+      error_list.append(' - The top-up amount entered would cause the loan balance to exceed the maximum loan amount of ' + context.get('max_loan_amount'))
+    if decimal.lessthan(new_loan_amount, context.get('min_loan_amount')):
+      error_list.append(' - The amount entered is less than the minimum loan amount allowed')
+    loan_step_remainder = decimal.mod(new_loan_amount, context.get('loan_amount_step'))
+    if decimal.greaterthan(loan_step_remainder, '0'):
+      error_list.append(' - The new loan amount must be in multiples of ' + context.get('loan_amount_step'))
+
+    if decimal.greaterthan(context.get('loan_term_extension'), context.get('max_term_top_up')):
+      error_list.append(' - The term extension entered is greater than the maximum loan term allowed')
+    if decimal.lessthan(context.get('loan_term_extension'), context.get('min_term_top_up')):
+      error_list.append(' - The term extension entered is less than the minimum loan term allowed')
+    new_loan_term = decimal.add(context.get('loan_term_extension'), context.get('remaining_term_months'))
+    new_context['new_loan_term'] = new_loan_term
+    if decimal.greaterthan(new_loan_term, context.get('max_loan_term')):
+      error_list.append(' - The total term is greater than the maximum loan term allowed')
+    if decimal.lessthan(new_loan_term, context.get('min_loan_term')):
+      error_list.append(' - The total term is less than the minimum loan term allowed')
+
+    if context.get('fixed_interest_loan') == 'True':
+      if decimal.lessthan(context.get('new_interest_rate'), '0'):
+        error_list.append(' - An interest rate of less than 0 cannot be entered for a fixed interest loan')
+      else:
+        new_context['new_fixed_interest_rate'] = context.get('new_interest_rate')
+        new_context['new_variable_rate_adjustment'] = context.get('variable_rate_adjustment_current')
+    else:
+        new_context['new_variable_rate_adjustment'] = context.get('new_interest_rate')
+        new_context['new_fixed_interest_rate'] = context.get('fixed_interest_rate_current')
+
+    if not error_list:
+      return ['eligible', new_context]
+    else:
+      if len(error_list) > 1:
+        error_message = 'Invalid loan options have been entered:\n'
+      else:
+        error_message = 'An invalid loan option has been entered:\n'
+      error_message += '\n'.join(error_list)
+
+      return ['not_eligible', {'error_message': error_message}]
+
+  find_suitable_disbursement_account: |
+    suitable_disbursement_accounts = []
+    if context.get('suitable_disbursement_accounts'):
+      suitable_disbursement_accounts = json.loads(context.get('suitable_disbursement_accounts'))
+    customer_accounts = json.loads(context.get('customer_accounts'))
+
+    for account in customer_accounts:
+      if (
+        account.get('status') == 'ACCOUNT_STATUS_OPEN' and
+        'current_account' in account.get('product_id') and
+        context['loan_denomination'] in account.get('permitted_denominations')
+        ):
+          suitable_disbursement_accounts.append(account.get('id'))
+
+    if suitable_disbursement_accounts:
+      return ['suitable_account_found', {
+        'suitable_disbursement_accounts': json.dumps(suitable_disbursement_accounts),
+      }]
+
+    return ['no_suitable_account_found', {
+      'rejection_message': 'No suitable account found to deposit the loan.'
+      }]
+
+  check_disbursement_account: |
+    suitable_disbursement_accounts = json.loads(context.get('suitable_disbursement_accounts'))
+    if context.get('disbursement_account_id') in suitable_disbursement_accounts:
+      return ['supported_account', {}]
+
+    return ['unsupported_account', {}]
+
+  get_loan_start_date: |
+    return ['loan_start_date_recorded', {'new_loan_start_date': datetime.strftime(datetime.utcnow(), '%Y-%m-%d')}]
+
+  check_account_details_not_changed: |
+    error_list = []
+    if context.get('account_status') != 'ACCOUNT_STATUS_OPEN':
+      error_list.append(' - Account is no longer open')
+
+    instance_param_vals = json.loads(context['instance_param_vals'])
+    derived_instance_param_vals = json.loads(context['derived_instance_param_vals'])
+
+    loan_amount_current_prev = context.get('loan_amount_current')
+    loan_term_current_prev = context.get('loan_term_current')
+    fixed_interest_loan_prev = context.get('fixed_interest_loan')
+    fixed_interest_rate_current_prev = context.get('fixed_interest_rate_current')
+    variable_rate_adjustment_current_prev = context.get('variable_rate_adjustment_current')
+    remaining_term_months_prev = context.get('remaining_term_months')
+    remaining_principal_prev = context.get('remaining_principal')
+
+    if decimal.greaterthan(derived_instance_param_vals['outstanding_payments'], '0'):
+      error_list.append(' - Account still has outstanding payments')
+    if loan_amount_current_prev != instance_param_vals['principal']:
+      error_list.append(' - Principal has changed')
+    if loan_term_current_prev != instance_param_vals['total_term']:
+      error_list.append(' - Term has changed')
+    if fixed_interest_loan_prev != instance_param_vals['fixed_interest_loan']:
+      error_list.append(' - Fixed interest loan has changed')
+    if fixed_interest_rate_current_prev != instance_param_vals['fixed_interest_rate']:
+      error_list.append(' - Fixed interest rate has changed')
+    if variable_rate_adjustment_current_prev != instance_param_vals['variable_rate_adjustment']:
+      error_list.append(' - Variable rate adjustment has changed')
+    if remaining_term_months_prev != derived_instance_param_vals['remaining_term']:
+      error_list.append(' - Remaining term has changed')
+    if remaining_principal_prev != derived_instance_param_vals['remaining_principal']:
+      error_list.append(' - Remaining principal has changed')
+
+    if not error_list:
+      return ['account_details_not_changed', {}]
+    else:
+      if len(error_list) > 1:
+        error_message = 'Multiple account details have changed:\n'
+      else:
+        error_message = 'An account detail has changed:\n'
+      error_message += '\n'.join(error_list)
+
+      return ['account_details_changed', {'account_changed_error': error_message}]

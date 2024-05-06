@@ -1,0 +1,11 @@
+# Copyright @ 2021 Thought Machine Group Limited. All rights reserved.
+---
+type: INTERNAL_ACCOUNT
+id: OVERPAYMENT_FEE_INCOME_ACCOUNT
+vault_id: OVERPAYMENT_FEE_INCOME
+payload: |
+  internal_account:
+      id: OVERPAYMENT_FEE_INCOME
+      product_id: '&{overpayment_fee_income_account_contract:product_id}'
+      accounting:
+        tside: TSIDE_LIABILITY

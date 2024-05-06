@@ -1,0 +1,11 @@
+# Copyright @ 2021 Thought Machine Group Limited. All rights reserved.
+---
+type: SMART_CONTRACT_MODULE_VERSIONS_LINK
+id: easy_access_saver_module_versions_link
+payload: |
+  smart_contract_module_versions_link:
+      smart_contract_version_id: '&{easy_access_saver}'
+      alias_to_contract_module_version_id: {
+        'utils':'&{utils_version}',
+        'interest': '&{interest_version}'
+      }

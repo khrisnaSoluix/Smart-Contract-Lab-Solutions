@@ -1,0 +1,40 @@
+# Code auto-generated
+
+# Objects below have been imported from:
+#    import_single_module.py
+# md5:9325638dc92bb45244c7d5ce7be86c47
+
+api = "4.0.0"
+
+# Objects below have been imported from:
+#    module_1.py
+# md5:60cdbaa03fd1a5daeaefeb8e56709d09
+
+module_1_attribute_1 = "a"
+
+
+def module_1_function_1():
+    return module_1_attribute_1
+
+
+def module_1_function_2(param_1):
+    param_1 = module_1_attribute_1 + param_1
+    return param_1
+
+
+# Objects below have been imported from:
+#    import_single_module.py
+# md5:9325638dc92bb45244c7d5ce7be86c47
+
+attribute_1 = module_1_attribute_1
+
+
+def function_1() -> str:
+    return module_1_function_1()
+
+
+def function_2() -> str:
+    return module_1_function_2("b")
+
+
+attribute_2 = module_1_function_2(function_1())

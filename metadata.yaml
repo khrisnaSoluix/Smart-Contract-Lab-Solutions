@@ -1,0 +1,6 @@
+---
+name: Global Product Library
+release_version: 2023-20
+vault_tested_version: 4.6.5
+clu_tested_version: 4.1
+inception_sdk_version: 1.3.0

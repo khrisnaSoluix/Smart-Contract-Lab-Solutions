@@ -1,0 +1,19 @@
+# Copyright @ 2021 Thought Machine Group Limited. All rights reserved.
+---
+resources:
+  - type: SUPERVISOR_CONTRACT
+    id: offset_mortgage_supervisor_contract
+    vault_id: offset_mortgage_supervisor_contract
+    payload: |
+      supervisor_contract:
+          id: offset_mortgage_supervisor_contract
+          display_name: Offset Mortgage Supervisor Contract
+  - type: SUPERVISOR_CONTRACT_VERSION
+    id: offset_mortgage_supervisor_contract_version
+    vault_id: offset_mortgage_supervisor_contract_version
+    payload: |
+      supervisor_contract_version:
+          supervisor_contract_id: '&{offset_mortgage_supervisor_contract}'
+          display_name: Offset Mortgage Supervisor Contract
+          description: Offset Mortgage Supervisor Contract
+          code: '@{offset_mortgage_rendered.py}'

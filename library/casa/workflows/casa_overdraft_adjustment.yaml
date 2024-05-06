@@ -1,0 +1,505 @@
+# Copyright @ 2021 Thought Machine Group Limited. All rights reserved.
+---
+name: Current Account Overdraft Adjustment
+instance_title: Current Account Overdraft Adjustment
+description: A workflow to adjust arranged and unarranged overdraft limits
+schema_version: 3.2.0
+definition_version: 1.1.1
+
+starting_state: retrieve_account_parameters
+end_states:
+  - state: adjustment_failed
+    result: FAILED
+  - state: overdraft_adjusted
+    result: SUCCESSFUL
+
+states:
+  retrieve_account_parameters:
+    display_name: Retrieve account parameters
+    expected_context_keys:
+      - account_id
+    entry_actions:
+      save_to_global_state:
+        new_key_value_pairs:
+          account_id: ${account_id}
+      vault_callback:
+        path: core-api/v1/accounts/{id}
+        method: GET
+        arguments:
+          id: ${account_id}
+          fields_to_include: [INCLUDE_FIELD_DERIVED_INSTANCE_PARAM_VALS]
+        response_fields:
+          - key_name: product_id
+            response_json_path: product_id
+            extract_singleton_element: true
+          - key_name: arranged_overdraft_limit
+            response_json_path: instance_param_vals.arranged_overdraft_limit
+            extract_singleton_element: true
+          - key_name: unarranged_overdraft_limit
+            response_json_path: instance_param_vals.unarranged_overdraft_limit
+            extract_singleton_element: true
+          - key_name: account_status
+            response_json_path: status
+            extract_singleton_element: true
+          - key_name: account_tier
+            response_json_path: derived_instance_param_vals.account_tier
+            extract_singleton_element: true
+        response_event: account_parameters_retrieved
+    transitions:
+      - to: check_account_open
+        description: Have account parameters
+        trigger: account_parameters_retrieved
+    exit_actions:
+      save_to_global_state:
+        new_key_value_pairs:
+          arranged_overdraft_limit: ${arranged_overdraft_limit}
+          unarranged_overdraft_limit: ${unarranged_overdraft_limit}
+          product_id: ${product_id}
+          account_status: ${account_status}
+          account_tier: ${account_tier}
+
+  check_account_open:
+    display_name: Check account open
+    type: transform
+    transform_ref: check_account_open
+    expected_context_keys:
+      - account_status
+    transitions:
+      - to: adjustment_failed
+        description: Account not open
+        trigger: account_not_open
+      - to: query_contract_versions
+        description: Account open
+        trigger: account_open
+
+  query_contract_versions:
+    display_name: Query contract versions
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/product-versions
+        method: GET
+        arguments:
+          product_id: ${product_id}
+          view: PRODUCT_VERSION_VIEW_INCLUDE_PARAMETERS
+          page_size: 20
+          page_token: ${next_page_token:}
+        response_event: contract_versions_returned
+        response_fields:
+          - key_name: product_versions
+            response_json_path: product_versions
+            extract_singleton_element: true
+          - key_name: next_page_token
+            response_json_path: next_page_token
+            extract_singleton_element: true
+    transitions:
+      - to: extract_product_parameter_details
+        trigger: contract_versions_returned
+        description: Contracts returned
+
+  extract_product_parameter_details:
+    display_name: Extract product parameters
+    expected_context_keys:
+      - next_page_token
+      - product_versions
+    type: transform
+    transform_ref: extract_product_parameter_details
+    transitions:
+      - to: query_main_denomination_balance
+        trigger: product_parameters_extracted
+        description: Product parameters extracted
+        actions:
+          save_to_global_state:
+            context_keys:
+              - buffer_amount_tier
+              - denomination
+              - unarranged_overdraft_limit_max_value
+      - to: query_contract_versions
+        trigger: current_product_version_not_found
+        description: Fetch more product versions
+      - to: adjustment_failed
+        trigger: no_valid_contract
+        description: No current version
+
+  query_main_denomination_balance:
+    display_name: Query balances
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/balances/live
+        method: GET
+        arguments:
+          account_ids:
+            - ${account_id}
+          page_size: 100
+          page_token: ${next_page_token:}
+        response_event: balances_returned
+        response_fields:
+          - key_name: balances
+            response_json_path: balances
+            extract_singleton_element: true
+          - key_name: next_page_token
+            response_json_path: next_page_token
+            extract_singleton_element: true
+    transitions:
+      - to: extract_balance_details
+        description: Balances returned
+        trigger: balances_returned
+
+  extract_balance_details:
+    display_name: Extract balances
+    expected_context_keys:
+      - next_page_token
+      - balances
+    type: transform
+    transform_ref: extract_balance_details
+    transitions:
+      - to: retrieve_tiered_parameters
+        trigger: balances_extracted
+        description: Balance details extracted
+        actions:
+          save_to_global_state:
+            context_keys:
+              - account_balance
+      - to: query_main_denomination_balance
+        trigger: balance_not_found
+        description: Fetch more product versions
+      - to: adjustment_failed
+        trigger: no_default_balance
+        description: No balance found in ${denomination}
+
+  retrieve_tiered_parameters:
+    display_name: Read tiered parameters
+    type: transform
+    transform_ref: extract_buffer_amount
+    transitions:
+      - to: adjustment_failed
+        description: No valid account tier key
+        trigger: no_valid_account_tier_key
+      - to: calculate_min_unarranged_overdraft_amount
+        description: Tiered buffer amount extracted
+        trigger: buffer_amount_extracted
+    exit_actions:
+      save_to_global_state:
+        new_key_value_pairs:
+          buffer_amount: ${buffer_amount}
+
+  calculate_min_unarranged_overdraft_amount:
+    display_name: Calculate minimum unarranged overdraft amount
+    type: transform
+    transform_ref: calculate_min_unarranged_overdraft_amount
+    transitions:
+      - to: choose_unarranged_overdraft_limit
+        description: Unarranged overdraft limit calculated
+        trigger: min_unarranged_overdraft_calculated
+    exit_actions:
+      save_to_global_state:
+        new_key_value_pairs:
+          min_unarranged_overdraft: ${min_unarranged_overdraft}
+
+  choose_unarranged_overdraft_limit:
+    display_name: Choose unarranged overdraft limit
+    state_ui:
+      ui_panels:
+        - panel_id: overdraft
+          display_name: Proceed with overdraft
+          json_definition:
+            text:
+              value: >
+                Enter an unarranged overdraft limit between ${min_unarranged_overdraft}
+                ${denomination} and ${unarranged_overdraft_limit_max_value} ${denomination} (inclusive).
+
+                The existing unarranged overdraft limit is ${unarranged_overdraft_limit} ${denomination}.
+      ui_actions:
+        - action_id: unarranged_overdraft_limit_chosen
+          event: unarranged_overdraft_limit_chosen
+          display_name: Set unarranged overdraft limit
+          ui_inputs:
+            - key: chosen_unarranged_limit
+              number_input:
+                min_value: 0
+                max_value: 10000
+                precision: 0
+                step: 1
+    transitions:
+      - to: check_unarranged_overdraft
+        description: Proceed
+        trigger: unarranged_overdraft_limit_chosen
+
+  check_unarranged_overdraft:
+    display_name: Check unarranged overdraft
+    type: transform
+    transform_ref: check_unarranged_overdraft_amount
+    expected_context_keys:
+      - chosen_unarranged_limit
+    transitions:
+      - to: display_unarranged_overdraft_check_failure
+        description: Invalid unarranged limit
+        trigger: unarranged_amount_invalid
+      - to: calculate_minimum_arranged_overdraft
+        description: Unarranged overdraft choice valid
+        trigger: unarranged_amount_valid
+        actions:
+          save_to_global_state:
+            context_keys:
+              - accepted_unarranged_limit
+
+  display_unarranged_overdraft_check_failure:
+    display_name: Update failure
+    state_ui:
+      ui_panels:
+        - panel_id: overdraft
+          display_name: Update failure
+          json_definition:
+            text:
+              value: The unarranged overdraft limit cannot be adjusted because ${rejection_reason}
+      ui_actions:
+        - action_id: display overdraft
+          event: unarranged_rejection_displayed
+          display_name: Ok
+    transitions:
+      - to: choose_unarranged_overdraft_limit
+        description: overdraft displayed
+        trigger: unarranged_rejection_displayed
+
+  calculate_minimum_arranged_overdraft:
+    display_name: Calculate minimum arranged overdraft amount
+    type: transform
+    transform_ref: calculate_minimum_arranged_overdraft
+    transitions:
+      - to: choose_arranged_overdraft_limit
+        description: Arranged overdraft limit calculated
+        trigger: minimum_arranged_overdraft_calculated
+    exit_actions:
+      save_to_global_state:
+        new_key_value_pairs:
+          min_arranged_overdraft: ${min_arranged_overdraft}
+
+  choose_arranged_overdraft_limit:
+    display_name: Choose arranged overdraft limit
+    state_ui:
+      ui_panels:
+        - panel_id: overdraft
+          display_name: Proceed with overdraft
+          json_definition:
+            text:
+              value: >
+                Enter an arranged overdraft limit between ${min_arranged_overdraft} ${denomination}
+                and ${accepted_unarranged_limit} ${denomination} (inclusive).
+
+                The existing arranged overdraft limit is: ${arranged_overdraft_limit} ${denomination}.
+      ui_actions:
+        - action_id: arranged_overdraft_limit_chosen
+          event: arranged_overdraft_limit_chosen
+          display_name: Set arranged overdraft limit
+          ui_inputs:
+            - key: chosen_arranged_limit
+              number_input:
+                min_value: 0
+                max_value: 10000
+                precision: 0
+                step: 1
+    transitions:
+      - to: check_account_arranged_overdraft
+        description: Proceed
+        trigger: arranged_overdraft_limit_chosen
+
+  check_account_arranged_overdraft:
+    display_name: Update arranged overdraft
+    type: transform
+    transform_ref: check_arranged_overdraft_amount
+    expected_context_keys:
+      - chosen_arranged_limit
+    transitions:
+      - to: display_arranged_overdraft_check_failure
+        description: Invalid arranged limit
+        trigger: arranged_amount_invalid
+      - to: confirm_overdraft_limits
+        description: Arranged overdraft value valid
+        trigger: arranged_amount_valid
+        actions:
+          save_to_global_state:
+            context_keys:
+              - accepted_arranged_limit
+
+  display_arranged_overdraft_check_failure:
+    display_name: Display overdraft
+    state_ui:
+      ui_panels:
+        - panel_id: overdraft
+          display_name: Display overdraft
+          json_definition:
+            text:
+              value: The arranged overdraft limit cannot be adjusted because ${rejection_reason}
+      ui_actions:
+        - action_id: display overdraft
+          event: arranged_rejection_displayed
+          display_name: Ok
+    transitions:
+      - to: choose_arranged_overdraft_limit
+        description: overdraft displayed
+        trigger: arranged_rejection_displayed
+
+  confirm_overdraft_limits:
+    display_name: Confirm chosen overdraft limits
+    state_ui:
+      ui_panels:
+        - panel_id: confirm_overdraft
+          display_name: Confirm overdraft limits
+          json_definition:
+            key_value_table:
+              items:
+                Arranged overdraft limit: ${accepted_arranged_limit} ${denomination}
+                Unarranged overdraft limit: ${accepted_unarranged_limit} ${denomination}
+      ui_actions:
+        - action_id: overdraft_limits_confirmed
+          event: overdraft_limits_confirmed
+          display_name: Proceed
+    transitions:
+      - to: apply_overdraft_limits
+        description: Confirm
+        trigger: overdraft_limits_confirmed
+
+  apply_overdraft_limits:
+    display_name: Apply overdraft limits
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/account-updates
+        method: POST
+        arguments:
+          request_id: generate_uuid()
+          account_update:
+            id: generate_uuid()
+            account_id: ${account_id}
+            instance_param_vals_update:
+              instance_param_vals:
+                arranged_overdraft_limit: ${accepted_arranged_limit}
+                unarranged_overdraft_limit: ${accepted_unarranged_limit}
+        response_event: overdraft_limits_applied
+    transitions:
+      - to: overdraft_adjusted
+        description: Limits applied
+        trigger: overdraft_limits_applied
+
+  overdraft_adjusted:
+    display_name: Overdraft limits adjusted
+
+  adjustment_failed:
+    display_name: Overdraft cannot be adjusted
+    state_ui:
+      ui_panels:
+        - panel_id: overdraft
+          display_name: Overdraft cannot be adjusted
+          json_definition:
+            text:
+              value: Overdraft cannot be adjusted - ${exit_reason}
+
+transforms:
+  check_account_open: |
+    if context['account_status'] == 'ACCOUNT_STATUS_OPEN':
+      return ['account_open', {}]
+    else:
+      return ['account_not_open', {'exit_reason': 'Account not open'}]
+
+  extract_product_parameter_details: |
+    product_versions = json.loads(context.get('product_versions', '[]'))
+    for version in product_versions:
+      if version.get('is_current'):
+        new_context = {}
+        params = {param['name']:param for param in version['params']}
+
+        if 'interest_free_buffer' in params:
+          new_context['buffer_amount_tier'] = params['interest_free_buffer']['value']
+          new_context['denomination'] = params['denomination']['value']
+          new_context['unarranged_overdraft_limit_max_value'] = params['unarranged_overdraft_limit']['number']['max_value']
+          return ['product_parameters_extracted', new_context]
+        else:
+          return ['no_valid_contract', {'failure_message': 'Expected parameters not found'}]
+
+    next_page_token = context.get('next_page_token')
+    if next_page_token != "":
+      return ['current_product_version_not_found', {'next_page_token': next_page_token}]
+    else:
+      return ['no_valid_contract', {'failure_message': '"Current" account version not found'}]
+
+  extract_balance_details: |
+    balance_details = json.loads(context.get('balances', '[]'))
+    for balance in balance_details:
+      if balance.get('denomination') == context.get('denomination') and balance.get('phase') == 'POSTING_PHASE_COMMITTED' and balance.get('account_address') == 'DEFAULT':
+        return ['balances_extracted', {'account_balance': str(balance.get('amount'))}]
+
+    next_page_token = context.get('next_page_token')
+    if next_page_token != "":
+      return ['balance_not_found', {'next_page_token': next_page_token}]
+    else:
+      return ['no_default_balance', {'failure_message': 'Default balance in main denomination not found'}]
+
+  extract_buffer_amount: |
+    tier = context['account_tier']
+    buffer_amounts = json.loads(context['buffer_amount_tier'])
+    if tier in buffer_amounts:
+      return ['buffer_amount_extracted', {'buffer_amount': str(buffer_amounts[tier])}]
+    else:
+      return ['no_valid_account_tier_key', {'exit_reason': 'No tier in buffer amount'}]
+
+    return ['no_valid_account_tier_key', {'exit_reason': 'Incorrect product configuration'}]
+
+  calculate_min_unarranged_overdraft_amount: |
+    account_balance = context['account_balance']
+    minimum = decimal.max(decimal.mul('-1', account_balance), context['buffer_amount'])
+    return ['min_unarranged_overdraft_calculated', {'min_unarranged_overdraft': str(minimum)}]
+
+  check_unarranged_overdraft_amount: |
+    new_unarranged_limit = context['chosen_unarranged_limit']
+    current_arranged_limit = context['arranged_overdraft_limit']
+    current_account_balance = context['account_balance']
+    buffer_amount = context['buffer_amount']
+    current_max_unarranged_value = context['unarranged_overdraft_limit_max_value']
+
+    if decimal.lessthan(current_account_balance, decimal.mul('-1', new_unarranged_limit)):
+      return ['unarranged_amount_invalid', {'rejection_reason':
+      'the account is more overdrawn than the proposed unarranged overdraft limit.' }]
+
+    elif decimal.greaterthan(new_unarranged_limit, current_max_unarranged_value):
+      return ['unarranged_amount_invalid', {'rejection_reason':
+      'the provided value is greater than the maximum allowed amount.' }]
+
+    elif decimal.lessthan(new_unarranged_limit, '0'):
+      return ['unarranged_amount_invalid', {'rejection_reason':
+      'the provided value is less than zero.' }]
+
+    elif decimal.greaterthan(buffer_amount, new_unarranged_limit):
+      return ['unarranged_amount_invalid', {'rejection_reason':
+      'the provided value is less than the overdraft buffer amount.' }]
+
+    else:
+      return ['unarranged_amount_valid', {'accepted_unarranged_limit': str(new_unarranged_limit) }]
+
+  calculate_minimum_arranged_overdraft: |
+    balance_compare = decimal.mul('-1', decimal.min('0', context['account_balance']))
+    buffer_amount = context['buffer_amount']
+    min_arranged_overdraft = decimal.max(buffer_amount, balance_compare)
+    return ['minimum_arranged_overdraft_calculated', {'min_arranged_overdraft': str(min_arranged_overdraft)}]
+
+  check_arranged_overdraft_amount: |
+    new_arranged_limit = context['chosen_arranged_limit']
+    current_unarranged_limit = context['accepted_unarranged_limit']
+    current_account_balance = context['account_balance']
+    buffer_amount = context['buffer_amount']
+
+    if decimal.lessthan(current_account_balance, decimal.mul('-1', new_arranged_limit)):
+      return ['arranged_amount_invalid', {'rejection_reason':
+      'the account is more overdrawn than the proposed arranged overdraft limit.' }]
+
+    elif decimal.greaterthan(new_arranged_limit, current_unarranged_limit):
+      return ['arranged_amount_invalid', {'rejection_reason':
+      'the provided value is greater than the unarranged overdraft limit.' }]
+
+    elif decimal.greaterthan(buffer_amount, new_arranged_limit):
+      return ['arranged_amount_invalid', {'rejection_reason':
+      'the provided value is less than the overdraft buffer amount.' }]
+
+    elif decimal.lessthan(new_arranged_limit, '0'):
+      return ['unarranged_amount_invalid', {'rejection_reason':
+      'the provided value is less than zero.' }]
+
+    else:
+      return ['arranged_amount_valid', {'accepted_arranged_limit': str(new_arranged_limit) }]

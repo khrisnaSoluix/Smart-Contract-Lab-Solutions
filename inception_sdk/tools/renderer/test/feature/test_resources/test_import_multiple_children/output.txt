@@ -1,0 +1,35 @@
+# Code auto-generated
+
+# Objects below have been imported from:
+#    import_multiple_children.py
+# md5:d08c4f6d6659238e974b8cd369350f9b
+
+api = "4.0.0"
+
+# Objects below have been imported from:
+#    module_common.py
+# md5:39fc943247a5a725d44ac442c7a36e5d
+
+
+def module_common_function_1():
+    return True
+
+
+# Objects below have been imported from:
+#    module_1.py
+# md5:80e3ccabb7207e8af58ea26196f398d0
+
+module_1_attribute_1 = module_common_function_1()
+
+# Objects below have been imported from:
+#    module_2.py
+# md5:80e3ccabb7207e8af58ea26196f398d0
+
+module_2_attribute_1 = module_common_function_1()
+
+# Objects below have been imported from:
+#    import_multiple_children.py
+# md5:d08c4f6d6659238e974b8cd369350f9b
+
+attribute_1 = module_1_attribute_1
+attribute_2 = module_2_attribute_1

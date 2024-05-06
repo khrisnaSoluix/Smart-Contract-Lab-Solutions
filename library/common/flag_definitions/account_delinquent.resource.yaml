@@ -1,0 +1,10 @@
+---
+type: FLAG_DEFINITION
+id: ACCOUNT_DELINQUENT
+payload: |
+  flag_definition: 
+    id: ACCOUNT_DELINQUENT
+    name: ACCOUNT_DELINQUENT
+    description: Flag definition id to be used for account delinquency.
+    required_flag_level: FLAG_LEVEL_ACCOUNT
+    flag_visibility: FLAG_VISIBILITY_OPERATOR

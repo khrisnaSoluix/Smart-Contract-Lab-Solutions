@@ -1,0 +1,31 @@
+# Copyright @ 2023 Thought Machine Group Limited. All rights reserved.
+---
+type: SMART_CONTRACT_VERSION
+id: drawdown_loan
+payload: |
+  product_version:
+      display_name: Drawdown Loan
+      code: '@{drawdown_loan_rendered.py}'
+      product_id: drawdown_loan
+      params:
+        - name: accrual_precision
+          value: '5'
+        - name: application_precision
+          value: '2'
+        - name: denomination
+          value: 'GBP'
+        - name: days_in_year
+          value: 'actual'
+        - name: accrued_interest_receivable_account
+          value: '&{ACCRUED_INTEREST_RECEIVABLE_ACCOUNT}'
+        - name: interest_received_account
+          value: '&{INTEREST_RECEIVED_ACCOUNT}'
+        - name: penalty_interest_income_account
+          value: '&{PENALTY_INTEREST_INCOME_ACCOUNT}'
+        - name: penalty_interest_rate
+          value: '0.1'
+        - name: include_base_rate_in_penalty_rate
+          value: 'True'
+        - name: overpayment_fee_rate
+          value: '0.05'
+  migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_ADD_VERSION_APPLY_NEW_USERS

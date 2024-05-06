@@ -1,0 +1,93 @@
+# Copyright @ 2023 Thought Machine Group Limited. All rights reserved.
+---
+type: SMART_CONTRACT_VERSION
+id: mortgage
+payload: |
+  product_version:
+      display_name: Mortgage
+      code: '@{mortgage_rendered.py}'
+      product_id: mortgage
+      params:
+        - name: denomination
+          value: 'GBP'
+        - name: variable_interest_rate
+          value: '0.032'
+        - name: late_repayment_fee
+          value: '15'
+        - name: grace_period
+          value: '1'
+        - name: overpayment_impact_preference
+          value: 'reduce_term'
+        - name: penalty_compounds_overdue_interest
+          value: 'True'
+        - name: penalty_includes_base_rate
+          value: 'True'
+        - name: penalty_interest_rate
+          value: '0.24'
+        - name: delinquency_blocking_flags
+          value: '["&{REPAYMENT_HOLIDAY}"]'
+        - name: delinquency_flag
+          value: '["&{ACCOUNT_DELINQUENT}"]'
+        - name: due_amount_calculation_blocking_flags
+          value: '["&{REPAYMENT_HOLIDAY}"]'
+        - name: overdue_amount_calculation_blocking_flags
+          value: '["&{REPAYMENT_HOLIDAY}"]'
+        - name: penalty_blocking_flags
+          value: '["&{REPAYMENT_HOLIDAY}"]'
+        - name: repayment_blocking_flags
+          value: '["&{REPAYMENT_HOLIDAY}"]'
+        - name: accrual_precision
+          value: '5'
+        - name: application_precision
+          value: '2'
+        - name: capitalise_penalty_interest
+          value: 'False'
+        - name: capitalised_interest_receivable_account
+          value: '&{CAPITALISED_INTEREST_RECEIVABLE_ACCOUNT}'
+        - name: days_in_year
+          value: '365'
+        - name: accrued_interest_receivable_account
+          value: '&{ACCRUED_INTEREST_RECEIVABLE_ACCOUNT}'
+        - name: capitalised_interest_received_account
+          value: '&{CAPITALISED_INTEREST_RECEIVED_ACCOUNT}'
+        - name: interest_received_account
+          value: '&{INTEREST_RECEIVED_ACCOUNT}'
+        - name: late_repayment_fee_income_account
+          value: '&{LATE_REPAYMENT_FEE_INCOME_ACCOUNT}'
+        - name: penalty_interest_received_account
+          value: '&{PENALTY_INTEREST_RECEIVED_ACCOUNT}'
+        - name: early_repayment_fee
+          value: '0'
+        - name: early_repayment_fee_income_account
+          value: '&{EARLY_REPAYMENT_FEE_INCOME_ACCOUNT}'
+        - name: overpayment_allowance_fee_income_account
+          value: '&{OVERPAYMENT_ALLOWANCE_FEE_INCOME_ACCOUNT}'
+        - name: overpayment_allowance_percentage
+          value: '0.01'
+        - name: overpayment_allowance_fee_percentage
+          value: '0.05'
+        - name: check_delinquency_hour
+          value: '0'
+        - name: check_delinquency_minute
+          value: '0'
+        - name: check_delinquency_second
+          value: '2'
+        - name: check_overpayment_allowance_hour
+          value: '0'
+        - name: check_overpayment_allowance_minute
+          value: '3'
+        - name: check_overpayment_allowance_second
+          value: '0'
+        - name: due_amount_calculation_hour
+          value: '0'
+        - name: due_amount_calculation_minute
+          value: '1'
+        - name: due_amount_calculation_second
+          value: '0'
+        - name: interest_accrual_hour
+          value: '0'
+        - name: interest_accrual_minute
+          value: '0'
+        - name: interest_accrual_second
+          value: '1'
+  migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_ADD_VERSION_APPLY_NEW_USERS

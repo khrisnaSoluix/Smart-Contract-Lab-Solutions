@@ -1,0 +1,73 @@
+# Copyright @ 2023 Thought Machine Group Limited. All rights reserved.
+---
+type: SMART_CONTRACT_VERSION
+id: line_of_credit
+payload: |
+  product_version:
+      display_name: Line of Credit
+      code: '@{line_of_credit_rendered.py}'
+      product_id: line_of_credit
+      params:
+        - name: denomination
+          value: 'GBP'
+        - name: credit_limit_applicable_principal
+          value: 'outstanding'
+        - name: maximum_number_of_outstanding_loans
+          value: '6'
+        - name: due_amount_calculation_hour
+          value: '0'
+        - name: due_amount_calculation_minute
+          value: '1'
+        - name: due_amount_calculation_second
+          value: '0'
+        - name: repayment_period
+          value: '1'
+        - name: check_overdue_hour
+          value: '0'
+        - name: check_overdue_minute
+          value: '0'
+        - name: check_overdue_second
+          value: '2'
+        - name: late_repayment_fee
+          value: '25'
+        - name: late_repayment_fee_income_account
+          value: '&{LATE_REPAYMENT_FEE_INCOME_ACCOUNT}'
+        - name: grace_period
+          value: '15'
+        - name: check_delinquency_hour
+          value: '0'
+        - name: check_delinquency_minute
+          value: '0'
+        - name: check_delinquency_second
+          value: '2'
+        - name: interest_accrual_hour
+          value: '0'
+        - name: interest_accrual_minute
+          value: '0'
+        - name: interest_accrual_second
+          value: '1'
+        - name: maximum_loan_principal
+          value: '1000'
+        - name: minimum_loan_principal
+          value: '50'
+        - name: overpayment_fee_rate
+          value: '0.05'
+        - name: overpayment_fee_income_account
+          value: '&{OVERPAYMENT_FEE_INCOME_ACCOUNT}'
+        - name: overpayment_impact_preference
+          value: 'reduce_term'
+        - name: interest_accrual_blocking_flags
+          value: '["&{REPAYMENT_HOLIDAY}"]'
+        - name: due_amount_calculation_blocking_flags
+          value: '["&{REPAYMENT_HOLIDAY}"]'
+        - name: overdue_amount_calculation_blocking_flags
+          value: '["&{REPAYMENT_HOLIDAY}"]'
+        - name: delinquency_blocking_flags
+          value: '["&{REPAYMENT_HOLIDAY}"]'
+        - name: penalty_blocking_flags
+          value: '["&{REPAYMENT_HOLIDAY}"]'
+        - name: repayment_blocking_flags
+          value: '["&{REPAYMENT_HOLIDAY}"]'
+        - name: notification_blocking_flags
+          value: '["&{REPAYMENT_HOLIDAY}"]'
+  migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_ADD_VERSION_APPLY_NEW_USERS

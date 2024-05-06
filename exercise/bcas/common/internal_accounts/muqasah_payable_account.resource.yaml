@@ -1,0 +1,11 @@
+# Copyright @ 2022 Thought Machine Group Limited. All rights reserved.
+---
+type: INTERNAL_ACCOUNT
+id: MUQASAH_PAYABLE_ACCOUNT
+vault_id: MUQASAH_PAYABLE_ACCOUNT
+payload: |
+  internal_account:
+      id: MUQASAH_PAYABLE_ACCOUNT
+      product_id: muqasah_payable_account_contract
+      accounting:
+        tside: TSIDE_LIABILITY

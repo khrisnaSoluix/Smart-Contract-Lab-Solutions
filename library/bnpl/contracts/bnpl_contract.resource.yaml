@@ -1,0 +1,54 @@
+# Copyright @ 2022 Thought Machine Group Limited. All rights reserved.
+---
+type: SMART_CONTRACT_VERSION
+id: bnpl
+payload: |
+  product_version:
+      display_name: Buy Now Pay Later
+      code: '@{bnpl_rendered.py}'
+      product_id: bnpl
+      params:
+        - name: denomination
+          value: 'GBP'
+        - name: due_amount_calculation_hour
+          value: '0'
+        - name: due_amount_calculation_minute
+          value: '1'
+        - name: due_amount_calculation_second
+          value: '0'
+        - name: due_amount_notification_hour
+          value: '0'
+        - name: due_amount_notification_minute
+          value: '1'
+        - name: due_amount_notification_second
+          value: '0'
+        - name: notification_period
+          value: '2'
+        - name: repayment_period
+          value: '1'
+        - name: check_overdue_hour
+          value: '0'
+        - name: check_overdue_minute
+          value: '1'
+        - name: check_overdue_second
+          value: '0'
+        - name: late_repayment_fee
+          value: '25'
+        - name: late_repayment_fee_income_account
+          value: '&{LATE_REPAYMENT_FEE_INCOME_ACCOUNT}'
+        - name: grace_period
+          value: '2'
+        - name: check_late_repayment_hour
+          value: '0'
+        - name: check_late_repayment_minute
+          value: '1'
+        - name: check_late_repayment_second
+          value: '0'
+        - name: check_delinquency_hour
+          value: '0'
+        - name: check_delinquency_minute
+          value: '1'
+        - name: check_delinquency_second
+          value: '0'
+
+  migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_ADD_VERSION_APPLY_NEW_USERS

@@ -1,0 +1,24 @@
+# Copyright @ 2023 Thought Machine Group Limited. All rights reserved.
+---
+resources:
+  - type: WORKFLOW_DEFINITION_VERSION
+    id: MORTGAGE_APPLICATION
+    activate: true
+    payload: |
+      workflow_definition_version:
+          workflow_definition_id: MORTGAGE_APPLICATION
+          specification: '@{mortgage_application.yaml}'
+  - type: WORKFLOW_DEFINITION_VERSION
+    id: MORTGAGE_MARK_DELINQUENT
+    activate: true
+    payload: |
+      workflow_definition_version:
+          workflow_definition_id: MORTGAGE_MARK_DELINQUENT
+          specification: '@{mortgage_mark_delinquent.yaml}'
+  - type: WORKFLOW_DEFINITION_VERSION
+    id: MORTGAGE_REPAYMENT_HOLIDAY_APPLICATION
+    activate: true
+    payload: |
+      workflow_definition_version:
+          workflow_definition_id: MORTGAGE_REPAYMENT_HOLIDAY_APPLICATION
+          specification: '@{mortgage_repayment_holiday_application.yaml}'

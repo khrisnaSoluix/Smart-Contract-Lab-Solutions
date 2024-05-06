@@ -1,0 +1,12 @@
+---
+type: ACCOUNT_SCHEDULE_TAG
+id: HOME_LOAN_REDRAW_DUE_AMOUNT_CALCULATION_AST
+payload: |
+  account_schedule_tag:
+    id: HOME_LOAN_REDRAW_DUE_AMOUNT_CALCULATION_AST
+    description: HOME_LOAN_REDRAW_DUE_AMOUNT_CALCULATION
+    sends_scheduled_operation_reports: false
+    schedule_status_override: ACCOUNT_SCHEDULE_TAG_SCHEDULE_STATUS_OVERRIDE_NO_OVERRIDE
+    schedule_status_override_start_timestamp: null
+    schedule_status_override_end_timestamp: null
+    test_pause_at_timestamp: null

@@ -1,0 +1,173 @@
+# Copyright @ 2020 Thought Machine Group Limited. All rights reserved.
+---
+name: Internal Account Creation
+instance_title: Internal Account Creation
+description: A workflow to create new bank internal account.
+schema_version: 3.2.0
+definition_version: 1.0.0
+starting_state: capture_account_parameters
+end_states:
+  - state: account_opened_successfully
+    result: SUCCESSFUL
+
+states:
+  capture_account_parameters:
+    display_name: Capture internal account parameters
+    description: Capture input for creating a new internal account
+    state_ui:
+      ui_actions:
+        - action_id: internal_account_details
+          event: account_input_captured
+          display_name: Enter internal account details
+          ui_inputs:
+            - key: internal_account_ID
+              display_name: New internal account ID
+              string_input: {}
+            - key: product_ID
+              display_name: Product ID
+              string_input: {}
+            - key: permitted_denominations
+              display_name: Supported denominations (comma separated)
+              string_input:
+                min_length: 1
+              optional: true
+            - key: account_tside
+              display_name: Is this an Asset or Liability account?
+              string_input: {}
+              json_definition:
+                value_selector:
+                  values:
+                    - value: "TSIDE_LIABILITY"
+                      label: Liability
+                    - value: "TSIDE_ASSET"
+                      label: Asset
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - internal_account_ID
+          - product_ID
+          - permitted_denominations
+          - account_tside
+    transitions:
+      - to: process_input_data
+        trigger: account_input_captured
+        description: Details captured
+
+  process_input_data:
+    display_name: Process input data
+    description: Process input data
+    type: transform
+    transform_ref: process_input_data
+    exit_actions:
+      save_to_global_state:
+          context_keys:
+            - permitted_denominations_list
+            - metadata
+    transitions:
+      - to: add_metadata_key_values
+        trigger: processed_input
+        description: Input processed
+
+  add_metadata_key_values:
+    display_name: Add metadata key-values
+    description: Add key-value pairs to the metadata
+    state_ui:
+      ui_panels:
+        - panel_id: add_key_value
+          display_name: Current metadata
+          json_definition:
+            key_value_table:
+              items:
+                json_object(${metadata})
+      ui_actions:
+        - action_id: add_extra_pair
+          event: add_extra_pair
+          display_name: Add metadata
+          ui_inputs:
+            - key: key
+              display_name: Key
+              string_input: {}
+            - key: value
+              display_name: Value
+              string_input: {}
+        - action_id: confirm_metadata
+          event: confirm_metadata
+          display_name: Confirm current metadata and submit
+    transitions:
+      - to: create_internal_account
+        trigger: confirm_metadata
+        description: Metadata confirmed
+      - to: add_key_value_pair
+        trigger: add_extra_pair
+        description: Add key-value pair
+
+  add_key_value_pair:
+    display_name: Add new key-value pair
+    description: Add new key-value pair
+    type: transform
+    transform_ref: add_pair
+    expected_context_keys:
+      - key
+      - value
+    transitions:
+      - to: add_metadata_key_values
+        trigger: pair_added
+        description: Key-value pair added
+        actions:
+          save_to_global_state:
+            context_keys:
+              - metadata
+
+  create_internal_account:
+    display_name: Open internal bank account
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/internal-accounts
+        method: POST
+        arguments:
+          internal_account:
+            id: ${internal_account_ID}
+            product_id: ${product_ID}
+            accounting:
+              tside: ${account_tside}
+            permitted_denominations: json_object(${permitted_denominations_list})
+            details:
+              json_object(${metadata})
+          request_id: generate_uuid()
+        response_fields:
+          - key_name: account_id
+            response_json_path: id
+            extract_singleton_element: true
+        response_event: account_opened
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - account_id
+    transitions:
+      - to: account_opened_successfully
+        description: Account opened
+        trigger: account_opened
+
+  account_opened_successfully:
+    display_name: Account opened successfully
+
+transforms:
+  process_input_data: |
+    new_context = {}
+    new_context['metadata'] = json.dumps({})
+
+    new_context['permitted_denominations_list'] = json.dumps([
+      x.strip() for x in context.get('permitted_denominations').split(',')
+    ])
+    return ['processed_input', new_context]
+
+  add_pair: |
+    new_context = {}
+
+    key = context.get('key')
+    value = context.get('value')
+    current_metadata = json.loads(context.get('metadata'))
+    current_metadata[key] = value
+    new_context['metadata'] = json.dumps(current_metadata)
+
+    return ['pair_added', new_context]

@@ -1,0 +1,47 @@
+# Code auto-generated
+
+# Objects below have been imported from:
+#    valid_imports.py
+# md5:05ca1b67d381ffd810a5fc0295d50c5a
+
+from contracts_api import (
+    BalancesFilter,
+    PrePostingHookArguments,
+    PrePostingHookResult,
+    ScheduleSkip,
+    Tside,
+)
+from datetime import datetime
+from dateutil.relativedelta import relativedelta
+import math
+from typing import Any
+
+api = "4.0.0"
+version = "0.0.1"
+display_name = "Dummy v4 Contract"
+tside = Tside.LIABILITY
+supported_denominations = ["GBP", "SGD", "USD"]
+
+
+def pre_posting_hook(vault, hook_arguments: PrePostingHookArguments) -> PrePostingHookResult | None:
+    get_datetime(BalancesFilter())
+
+
+# Objects below have been imported from:
+#    feature_1.py
+# md5:036aee2f2a157f07238243db2e7b89d2
+
+
+def feature_1_get_datetime():
+    return datetime.utcnow()
+
+
+# Objects below have been imported from:
+#    valid_imports.py
+# md5:05ca1b67d381ffd810a5fc0295d50c5a
+
+
+def get_datetime(param: BalancesFilter | ScheduleSkip):
+    current_time = datetime.utcnow()
+    another_time = feature_1_get_datetime() + relativedelta(minutes=math.ceil(0))
+    return current_time > another_time

@@ -1,0 +1,24 @@
+# Copyright @ 2021 Thought Machine Group Limited. All rights reserved.
+---
+resources:
+  - type: WORKFLOW_DEFINITION_VERSION
+    id: CREDIT_CARD_APPLICATION
+    activate: true
+    payload: |
+      workflow_definition_version:
+          workflow_definition_id: CREDIT_CARD_APPLICATION
+          specification: '@{credit_card_application.yaml}'
+  - type: WORKFLOW_DEFINITION_VERSION
+    id: CREDIT_CARD_BALANCE_TRANSFER
+    activate: true
+    payload: |
+      workflow_definition_version:
+          workflow_definition_id: CREDIT_CARD_BALANCE_TRANSFER
+          specification: '@{credit_card_balance_transfer.yaml}'
+  - type: WORKFLOW_DEFINITION_VERSION
+    id: CREDIT_CARD_EXPIRE_INTEREST_FREE_PERIODS
+    activate: true
+    payload: |
+      workflow_definition_version:
+          workflow_definition_id: CREDIT_CARD_EXPIRE_INTEREST_FREE_PERIODS
+          specification: '@{credit_card_expire_interest_free_periods.yaml}'

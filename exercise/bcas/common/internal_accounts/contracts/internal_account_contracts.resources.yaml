@@ -1,0 +1,490 @@
+# Copyright @ 2022 Thought Machine Group Limited. All rights reserved.
+---
+resources:
+  - type: SMART_CONTRACT_VERSION
+    id: dormancy_fee_income_account_contract
+    payload: |
+      product_version:
+          display_name: Dormancy Fee Income Account
+          code: '@{asset_account_contract.py}'
+          product_id: dormancy_fee_income_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_NEW_PRODUCT
+  - type: SMART_CONTRACT_VERSION
+    id: administration_fee_income_account_contract
+    payload: |
+      product_version:
+          display_name: Administration Fee Income Account
+          code: '@{asset_account_contract.py}'
+          product_id: administration_fee_income_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_NEW_PRODUCT
+  - type: SMART_CONTRACT_VERSION
+    id: minimum_balance_fee_income_account_contract
+    payload: |
+      product_version:
+          display_name: Minimum Balance Fee Income Account
+          code: '@{liability_account_contract.py}'
+          product_id: minimum_balance_fee_income_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_NEW_PRODUCT
+  - type: SMART_CONTRACT_VERSION
+    id: pnl_account_contract
+    payload: |
+      product_version:
+          display_name: PnL Account
+          code: '@{liability_account_contract.py}'
+          product_id: pnl_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_NEW_PRODUCT
+  - type: SMART_CONTRACT_VERSION
+    id: other_liability_account_contract
+    payload: |
+      product_version:
+          display_name: Other Liability Account
+          code: '@{liability_account_contract.py}'
+          product_id: other_liability_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_NEW_PRODUCT
+  - type: SMART_CONTRACT_VERSION
+    id: default_internal_account_contract
+    payload: |
+      product_version:
+          display_name: Default Internal Account
+          code: '@{liability_account_contract.py}'
+          product_id: default_internal_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_NEW_PRODUCT
+  - type: SMART_CONTRACT_VERSION
+    id: dummy_contra_account_contract
+    payload: |
+      product_version:
+          display_name: Dummy Contra Account
+          code: '@{liability_account_contract.py}'
+          product_id: dummy_contra_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_NEW_PRODUCT
+  - type: SMART_CONTRACT_VERSION
+    id: internal_contra_account_contract
+    payload: |
+      product_version:
+          display_name: Internal Contra Account
+          code: '@{liability_account_contract.py}'
+          product_id: internal_contra_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_NEW_PRODUCT
+  - type: SMART_CONTRACT_VERSION
+    id: bpkh_account_contract
+    payload: |
+      product_version:
+          display_name: BPKH Account
+          code: '@{liability_account_contract.py}'
+          product_id: bpkh_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_NEW_PRODUCT
+  - type: SMART_CONTRACT_VERSION
+    id: suspense_account_contract
+    payload: |
+      product_version:
+          display_name: Suspend Account
+          code: '@{liability_account_contract.py}'
+          product_id: suspense_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_NEW_PRODUCT
+  - type: SMART_CONTRACT_VERSION
+    id: rtjh_refund_account_contract
+    payload: |
+      product_version:
+          display_name: RTJH Refund Account
+          code: '@{liability_account_contract.py}'
+          product_id: rtjh_refund_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_NEW_PRODUCT
+  - type: SMART_CONTRACT_VERSION
+    id: margin_income_account_contract
+    payload: |
+      product_version:
+          display_name: Margin Income Account
+          code: '@{asset_account_contract.py}'
+          product_id: margin_income_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_NEW_PRODUCT
+  - type: SMART_CONTRACT_VERSION
+    id: tawidh_fee_income_account_contract
+    payload: |
+      product_version:
+          display_name: Tawidh Fee Income Account
+          code: '@{asset_account_contract.py}'
+          product_id: tawidh_fee_income_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_NEW_PRODUCT
+  - type: SMART_CONTRACT_VERSION
+    id: tazir_fee_income_account_contract
+    payload: |
+      product_version:
+          display_name: Tazir Fee Income Account
+          code: '@{asset_account_contract.py}'
+          product_id: tazir_fee_income_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_NEW_PRODUCT
+  - type: SMART_CONTRACT_VERSION
+    id: disbursement_account_contract
+    payload: |
+      product_version:
+          display_name: Disbursement Account
+          code: '@{liability_account_contract.py}'
+          product_id: disbursement_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_NEW_PRODUCT
+  - type: SMART_CONTRACT_VERSION
+    id: settlement_account_contract
+    payload: |
+      product_version:
+          display_name: Settlement Account
+          code: '@{liability_account_contract.py}'
+          product_id: settlement_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_NEW_PRODUCT
+  - type: SMART_CONTRACT_VERSION
+    id: bonus_payable_account_contract
+    payload: |
+      product_version:
+          display_name: Bonus Payable Account
+          code: '@{liability_account_contract.py}'
+          product_id: bonus_payable_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_NEW_PRODUCT
+  - type: SMART_CONTRACT_VERSION
+    id: tax_receivable_account_contract
+    payload: |
+      product_version:
+          display_name: Tax Receivable Account
+          code: '@{asset_account_contract.py}'
+          product_id: tax_receivable_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_NEW_PRODUCT
+  - type: SMART_CONTRACT_VERSION
+    id: zakat_receivable_account_contract
+    payload: |
+      product_version:
+          display_name: Zakat Receivable Account
+          code: '@{asset_account_contract.py}'
+          product_id: zakat_receivable_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_NEW_PRODUCT
+  - type: SMART_CONTRACT_VERSION
+    id: muqasah_payable_account_contract
+    payload: |
+      product_version:
+          display_name: Muqasah Payable Account
+          code: '@{liability_account_contract.py}'
+          product_id: muqasah_payable_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_NEW_PRODUCT
+  - type: SMART_CONTRACT_VERSION
+    id: IA_1_1121005_account_contract
+    payload: |
+      product_version:
+          display_name: IA - Giro Wadiah Bank Indonesia - BI Fast
+          code: '@{asset_account_contract.py}'
+          product_id: IA_1_1121005_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_NEW_PRODUCT
+  - type: SMART_CONTRACT_VERSION
+    id: IA_1_1410002_account_contract
+    payload: |
+      product_version:
+          display_name: GL - Aset Lain - PDP - ATM Transfer
+          code: '@{asset_account_contract.py}'
+          product_id: IA_1_1410002_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_NEW_PRODUCT
+  - type: SMART_CONTRACT_VERSION
+    id: IA_1_1410009_account_contract
+    payload: |
+      product_version:
+          display_name: IA Aset Lain - PDP - ATM Transfer Prima
+          code: '@{asset_account_contract.py}'
+          product_id: IA_1_1410009_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_NEW_PRODUCT
+  - type: SMART_CONTRACT_VERSION
+    id: IA_1_1410017_account_contract
+    payload: |
+      product_version:
+          display_name: IA Aset Lain - PDP - ATM Transfer ALTO
+          code: '@{asset_account_contract.py}'
+          product_id: IA_1_1410017_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_NEW_PRODUCT
+  - type: SMART_CONTRACT_VERSION
+    id: IA_1_1410021_account_contract
+    payload: |
+      product_version:
+          display_name: IA - Aset Lain - PDP - Setor Tunai ATM
+          code: '@{asset_account_contract.py}'
+          product_id: IA_1_1410021_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_NEW_PRODUCT
+  - type: SMART_CONTRACT_VERSION
+    id: IA_1_1410022_account_contract
+    payload: |
+      product_version:
+          display_name: IA Aset Lain - PDP - BI Fast
+          code: '@{asset_account_contract.py}'
+          product_id: IA_1_1410022_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_NEW_PRODUCT
+  - type: SMART_CONTRACT_VERSION
+    id: IA_1_2151001_account_contract
+    payload: |
+      product_version:
+          display_name: IA - Titipan Dana Sosial - Zakat
+          code: '@{liability_account_contract.py}'
+          product_id: IA_1_2151001_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_NEW_PRODUCT
+  - type: SMART_CONTRACT_VERSION
+    id: IA_1_2161306_account_contract
+    payload: |
+      product_version:
+          display_name: IA - PPh Pasal 4 Ayat (2)   Tahapan
+          code: '@{liability_account_contract.py}'
+          product_id: IA_1_2161306_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_NEW_PRODUCT
+  - type: SMART_CONTRACT_VERSION
+    id: IA_1_2171210_account_contract
+    payload: |
+      product_version:
+          display_name: IA - Set Dlm Peny - ATM Transfer ALTO
+          code: '@{liability_account_contract.py}'
+          product_id: IA_1_2171210_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_NEW_PRODUCT
+  - type: SMART_CONTRACT_VERSION
+    id: IA_1_2171214_account_contract
+    payload: |
+      product_version:
+          display_name: IA - Set Dlm Peny - By Switching Transfer ALTO
+          code: '@{liability_account_contract.py}'
+          product_id: IA_1_2171214_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_NEW_PRODUCT
+  - type: SMART_CONTRACT_VERSION
+    id: IA_1_2171218_account_contract
+    payload: |
+      product_version:
+          display_name: IA - Transaksi Debet QRIS
+          code: '@{liability_account_contract.py}'
+          product_id: IA_1_2171218_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_NEW_PRODUCT
+  - type: SMART_CONTRACT_VERSION
+    id: IA_1_2171402_account_contract
+    payload: |
+      product_version:
+          display_name: IA - Kewajiban Set Dlm Peny - Bank Indonesia
+          code: '@{liability_account_contract.py}'
+          product_id: IA_1_2171402_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_NEW_PRODUCT
+  - type: SMART_CONTRACT_VERSION
+    id: IA_1_2171403_account_contract
+    payload: |
+      product_version:
+          display_name: IA - Kewajiban Set Dlm Peny - ATM Transfer 
+          code: '@{liability_account_contract.py}'
+          product_id: IA_1_2171403_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_NEW_PRODUCT
+  - type: SMART_CONTRACT_VERSION
+    id: IA_1_2171436_account_contract
+    payload: |
+      product_version:
+          display_name: IA - Kewajiban Set dlm Peny - BI Fast
+          code: '@{liability_account_contract.py}'
+          product_id: IA_1_2171436_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_NEW_PRODUCT
+  - type: SMART_CONTRACT_VERSION
+    id: IA_1_2172203_account_contract
+    payload: |
+      product_version:
+          display_name: IA - Kewajiban kepada Supplier
+          code: '@{liability_account_contract.py}'
+          product_id: IA_1_2172203_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_NEW_PRODUCT
+  - type: SMART_CONTRACT_VERSION
+    id: IA_1_2172305_account_contract
+    payload: |
+      product_version:
+          display_name: IA - Kewajiban antar core
+          code: '@{liability_account_contract.py}'
+          product_id: IA_1_2172305_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_NEW_PRODUCT
+  - type: SMART_CONTRACT_VERSION
+    id: IA_1_2174001_account_contract
+    payload: |
+      product_version:
+          display_name: IA - Rekening perantara
+          code: '@{liability_account_contract.py}'
+          product_id: IA_1_2174001_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_NEW_PRODUCT
+  - type: SMART_CONTRACT_VERSION
+    id: PL_1_4822030_account_contract
+    payload: |
+      product_version:
+          display_name: PL - Pendapatan atas jasa - Transaksi BI Fast
+          code: '@{asset_account_contract.py}'
+          product_id: PL_1_4822030_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_NEW_PRODUCT
+  - type: SMART_CONTRACT_VERSION
+    id: IA_1_1521302_account_contract
+    payload: |
+      product_version:
+          display_name: Aset tampungan khusus migrasi
+          code: '@{asset_account_contract.py}'
+          product_id: IA_1_1521302_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_NEW_PRODUCT
+  - type: SMART_CONTRACT_VERSION
+    id: IA_1_1420001_account_contract
+    payload: |
+      product_version:
+          display_name: Rupa-rupa Aktiva Suspense Account
+          code: '@{asset_account_contract.py}'
+          product_id: IA_1_1420001_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_NEW_PRODUCT
+  - type: SMART_CONTRACT_VERSION
+    id: IA_1_2172302_account_contract
+    payload: |
+      product_version:
+          display_name: Pos Perantara Jurnal Koreksi Dlm Peny/Suspense
+          code: '@{liability_account_contract.py}'
+          product_id: IA_1_2172302_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_NEW_PRODUCT
+  - type: SMART_CONTRACT_VERSION
+    id: IA_1_2172304_account_contract
+    payload: |
+      product_version:
+          display_name: Pos Perantara Jurnal Koreksi Dlm Peny/Suspense
+          code: '@{liability_account_contract.py}'
+          product_id: IA_1_2172304_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_NEW_PRODUCT
+  - type: SMART_CONTRACT_VERSION
+    id: IA_1_2171219_account_contract
+    payload: |
+      product_version:
+          display_name: IA - Set Dlm Peny - Tarik Tunai Cardless
+          code: '@{liability_account_contract.py}'
+          product_id: IA_1_2171219_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_NEW_PRODUCT
+  - type: SMART_CONTRACT_VERSION
+    id: IA_1_2171221_account_contract
+    payload: |
+      product_version:
+          display_name: IA - Set Dlm Peny - Rintis Gopay
+          code: '@{liability_account_contract.py}'
+          product_id: IA_1_2171221_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_NEW_PRODUCT
+  - type: SMART_CONTRACT_VERSION
+    id: PL_1_4822031_account_contract
+    payload: |
+      product_version:
+          display_name: PL - Pendatan atas jasa - Transaksi Top Up e-Wallet
+          code: '@{asset_account_contract.py}'
+          product_id: PL_1_4822031_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_NEW_PRODUCT
+  - type: SMART_CONTRACT_VERSION
+    id: PL_1_4741014_account_contract
+    payload: |
+      product_version:
+          display_name: PL - Pendapatan Biaya Admin Wadiah
+          code: '@{asset_account_contract.py}'
+          product_id: PL_1_4741014_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_NEW_PRODUCT
+  - type: SMART_CONTRACT_VERSION
+    id: PL_1_4741018_account_contract
+    payload: |
+      product_version:
+          display_name: PL - Pendapatan Biaya Dormant
+          code: '@{asset_account_contract.py}'
+          product_id: PL_1_4741018_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_NEW_PRODUCT
+  - type: SMART_CONTRACT_VERSION
+    id: PL_1_4822020_account_contract
+    payload: |
+      product_version:
+          display_name: PL - Pendapatan Biaya Tutup Rekening
+          code: '@{asset_account_contract.py}'
+          product_id: PL_1_4822020_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_NEW_PRODUCT
+  - type: SMART_CONTRACT_VERSION
+    id: PL_1_6112003_account_contract
+    payload: |
+      product_version:
+          display_name: PL - Bonus Wadiah - TM
+          code: '@{liability_account_contract.py}'
+          product_id: PL_1_6112003_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_NEW_PRODUCT
+  - type: SMART_CONTRACT_VERSION
+    id: IA_1_2162010_account_contract
+    payload: |
+      product_version:
+          display_name: IA - PPN Keluaran - VA e Wallet
+          code: '@{liability_account_contract.py}'
+          product_id: IA_1_2162010_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_NEW_PRODUCT
+
+  - type: SMART_CONTRACT_VERSION
+    id: IA_1_2163001_account_contract
+    payload: |
+      product_version:
+          display_name: IA - Kewajiban eMaterai
+          code: '@{liability_account_contract.py}'
+          product_id: IA_1_2163001_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_NEW_PRODUCT
+  - type: SMART_CONTRACT_VERSION
+    id: IA_1_2111002_account_contract
+    payload: |
+      product_version:
+          display_name: IA - BPKH Account
+          code: '@{liability_account_contract.py}'
+          product_id: IA_1_2111002_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_NEW_PRODUCT
+  - type: SMART_CONTRACT_VERSION
+    id: IA_1_2112003_account_contract
+    payload: |
+      product_version:
+          display_name: IA - RTJH Account - TM
+          code: '@{liability_account_contract.py}'
+          product_id: IA_1_2112003_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_NEW_PRODUCT
+  - type: SMART_CONTRACT_VERSION
+    id: IA_1_2171222_account_contract
+    payload: |
+      product_version:
+          display_name: IA - Penampung Pencairan
+          code: '@{liability_account_contract.py}'
+          product_id: IA_1_2171222_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_NEW_PRODUCT

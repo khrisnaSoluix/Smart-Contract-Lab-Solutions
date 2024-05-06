@@ -1,0 +1,17 @@
+# Copyright @ 2023 Thought Machine Group Limited. All rights reserved.
+---
+resources:
+  - type: WORKFLOW_DEFINITION_VERSION
+    id: LINE_OF_CREDIT_CREATE_DRAWDOWN
+    activate: true
+    payload: |
+      workflow_definition_version:
+          workflow_definition_id: LINE_OF_CREDIT_CREATE_DRAWDOWN
+          specification: '@{line_of_credit_create_drawdown.yaml}'
+  - type: WORKFLOW_DEFINITION_VERSION
+    id: LINE_OF_CREDIT_MARK_DELINQUENT
+    activate: true
+    payload: |
+      workflow_definition_version:
+          workflow_definition_id: LINE_OF_CREDIT_MARK_DELINQUENT
+          specification: '@{line_of_credit_mark_delinquent.yaml}'

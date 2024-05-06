@@ -1,0 +1,14 @@
+# Copyright @ 2022 Thought Machine Group Limited. All rights reserved.
+---
+type: GLOBAL_PARAMETER
+id: tax_rate
+payload: |
+  global_parameter:
+    id: tax_rate
+    display_name: Tax Rate for all deposit accounts that pay bonus
+    description: Global Tax Rate will apply to all deposit accounts that pay bonus
+    number:
+      value_type: NUMBER_FIELD_DISPLAY_STYLE_PERCENTAGE
+      min_value: '0'
+      max_value: '1'
+  initial_value: '0.2'

@@ -1,0 +1,9 @@
+type: FLAG_DEFINITION
+id: STANDARD_OVERDRAFT_TRANSACTION_COVERAGE
+payload: |
+  flag_definition:
+    id: STANDARD_OVERDRAFT_TRANSACTION_COVERAGE
+    name: STANDARD_OVERDRAFT_TRANSACTION_COVERAGE
+    description: Transaction types specified in optional_standard_overdraft_coverage are covered by standard overdraft
+    required_flag_level: FLAG_LEVEL_ACCOUNT
+    flag_visibility: FLAG_VISIBILITY_OPERATOR

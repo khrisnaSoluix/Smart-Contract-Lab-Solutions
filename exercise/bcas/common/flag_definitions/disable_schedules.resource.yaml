@@ -1,0 +1,11 @@
+# Copyright @ 2022 Thought Machine Group Limited. All rights reserved.
+---
+type: FLAG_DEFINITION
+id: DISABLE_SCHEDULES
+payload: |
+  flag_definition:
+    id: DISABLE_SCHEDULES
+    name: DISABLE_SCHEDULES
+    description: Stops the schedule from bonus and fees application
+    required_flag_level: FLAG_LEVEL_ACCOUNT
+    flag_visibility: FLAG_VISIBILITY_OPERATOR

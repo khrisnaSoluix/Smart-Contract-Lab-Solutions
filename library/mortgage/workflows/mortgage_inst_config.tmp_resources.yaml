@@ -1,0 +1,9 @@
+# Copyright @ 2023 Thought Machine Group Limited. All rights reserved.
+---
+resources:
+  - id: MORTGAGE_APPLICATION
+    instantiation_resources:
+      - Customer
+  - id: MORTGAGE_REPAYMENT_HOLIDAY_APPLICATION
+    instantiation_resources:
+      - Customer account

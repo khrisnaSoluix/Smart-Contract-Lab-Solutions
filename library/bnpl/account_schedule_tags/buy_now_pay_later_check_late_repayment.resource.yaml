@@ -1,0 +1,12 @@
+---
+type: ACCOUNT_SCHEDULE_TAG
+id: BUY_NOW_PAY_LATER_CHECK_LATE_REPAYMENT_AST
+payload: |
+  account_schedule_tag:
+    id: BUY_NOW_PAY_LATER_CHECK_LATE_REPAYMENT_AST
+    description: BUY_NOW_PAY_LATER_CHECK_LATE_REPAYMENT
+    sends_scheduled_operation_reports: false
+    schedule_status_override: ACCOUNT_SCHEDULE_TAG_SCHEDULE_STATUS_OVERRIDE_NO_OVERRIDE
+    schedule_status_override_start_timestamp: null
+    schedule_status_override_end_timestamp: null
+    test_pause_at_timestamp: null

@@ -1,0 +1,131 @@
+# Copyright @ 2021 Thought Machine Group Limited. All rights reserved.
+---
+type: SMART_CONTRACT_VERSION
+id: credit_card
+payload: |
+  product_version:
+      display_name: Credit Card
+      code: '@{credit_card_rendered.py}'
+      product_id: credit_card
+      params:
+          - name: denomination
+            value:  'GBP'
+          - name: transaction_code_to_type_map
+            value: '{
+                  "xxx": "purchase",
+                  "aaa": "cash_advance",
+                  "cc": "transfer",
+                  "bb": "balance_transfer"
+                }'
+          - name: transaction_types
+            value: '{
+                  "purchase": {},
+                  "cash_advance": {"charge_interest_from_transaction_date": "True"},
+                  "transfer": {},
+                  "balance_transfer": {"charge_interest_from_transaction_date": "True"}
+                }'
+          - name: transaction_type_interest_internal_accounts_map
+            value: '{
+                  "purchase": "&{INTEREST_INCOME_ACCOUNT}",
+                  "cash_advance": "&{INTEREST_INCOME_ACCOUNT}",
+                  "transfer": "&{INTEREST_INCOME_ACCOUNT}",
+                  "balance_transfer": "&{INTEREST_INCOME_ACCOUNT}"
+                }'
+          - name: transaction_type_fees_internal_accounts_map
+            value: '{
+                  "cash_advance": "&{FEE_INCOME_ACCOUNT}",
+                  "purchase": "&{FEE_INCOME_ACCOUNT}",
+                  "transfer": "&{FEE_INCOME_ACCOUNT}",
+                  "balance_transfer": "&{FEE_INCOME_ACCOUNT}"
+                }'
+          - name: interest_write_off_internal_account
+            value:  '&{INTEREST_WRITEOFF_ACCOUNT}'
+          - name: principal_write_off_internal_account
+            value:  '&{PRINCIPAL_WRITEOFF_ACCOUNT}'
+          - name: base_interest_rates
+            value: '{
+                  "purchase": "0.01",
+                  "cash_advance": "0.02",
+                  "transfer": "0.03",
+                  "fees": "0.01"
+                }'
+          - name: annual_percentage_rate
+            value: '{
+                  "purchase": "0.01",
+                  "cash_advance": "0.02",
+                  "transfer": "0.03",
+                  "fees": "0.01"
+                }'
+          - name: minimum_amount_due
+            value:  '500'
+          - name: minimum_percentage_due
+            value: '{
+                  "purchase": "0.01",
+                  "cash_advance": "0.01",
+                  "transfer": "0.01",
+                  "balance_transfer": "0.01",
+                  "interest": "1.0",
+                  "fees": "1.0"
+                }'
+          - name: late_repayment_fee_internal_account
+            value:  '&{FEE_INCOME_ACCOUNT}'
+          - name: external_fee_types
+            value:  '["dispute_fee", "atm_withdrawal_fee"]'
+          - name: external_fee_internal_accounts
+            value: '{
+                  "dispute_fee": "&{FEE_INCOME_ACCOUNT}",
+                  "atm_withdrawal_fee": "&{FEE_INCOME_ACCOUNT}"
+                }'
+          - name: annual_fee_internal_account
+            value:  '&{ANNUAL_MAINTENANCE_FEE_INCOME_ACCOUNT}'
+          - name: overlimit_fee_internal_account
+            value:  '&{FEE_INCOME_ACCOUNT}'
+          - name: accrue_interest_on_unpaid_interest
+            value:  'True'
+          - name: accrue_interest_on_unpaid_fees
+            value:  'True'
+          - name: accrue_interest_from_txn_day
+            value: 'True'
+          - name: interest_on_fees_internal_account
+            value: '&{FEES_INTEREST_ACCOUNT}'
+          - name: accrual_blocking_flags
+            value:  '["&{OVER_90_DPD}"]'
+          - name: account_closure_flags
+            value:  '["&{ACCOUNT_CLOSURE_REQUESTED}"]'
+          - name: account_write_off_flags
+            value:  '["&{MANUAL_WRITE_OFF}", "&{OVER_150_DPD}"]'
+          - name: mad_as_full_statement_flags
+            value:  '["&{ACCOUNT_CLOSURE_REQUESTED}", "&{OVER_90_DPD}"]'
+          - name: billed_to_unpaid_transfer_blocking_flags
+            value:  '["&{REPAYMENT_HOLIDAY}"]'
+          - name: mad_equal_to_zero_flags
+            value:  '["&{REPAYMENT_HOLIDAY}"]'
+          - name: overdue_amount_blocking_flags
+            value:  '["&{REPAYMENT_HOLIDAY}"]'
+          - name: accrual_schedule_hour
+            value:  '0'
+          - name: accrual_schedule_minute
+            value:  '0'
+          - name: accrual_schedule_second
+            value:  '0'
+          - name: scod_schedule_hour
+            value:  '0'
+          - name: scod_schedule_minute
+            value:  '0'
+          - name: scod_schedule_second
+            value:  '2'
+          - name: pdd_schedule_hour
+            value:  '0'
+          - name: pdd_schedule_minute
+            value:  '0'
+          - name: pdd_schedule_second
+            value:  '1'
+          - name: annual_fee_schedule_hour
+            value:  '23'
+          - name: annual_fee_schedule_minute
+            value:  '50'
+          - name: annual_fee_schedule_second
+            value:  '0'
+      tags:
+      - "CREDIT"
+  migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_ADD_VERSION_APPLY_NEW_USERS

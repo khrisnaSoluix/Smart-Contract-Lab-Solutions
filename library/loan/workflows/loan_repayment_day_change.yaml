@@ -1,0 +1,393 @@
+# Copyright @ 2021 Thought Machine Group Limited. All rights reserved.
+---
+name: Loan Repayment Day Change
+instance_title: Loan Repayment Day Change
+description: Change loan repayment day
+schema_version: 3.2.0
+definition_version: 1.0.3
+
+starting_state: retrieve_account_details
+end_states:
+  - state: repayment_day_update_success
+    result: SUCCESSFUL
+  - state: too_soon_to_change_repayment_day
+    result: FAILED
+  - state: repayment_day_cannot_be_updated
+    result: FAILED
+  - state: repayment_day_update_failed
+    result: FAILED
+  - state: account_is_not_open_error
+    result: FAILED
+
+states:
+  retrieve_account_details:
+    display_name: Retrieve account details
+    description: Retrieve account details
+    entry_actions:
+      save_to_global_state:
+        context_keys:
+          - user_id
+          - account_id
+      vault_callback:
+        path: core-api/v1/accounts/{id}
+        method: GET
+        arguments:
+          id: ${account_id}
+          fields_to_include:
+            - INCLUDE_FIELD_DERIVED_INSTANCE_PARAM_VALS
+        response_event: account_details_retrieved
+        response_fields:
+          - key_name: account_status
+            response_json_path: status
+            extract_singleton_element: true
+          - key_name: instance_param_vals
+            response_json_path: instance_param_vals
+            extract_singleton_element: true
+          - key_name: derived_instance_param_vals
+            response_json_path: derived_instance_param_vals
+            extract_singleton_element: true
+          - key_name: product_version_id
+            response_json_path: product_version_id
+            extract_singleton_element: true
+          - key_name: product_id
+            response_json_path: product_id
+            extract_singleton_element: true
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - account_status
+          - instance_param_vals
+          - derived_instance_param_vals
+          - product_id
+          - product_version_id
+    transitions:
+    - to: query_contract_parameters
+      trigger: account_details_retrieved
+      description: Retrieved account details
+  
+  query_contract_parameters:
+    display_name: Query loan parameters
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/product-versions
+        method: GET
+        arguments:
+          product_id: ${product_id}
+          view: PRODUCT_VERSION_VIEW_INCLUDE_PARAMETERS
+          page_size: 30
+          page_token: ${next_page_token:}
+        response_event: contract_versions_returned
+        response_fields:
+          - key_name: product_versions
+            response_json_path: product_versions
+            extract_singleton_element: true
+          - key_name: next_page_token
+            response_json_path: next_page_token
+            extract_singleton_element: true
+    transitions:
+      - to: extract_current_parameter_details
+        trigger: contract_versions_returned
+        description: Contracts returned
+
+  extract_current_parameter_details:
+    display_name: Extract parameters
+    expected_context_keys:
+      - next_page_token
+      - product_versions
+    type: transform
+    transform_ref: extract_current_parameter_details
+    transitions:
+      - to: validate_account_applicability
+        trigger: amortisation_method_extracted
+        actions:
+          save_to_global_state:
+            context_keys:
+              - amortisation_method
+      - to: query_contract_parameters
+        trigger: matching_product_version_not_found
+      - to: repayment_day_update_failed
+        trigger: no_valid_contract
+
+  validate_account_applicability:
+    display_name: Validate if repayment day change is supported
+    type: transform
+    transform_ref: validate_if_no_repayment_loan
+    transitions:
+      - to: repayment_day_cannot_be_updated
+        trigger: is_no_repayment_loan
+      - to: get_account_flags
+        trigger: not_no_repayment_loan
+        description: Account details retrieved
+
+  get_account_flags:
+    display_name: Get account flags
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/flags
+        method: GET
+        arguments:
+          account_ids:
+            - ${account_id}
+          include_inactive: false
+          flag_visibility_level: FLAG_VISIBILITY_CONTRACT
+          page_size: 100
+        response_fields:
+          - key_name: customer_flags
+            response_json_path: flags
+            extract_singleton_element: true
+        response_event: customer_flags_retrieved
+    transitions:
+      - to: validate_repayment_holiday_date
+        trigger: customer_flags_retrieved
+
+  validate_repayment_holiday_date:
+    display_name: Validate repayment holiday dates
+    type: transform
+    transform_ref: validate_repayment_holiday_date
+    transitions:
+      - to: repayment_day_cannot_be_updated
+        trigger: repayment_holiday_active
+      - to: process_account_details
+        trigger: repayment_holiday_inactive
+
+  process_account_details:
+    display_name: Process account details
+    type: transform
+    transform_ref: process_account_details
+    transitions:
+      - to: request_new_repayment_day
+        trigger: account_details_processed
+        description: Request new repayment day
+        actions:
+          save_to_global_state:
+            context_keys:
+              - repayment_day
+      - to: account_is_not_open_error
+        trigger: account_is_not_open
+        description: Account is not open
+      - to: too_soon_to_change_repayment_day
+        trigger: before_first_scheduled_repayment
+        description: Repayment day change before first scheduled event
+
+  request_new_repayment_day:
+    display_name: Request new repayment day
+    state_ui:
+      ui_actions:
+        - action_id: request_new_repayment_day
+          event: new_repayment_day_captured
+          display_name: Choose a new repayment day (1st - 28th)
+          ui_inputs:
+            - key: new_repayment_day
+              display_name: New repayment day
+              number_input:
+                min_value: 1
+                max_value: 28
+                precision: 1
+                step: 1
+                default_value: 28
+
+    transitions:
+      - to: process_new_repayment_day
+        trigger: new_repayment_day_captured
+        description: New repayment day captured
+        actions:
+          save_to_global_state:
+            context_keys:
+              - new_repayment_day
+
+  process_new_repayment_day:
+    display_name: Process updated parameters
+    type: transform
+    transform_ref: process_new_repayment_day
+    transitions:
+      - to: update_repayment_day
+        trigger: new_repayment_day_processed
+        description: Update repayment day
+        actions:
+          save_to_global_state:
+            context_keys:
+              - new_repayment_day_suffix
+      - to: retry_request_new_repayment_day
+        trigger: new_repayment_day_invalid
+        description: Retry request new repayment day
+
+  update_repayment_day:
+    display_name: Update repayment day
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/account-updates
+        method: POST
+        arguments:
+          request_id: generate_uuid()
+          account_update:
+            id: generate_uuid()
+            account_id: ${account_id}
+            instance_param_vals_update:
+              instance_param_vals:
+                repayment_day: ${new_repayment_day}
+    transitions:
+      - to: repayment_day_update_success
+        trigger: account_update_success
+        description: Successfully updated repayment day
+        auto_trigger_conditions:
+          streaming_api_conditions:
+            topic: vault.api.v1.accounts.account.instance_param_vals.updated
+            message_content:
+              - path: update_status
+                values:
+                  - ACCOUNT_UPDATE_STATUS_COMPLETED
+                quantifier: any
+      - to: repayment_day_update_failed
+        trigger: account_update_failure
+        description: Failure updating repayment day
+        auto_trigger_conditions:
+          streaming_api_conditions:
+            topic: vault.api.v1.accounts.account.instance_param_vals.updated
+            message_content:
+              - path: update_status
+                values:
+                  - ACCOUNT_UPDATE_STATUS_COMPLETED
+                quantifier: none
+
+  repayment_day_update_success:
+    display_name: Repayment day successfully updated
+    entry_actions:
+      add_or_replace_global_ui_panels:
+        - panel_id: display_message_panel
+          display_name: Display message
+          json_definition:
+            key_value_table:
+              items:
+                Message: Repayment day updated successfully. From next month onwards, repayments will be made on the ${new_repayment_day}${new_repayment_day_suffix} day of the month.
+
+  account_is_not_open_error:
+    display_name: Account is not open error
+    entry_actions:
+      add_or_replace_global_ui_panels:
+        - panel_id: account_error_panel
+          display_name: Account is not open error
+          json_definition:
+            key_value_table:
+              items:
+                Error message: The repayment day cannot be changed as the account status is not open.
+
+  too_soon_to_change_repayment_day:
+    display_name: Too soon to change repayment day
+    entry_actions:
+      add_or_replace_global_ui_panels:
+        - panel_id: account_error_panel
+          display_name: Repayment day cannot be updated
+          json_definition:
+            key_value_table:
+              items:
+                Error message: The repayment day cannot be changed before the first repayment day
+
+  repayment_day_cannot_be_updated:
+    display_name: Repayment day cannot be updated
+    state_ui:
+      ui_panels:
+        - panel_id: error_for_repayment_day_change
+          display_name: Repayment day cannot be updated
+          json_definition:
+            text:
+              value: ${failure_message}
+
+  repayment_day_update_failed:
+    display_name: Repayment day update failed
+    entry_actions:
+      add_or_replace_global_ui_panels:
+        - panel_id: account_error_panel
+          display_name: Repayment day update failed
+          json_definition:
+            key_value_table:
+              items:
+                Error message: Failed to update repayment day.
+
+  retry_request_new_repayment_day:
+    display_name: Retry request new repayment day
+    description: Request repayment day again because an invalid repayment day was entered
+    state_ui:
+      ui_panels:
+        - panel_id: repayment_day
+          display_name: Invalid repayment day
+          json_definition:
+            text:
+              value: ${error_message}
+      ui_actions:
+        - action_id: retry_request_new_repayment_day
+          event: retry_request_new_repayment_day
+          display_name: Retry
+    transitions:
+      - to: request_new_repayment_day
+        description: Retry new repayment day
+        trigger: retry_request_new_repayment_day
+
+transforms:
+  extract_current_parameter_details: |
+    product_versions = json.loads(context.get('product_versions', '[]'))
+    account_product_version_id = context.get('product_version_id')
+
+    for version in product_versions:
+      if version.get('id') == account_product_version_id:
+        for param in version['params']:
+          if param['name'] == 'amortisation_method':
+            return ['amortisation_method_extracted', {'amortisation_method': param['value']}]
+
+    next_page_token = context.get('next_page_token')
+    if next_page_token:
+      return ['matching_product_version_not_found', {'next_page_token': next_page_token}]
+    else:
+      return ['no_valid_contract', {'failure_message': 'Matching product version not found'}]
+
+  validate_if_no_repayment_loan: |
+    contract_amortisation_method = context.get('amortisation_method')
+    if contract_amortisation_method == "no_repayment":
+      return ['is_no_repayment_loan', {'failure_message': 'No repayment loans do not support repayment day changes'}]
+    else:
+      return ['not_no_repayment_loan', {}]
+
+  process_account_details: |
+    if context.get('account_status') != 'ACCOUNT_STATUS_OPEN':
+        return ['account_is_not_open', {}]
+
+    instance_param_vals = json.loads(context['instance_param_vals'])
+    derived_instance_param_vals = json.loads(context['derived_instance_param_vals'])
+    repayment_day = instance_param_vals['repayment_day']
+    remaining_term = derived_instance_param_vals['remaining_term']
+    total_term = instance_param_vals['total_term']
+
+    if remaining_term >= total_term:
+      return ['before_first_scheduled_repayment', {}]
+    else:
+      return ['account_details_processed', {'repayment_day': repayment_day}]
+
+  process_new_repayment_day: |
+    current_day = int(context['repayment_day'])
+    new_day = context['new_repayment_day']
+
+    error_list = []
+    if not new_day.isdigit():
+      error_list.append("- Repayment day is not a whole number. Please re-enter whole day(s) only.")
+    else:
+      new_day = int(new_day)
+
+    if new_day == current_day:
+      error_list.append("- New repayment day is similar to previous one. Please re-enter a different day than " + str(current_day) + ".")
+
+    if not error_list:
+      mapping = {1: 'st', 2: 'nd', 3: 'rd', 21: 'st', 22: 'nd', 23: 'rd'}
+      new_repayment_day_suffix = mapping.get(new_day, 'th')
+      return ['new_repayment_day_processed', {'new_repayment_day_suffix': new_repayment_day_suffix}]
+    else:
+      error_message = 'Invalid repayment day parameters were submitted:\n' + '\n'.join(error_list)
+      return ['new_repayment_day_invalid', {'error_message': error_message}]
+
+  validate_repayment_holiday_date: |
+    customer_flags = json.loads(context.get('customer_flags'))
+    active_flags = [flag['flag_definition_id'] for flag in customer_flags if flag['is_active']]
+    repayment_holiday = '&{REPAYMENT_HOLIDAY}' in active_flags
+
+    if repayment_holiday:
+      return ['repayment_holiday_active', {'failure_message': 'Account is on Repayment Holiday. Repayment day cannot be changed during this time.'}]
+    else:
+      return ['repayment_holiday_inactive', {}]

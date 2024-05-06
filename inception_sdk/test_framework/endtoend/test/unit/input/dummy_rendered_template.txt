@@ -1,0 +1,16 @@
+# Copyright @ 2021 Thought Machine Group Limited. All rights reserved.
+
+display_name = "Contract for event type replacement tests"
+api = "4.0.0"
+version = "1.0.0"
+summary = "Contract for event type replacement tests"
+
+event_types = dummy_feature_get_event_types("DUMMY")
+
+def get_event_types(product_name: str):
+    accrual_tags = [f"{product_name}_{EVENT_TYPE_1}_tag_1"]
+    apply_tag = [f"{product_name}_{EVENT_TYPE_2}_tag_1", f"{product_name}_{EVENT_TYPE_2}_tag_2"]
+    return [
+        EventType(name=EVENT_TYPE_1, scheduler_tag_ids=accrual_tags),
+        EventType(name=EVENT_TYPE_2, scheduler_tag_ids=apply_tag),
+    ]

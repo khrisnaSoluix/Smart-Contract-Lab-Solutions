@@ -1,0 +1,11 @@
+# Copyright @ 2021 Thought Machine Group Limited. All rights reserved.
+---
+type: INTERNAL_ACCOUNT
+id: PL_1_4822020_ACCOUNT
+vault_id: PL_1_4822020
+payload: |
+  internal_account:
+      id: PL_1_4822020
+      product_id: PL_1_4822020_account_contract
+      accounting:
+        tside: TSIDE_ASSET

@@ -1,0 +1,11 @@
+# Copyright @ 2021 Thought Machine Group Limited. All rights reserved.
+---
+type: INTERNAL_ACCOUNT
+id: INTEREST_AIR_ACCOUNT
+vault_id: INTEREST_AIR
+payload: |
+  internal_account:
+      id: INTEREST_AIR
+      product_id: '&{interest_air_account_contract:product_id}'
+      accounting:
+        tside: TSIDE_LIABILITY

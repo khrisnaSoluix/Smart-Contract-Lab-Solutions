@@ -1,0 +1,11 @@
+# Copyright @ 2022 Thought Machine Group Limited. All rights reserved.
+---
+type: INTERNAL_ACCOUNT
+id: BONUS_PAYABLE_ACCOUNT
+vault_id: BONUS_PAYABLE
+payload: |
+  internal_account:
+      id: BONUS_PAYABLE
+      product_id: bonus_payable_account_contract
+      accounting:
+        tside: TSIDE_LIABILITY

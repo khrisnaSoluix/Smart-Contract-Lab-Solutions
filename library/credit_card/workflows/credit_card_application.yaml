@@ -1,0 +1,295 @@
+# Copyright @ 2021 Thought Machine Group Limited. All rights reserved.
+---
+name: Credit Card Application
+instance_title: Credit card application
+description: Apply for a credit card
+schema_version: 3.2.0
+definition_version: 1.5.0
+starting_state: confirm_product_id
+end_states:
+  - state: account_opened_successfully
+    result: SUCCESSFUL
+  - state: account_opening_failed
+    result: FAILED
+
+states:
+  confirm_product_id:
+    display_name: Confirm product id
+    description: Confirm product id by checking context or defaulting to 'credit_card'
+    expected_context_keys:
+      - user_id
+    type: transform
+    transform_ref: confirm_product_id
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - user_id
+          - product_id
+    transitions:
+      - to: retrieve_credit_card_denomination
+        trigger: product_id_confirmed
+
+  retrieve_credit_card_denomination:
+    display_name: Retrieve credit card denomination
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/product-versions
+        method: GET
+        arguments:
+          product_id: ${product_id}
+          page_size: 30
+          page_token: ${next_page_token:}
+          view: PRODUCT_VERSION_VIEW_INCLUDE_PARAMETERS
+        response_event: credit_card_denomination_retrieved
+        response_fields:
+          - key_name: credit_card_denomination
+            response_json_path: product_versions[?(@.is_current == true)].params[?(@.name == 'denomination')].value
+          - key_name: next_page_token
+            response_json_path: next_page_token
+            extract_singleton_element: true
+    transitions:
+      - to: check_credit_card_denomination_value
+        trigger: credit_card_denomination_retrieved
+
+  check_credit_card_denomination_value:
+    display_name: Check credit card denomination value
+    expected_context_keys:
+      - credit_card_denomination
+      - next_page_token
+    type: transform
+    transform_ref: check_denomination_value
+    transitions:
+      - to: capture_credit_limit
+        trigger: credit_card_denomination_valid
+      - to: retrieve_credit_card_denomination
+        trigger: credit_card_denomination_invalid
+      - to: account_opening_failed
+        trigger: no_valid_contract_for_denomination
+
+  capture_credit_limit:
+    display_name: Capture credit limit
+    entry_actions:
+      save_to_global_state:
+        context_keys:
+          - credit_card_denomination
+    state_ui:
+      ui_panels:
+        - panel_id: credit_limit
+          display_name: Set credit limit
+          json_definition:
+            text:
+              value: Enter credit limit
+      ui_actions:
+        - action_id: chosen_credit_limit
+          event: chosen_credit_limit
+          display_name: Set credit limit
+          ui_inputs:
+            - key: credit_limit
+              display_name: "Enter credit limit (${credit_card_denomination})"
+              number_input:
+                min_value: 0
+    transitions:
+      - to: capture_overlimit_opt_in
+        description: Credit limit chosen
+        trigger: chosen_credit_limit
+        actions:
+          save_to_global_state:
+            context_keys:
+              - credit_limit
+
+  capture_overlimit_opt_in:
+    display_name: Capture overlimit opt in preference
+    state_ui:
+      ui_panels:
+        - panel_id: overlimit_opt_in_selection
+          display_name: Overlimit opt in selection
+          json_definition:
+            text: Choose whether to opt in to overlimit facility
+      ui_actions:
+        - action_id: overlimit_opt_in_captured
+          event: overlimit_opt_in_captured
+          display_name: Select overlimit opt in option
+          ui_inputs:
+            - key: overlimit_opt_in
+              display_name: Select overlimit opt in
+              string_input:
+              json_definition:
+                value_selector:
+                  values:
+                    - label: "Opt in"
+                      value: "True"
+                    - label: "Opt out"
+                      value: "False"
+    transitions:
+      - to: query_contract_versions
+        description: Overlimit option captured
+        trigger: overlimit_opt_in_captured
+        actions:
+          save_to_global_state:
+            context_keys:
+              - overlimit_opt_in
+
+  query_contract_versions:
+    display_name: Fetch contract versions
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/product-versions
+        method: GET
+        arguments:
+          product_id: ${product_id}
+          view: PRODUCT_VERSION_VIEW_INCLUDE_PARAMETERS
+          page_size: 30
+          page_token: ${next_page_token:}
+        response_event: contract_versions_returned
+        response_fields:
+          - key_name: product_versions
+            response_json_path: product_versions
+            extract_singleton_element: true
+          - key_name: next_page_token
+            response_json_path: next_page_token
+            extract_singleton_element: true
+    transitions:
+      - to: extract_contract_parameter_details
+        trigger: contract_versions_returned
+        description: Contracts returned
+
+  extract_contract_parameter_details:
+    display_name: Extract contract default parameters
+    expected_context_keys:
+      - next_page_token
+      - product_versions
+    type: transform
+    transform_ref: extract_contract_parameter_details
+    transitions:
+      - to: create_account
+        trigger: contract_parameters_extracted
+        description: Contract default parameters determined
+      - to: query_contract_versions
+        trigger: current_product_version_not_found
+        description: Fetch more product versions
+      - to: account_opening_failed
+        trigger: no_valid_contract
+        description: No valid contract
+
+  create_account:
+    display_name: Create the account
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/accounts
+        method: POST
+        arguments:
+          request_id: generate_uuid()
+          account:
+            id: generate_uuid()
+            product_id: ${product_id}
+            status: ACCOUNT_STATUS_PENDING
+            stakeholder_ids:
+              - ${user_id}
+            permitted_denominations:
+              - ${credit_card_denomination}
+            instance_param_vals: json_object(${instance_param_vals})
+            details: {}
+        response_fields:
+          - key_name: account_id
+            response_json_path: id
+            extract_singleton_element: true
+        response_event: account_created
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - account_id
+    transitions:
+      - to: open_account
+        description: Account created
+        trigger: account_created
+
+  open_account:
+    display_name: Open account
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/accounts/{account.id}
+        method: PUT
+        arguments:
+          request_id: generate_uuid()
+          account:
+            id: ${account_id}
+            status: ACCOUNT_STATUS_OPEN
+          update_mask: status
+    transitions:
+      - to: account_opened_successfully
+        trigger: account_open_successful
+        auto_trigger_conditions:
+          streaming_api_conditions:
+            topic: vault.core_api.v1.accounts.account_update.events
+            message_content:
+              - path: "['*'].account_update.status"
+                values:
+                  - ACCOUNT_UPDATE_STATUS_COMPLETED
+                quantifier: any
+      - to: account_opening_failed
+        trigger: account_open_failure
+        auto_trigger_conditions:
+          streaming_api_conditions:
+            topic: vault.core_api.v1.accounts.account_update.events
+            message_content:
+              - path: "['*'].account_update.status"
+                values:
+                  - ACCOUNT_UPDATE_STATUS_COMPLETED
+                  - ACCOUNT_UPDATE_STATUS_PENDING_EXECUTION
+                quantifier: none
+        actions:
+          save_to_global_state:
+            new_key_value_pairs:
+              failure_message: "Failed to activate account, please retry."
+
+  account_opened_successfully:
+    display_name: Account opened successfully
+
+  account_opening_failed:
+    display_name: Account opening failed
+    state_ui:
+      ui_panels:
+        - panel_id: account_opening_failure_panel
+          display_name: Account opening failed
+          json_definition:
+            text:
+              value: ${failure_message}
+              is_error: true
+
+transforms:
+  confirm_product_id: |
+    context['product_id'] = context.get('product_id', 'credit_card')
+    return ['product_id_confirmed', context]
+
+  check_denomination_value: |
+    denominations = json.loads(context.get('credit_card_denomination'))
+    if denominations:
+      credit_card_denomination = denominations[0]
+      return ['credit_card_denomination_valid', {'credit_card_denomination': credit_card_denomination}]
+
+    next_page_token = context.get('next_page_token')
+
+    if next_page_token:
+      return ['credit_card_denomination_invalid', {'next_page_token': next_page_token}]
+    else:
+      return ['no_valid_contract', {'failure_message': 'Cannot retrieve denomination for current product version'}]
+
+  extract_contract_parameter_details: |
+    product_versions = json.loads(context.get('product_versions', '[]'))
+    for version in product_versions:
+      if version.get('is_current'):
+        instance_param_vals = {'credit_limit': context['credit_limit'], 'overlimit_opt_in': context['overlimit_opt_in']}
+
+        params = {param['name']:param for param in version['params']}
+
+        for param in list(params):
+          if param not in ['credit_limit', 'overlimit_opt_in'] and params[param].get('default_value'):
+            instance_param_vals[param] = params[param]['default_value']
+
+        return ['contract_parameters_extracted', {'instance_param_vals': json.dumps(instance_param_vals)}]
+
+    next_page_token = context.get('next_page_token')
+    if next_page_token:
+      return ['current_product_version_not_found', {'next_page_token': next_page_token}]
+    else:
+      return ['no_valid_contract', {'failure_message': 'Current product version not found'}]

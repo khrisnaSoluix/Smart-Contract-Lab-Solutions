@@ -1,0 +1,652 @@
+# Copyright @ 2021 Thought Machine Group Limited. All rights reserved.
+---
+name: Us Supervisor Account Association
+instance_title: Us Supervisor Account Association
+description: A workflow to link existing US accounts by adding them to a plan
+schema_version: 3.2.0
+definition_version: 1.1.2
+starting_state: retrieve_customer_accounts
+end_states:
+  - state: accounts_added_to_new_plan_successfully
+    result: SUCCESSFUL
+  - state: account_added_to_existing_plan_successfully
+    result: SUCCESSFUL
+  - state: failure_to_add_account_to_plan
+    result: FAILED
+
+states:
+  retrieve_customer_accounts:
+    display_name: Retrieve accounts
+    entry_actions:
+      save_to_global_state:
+        context_keys:
+          - user_id
+          - checking_pid
+          - savings_pid
+      vault_callback:
+        path: core-api/v1/accounts
+        method: GET
+        arguments:
+          page_size: 30
+          page_token: ${next_page_token1:}
+          stakeholder_id: ${user_id}
+          account_statuses:
+            - ACCOUNT_STATUS_OPEN
+        response_event: customer_accounts_retrieved
+        response_fields:
+          - key_name: retrieved_accounts
+            response_json_path: accounts
+            extract_singleton_element: true
+          - key_name: next_page_token1
+            response_json_path: next_page_token
+            extract_singleton_element: true
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - open_accounts
+          - next_page_token1
+          - retrieved_accounts
+    transitions:
+      - to: build_account_list
+        description: Accounts retrieved
+        trigger: customer_accounts_retrieved
+
+  build_account_list:
+    display_name: Build account list
+    type: transform
+    transform_ref: build_account_list
+    transitions:
+      - to: save_accounts_list
+        description: Save accounts and retrieve next page
+        trigger: retrieve_more_accounts
+      - to: generate_account_type_lists
+        description: All accounts retrieved
+        trigger: all_accounts_retrieved
+
+  save_accounts_list:
+    display_name: Save accounts list
+    entry_actions:
+      save_to_global_state:
+        context_keys:
+          - open_accounts
+          - next_page_token1
+    type: transform
+    transform: |
+      return ['context_saved', {}]
+    transitions:
+      - to: retrieve_customer_accounts
+        trigger: context_saved
+
+  generate_account_type_lists:
+    display_name: Generate lists of accounts by type
+    entry_actions:
+      save_to_global_state:
+        context_keys:
+          - open_accounts
+    type: transform
+    transform_ref: generate_account_type_lists
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - customer_checking_accounts
+          - customer_savings_accounts
+          - customer_other_accounts
+    transitions:
+      - to: get_account_to_check_for_plan
+        description: Have accounts
+        trigger: have_accounts
+      - to: failure_to_add_account_to_plan
+        description: Accounts are missing
+        trigger: no_accounts
+
+  get_account_to_check_for_plan:
+    display_name: Get account to check for existing plan
+    description: Get account id for the customer account
+    type: transform
+    transform_ref: extract_account_id
+    transitions:
+      - to: retrieve_account_plan_assocs_for_account_id
+        trigger: account_id_extracted
+      - to: validate_if_plan_found
+        description: all accounts have been checked
+        trigger: no_more_accounts_to_check
+
+  retrieve_account_plan_assocs_for_account_id:
+    display_name: Retrieve account plan associations
+    description: Retrieve plan associations for account id
+    entry_actions:
+      save_to_global_state:
+        context_keys:
+          - open_accounts
+      vault_callback:
+        path: core-api/v1/account-plan-assocs
+        method: GET
+        arguments:
+          account_ids:
+            - ${account_id_to_check}
+          page_size: 30
+          page_token: ${next_page_token2:}
+        response_fields:
+          - key_name: plan_assocs_for_account_id
+            response_json_path: account_plan_assocs
+            extract_singleton_element: true
+          - key_name: next_page_token2
+            response_json_path: next_page_token
+            extract_singleton_element: true
+        response_event: plan_assocs_for_account_id_retrieved
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - plan_assocs_for_account_id
+          - next_page_token2
+    transitions:
+      - to: check_for_existing_plan
+        description: Check if a plan exists for this account
+        trigger: plan_assocs_for_account_id_retrieved
+
+  check_for_existing_plan:
+    display_name: Check for existing plan
+    description: Check for existing plan
+    type: transform
+    transform_ref: check_for_plans
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - num_plans_found
+          - plan_id
+    transitions:
+      - to: get_account_to_check_for_plan
+        trigger: retrieve_next_account
+      - to: retrieve_account_plan_assocs_for_account_id
+        trigger: check_next_page
+      - to: failure_to_add_account_to_plan
+        trigger: multiple_plans_found
+
+  validate_if_plan_found:
+    display_name: Validate if a plan exists
+    type: transform
+    transform: |
+      if context.get('plan_id') == '':
+        return ['no_plan_exists', {}]
+      else:
+        return ['plan_exists', {}]
+    transitions:
+      - to: retrieve_associated_accounts_on_plan
+        trigger: plan_exists
+      - to: check_account_type_lists_for_no_plan
+        trigger: no_plan_exists
+
+  retrieve_associated_accounts_on_plan:
+    description: retrieve accounts associated with the found plan id
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/account-plan-assocs
+        method: GET
+        arguments:
+          plan_ids:
+            - ${plan_id}
+          page_size: 30
+          page_token: ${next_page_token3:}
+        response_fields:
+          - key_name: plan_assocs_for_plan_id
+            response_json_path: account_plan_assocs
+            extract_singleton_element: true
+          - key_name: next_page_token3
+            response_json_path: next_page_token
+            extract_singleton_element: true
+        response_event: account_plan_assocs_retrieved
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - plan_assocs_for_plan_id
+          - next_page_token3
+    transitions:
+      - to: check_number_of_associated_accounts
+        trigger: account_plan_assocs_retrieved
+
+  check_number_of_associated_accounts:
+    display_name: Check number of associated accounts on the plan
+    type: transform
+    transform_ref: get_number_of_account_assocs
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - next_page_token3
+          - active_savings_assocs
+          - active_checking_assocs
+          - customer_savings_accounts_on_plan
+    transitions:
+      - to: retrieve_associated_accounts_on_plan
+        trigger: retrieve_more_associations
+      - to: failure_to_add_account_to_plan
+        trigger: unable_to_add_to_plan
+      - to: create_account_selector_list
+        trigger: able_to_add_to_plan
+
+  create_account_selector_list:
+    display_name: Generate account selector list
+    description: Generate account selector list
+    type: transform
+    transform_ref: create_selection_list_for_existing_plan
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - accounts_to_exclude
+    transitions:
+      - to: select_account_to_add_to_existing_plan
+        trigger: exclusion_list_created
+
+  select_account_to_add_to_existing_plan:
+    display_name: Choose account to be added to the existing plan
+    state_ui:
+      ui_actions:
+        - action_id: account_id
+          event: account_id_selected
+          display_name: Choose account from list
+          ui_inputs:
+            - key: account_id_to_add
+              display_name: Account id to add to existing_plan
+              string_input: {}
+              json_definition:
+                account_selector:
+                  customer_id: ${user_id}
+                  account_statuses_to_include:
+                    - ACCOUNT_STATUS_OPEN
+                  exclude_account_ids: json_object(${accounts_to_exclude})
+    transitions:
+      - to: update_existing_plan
+        trigger: account_id_selected
+        actions:
+          save_to_global_state:
+            context_keys:
+              - account_id_to_add
+
+  update_existing_plan:
+    display_name: Add selected account to plan
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/plan-updates
+        method: POST
+        arguments:
+          request_id: generate_uuid()
+          plan_update:
+            plan_id: ${plan_id}
+            associate_account_update:
+              account_id: ${account_id_to_add}
+        response_fields:
+          - key_name: plan_update_id
+            response_json_path: id
+            extract_singleton_element: true
+        response_event: existing_plan_updated
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - plan_update_id
+    transitions:
+      - to: account_added_to_existing_plan_successfully
+        description: Plan updated
+        trigger: existing_plan_updated
+
+  check_account_type_lists_for_no_plan:
+    display_name: Check for valid customer accounts
+    type: transform
+    transform_ref: check_customer_accounts
+    transitions:
+      - to: failure_to_add_account_to_plan
+        trigger: accounts_missing
+      - to: select_accounts_to_add_to_new_plan
+        trigger: valid_accounts_exist
+
+  select_accounts_to_add_to_new_plan:
+    display_name: Select accounts to add to new plan
+    state_ui:
+      ui_actions:
+        - action_id: choose_accounts
+          event: accounts_selected
+          display_name: Choose accounts to add to the new plan
+          ui_inputs:
+            - key: account_id_1
+              string_input: {}
+              display_name: Select account 1
+              json_definition:
+                account_selector:
+                  customer_id: ${user_id}
+                  account_statuses_to_include:
+                    - ACCOUNT_STATUS_OPEN
+                  exclude_account_ids: json_object(${customer_other_accounts})
+            - key: account_id_2
+              string_input: {}
+              display_name: Select account 2
+              json_definition:
+                account_selector:
+                  customer_id: ${user_id}
+                  account_statuses_to_include:
+                    - ACCOUNT_STATUS_OPEN
+                  exclude_account_ids: json_object(${customer_other_accounts})
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - account_id_1
+          - account_id_2
+    transitions:
+      - to: validate_selected_accounts
+        trigger: accounts_selected
+
+  validate_selected_accounts:
+    display_name: Validate selected accounts
+    type: transform
+    transform_ref: validate_selected_accounts
+    transitions:
+      - to: create_plan
+        trigger: valid_selection
+      - to: display_message_to_select_again
+        trigger: select_again
+
+  display_message_to_select_again:
+    display_name: Select accounts again
+    state_ui:
+      ui_panels:
+        - panel_id: display_select_again_reason
+          display_name: Select accounts again
+          json_definition:
+            key_value_table:
+              items:
+                Error message: ${invalid_selection_reason}
+      ui_actions:
+        - action_id: accept_reselection
+          event: reselection_accepted
+          display_name: Select accounts again
+    transitions:
+      - to: select_accounts_to_add_to_new_plan
+        trigger: reselection_accepted
+
+  create_plan:
+    display_name: Create plan
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/plans
+        method: POST
+        arguments:
+          request_id: generate_uuid()
+          plan:
+            supervisor_contract_version_id: "&{us_v3_supervisor_contract_version}"
+        response_fields:
+          - key_name: plan_id
+            response_json_path: id
+            extract_singleton_element: true
+        response_event: plan_created
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - plan_id
+    transitions:
+      - to: add_account_1_to_plan
+        description: Plan created
+        trigger: plan_created
+
+  add_account_1_to_plan:
+    display_name: Add account 1 to plan
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/plan-updates
+        method: POST
+        arguments:
+          request_id: generate_uuid()
+          plan_update:
+            plan_id: ${plan_id}
+            associate_account_update:
+              account_id: ${account_id_1}
+        response_fields:
+          - key_name: plan_update_id_1
+            response_json_path: id
+            extract_singleton_element: true
+        response_event: plan_updated_1
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - plan_update_id_1
+    transitions:
+      - to: add_account_2_to_plan
+        description: Plan updated
+        trigger: plan_updated_1
+
+  add_account_2_to_plan:
+    display_name: Add account 2 to plan
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/plan-updates
+        method: POST
+        arguments:
+          request_id: generate_uuid()
+          plan_update:
+            plan_id: ${plan_id}
+            associate_account_update:
+              account_id: ${account_id_2}
+        response_fields:
+          - key_name: plan_update_id_2
+            response_json_path: id
+            extract_singleton_element: true
+        response_event: plan_updated_2
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - plan_update_id_2
+    transitions:
+      - to: accounts_added_to_new_plan_successfully
+        description: Plan updated
+        trigger: plan_updated_2
+
+  accounts_added_to_new_plan_successfully:
+    display_name: Accounts added to a new plan successfully
+
+  account_added_to_existing_plan_successfully:
+    display_name: New account added to existing plan successfully
+
+  failure_to_add_account_to_plan:
+    display_name: Unable to add account to plan
+    entry_actions:
+      save_to_global_state:
+        context_keys:
+          - reject_reason
+      add_or_replace_global_ui_panels:
+        - panel_id: failure_to_add_account_to_plan
+          display_name: Cannot add account to plan
+          json_definition:
+            key_value_table:
+              items:
+                Error message: ${reject_reason}
+
+  technical_error:
+    implicit: true
+    implicit_transition_trigger: technical_error
+    entry_actions:
+      create_ticket:
+        assigned_roles: [ops_user]
+        title: An error has occurred when updating the plan
+        description: An error has occured when adding accounts to the plan
+        ticket_ui:
+          ui_panels:
+            - panel_id: error
+              display_name: Error
+              json_definition:
+                error_message:
+                  message: "${error_msg} Check plan ${plan_id}, it may have no associated accounts"
+
+transforms:
+  build_account_list: |
+    open_accounts = json.loads(context.get('open_accounts', '[]'))
+    open_accounts.extend(json.loads(context['retrieved_accounts']))
+    next_page_token = context.get('next_page_token1')
+    new_context = {'open_accounts': json.dumps(open_accounts)}
+
+    if next_page_token:
+      new_context['next_page_token1'] = next_page_token
+      return ['retrieve_more_accounts', new_context]
+    else:
+      return ['all_accounts_retrieved', new_context]
+
+  generate_account_type_lists: |
+    new_context = {}
+    accounts = json.loads(context['open_accounts'])
+    checking_pid = context.get('checking_pid') or 'us_checking_account'
+    savings_pid = context.get('savings_pid') or 'us_savings_account'
+
+    if len(accounts) == 0:
+      return ['no_accounts', {'reject_reason': 'Customer does not have any open accounts'}]
+
+    customer_savings_accounts = []
+    customer_checking_accounts = []
+    customer_other_accounts = []
+
+    for account in accounts:
+      if savings_pid in account['product_id']:
+        customer_savings_accounts.append(account['id'])
+
+      elif checking_pid in account['product_id']:
+        customer_checking_accounts.append(account['id'])
+
+      else:
+        customer_other_accounts.append(account['id'])
+
+    new_context['customer_savings_accounts'] = json.dumps(customer_savings_accounts)
+    new_context['customer_checking_accounts'] = json.dumps(customer_checking_accounts)
+    new_context['customer_other_accounts'] = json.dumps(customer_other_accounts)
+    return ['have_accounts', new_context]
+
+  extract_account_id: |
+    new_context = {}
+    accounts = json.loads(context.get('open_accounts', '[]'))
+
+    if len(accounts) == 0:
+      return ['no_more_accounts_to_check', new_context]
+
+    account_id_to_check = accounts.pop()['id']
+    new_context['open_accounts'] = json.dumps(accounts)
+    new_context['account_id_to_check'] = account_id_to_check
+
+    return ['account_id_extracted', new_context]
+
+  check_for_plans: |
+    new_context = {}
+    plan_assocs = json.loads(context['plan_assocs_for_account_id'])
+    num_plans_found = json.loads(context.get('num_plans_found', '0'))
+    existing_plan_id = context.get('plan_id', '')
+    next_page_token = context.get('next_page_token2')
+
+    for association in plan_assocs:
+      if association['status'] == "ACCOUNT_PLAN_ASSOC_STATUS_ACTIVE":
+        if association['plan_id'] != existing_plan_id:
+          if num_plans_found == 1:
+            return ['multiple_plans_found', {'reject_reason': 'Customer appears to have more than 1 active plan'}]
+          else:
+            num_plans_found += 1
+            existing_plan_id = association['plan_id']
+
+    new_context['plan_id'] = existing_plan_id
+    new_context['num_plans_found'] = json.dumps(num_plans_found)
+
+    if next_page_token:
+      new_context['next_page_token2'] = next_page_token
+      return ['check_next_page', new_context]
+    else:
+      return ['retrieve_next_account', new_context]
+
+  get_number_of_account_assocs: |
+    new_context = {}
+    plan_assocs = json.loads(context['plan_assocs_for_plan_id'])
+    next_page_token = context.get('next_page_token3')
+
+    active_savings_assocs = json.loads(context.get('active_savings_assocs', '0'))
+    active_checking_assocs = json.loads(context.get('active_checking_assocs', '0'))
+    customer_savings_accounts = json.loads(context.get('customer_savings_accounts'))
+    customer_savings_accounts_on_plan = json.loads(context.get('customer_savings_accounts_on_plan', '[]'))
+    customer_checking_accounts = json.loads(context.get('customer_checking_accounts'))
+
+    for association in plan_assocs:
+      if association['status'] == "ACCOUNT_PLAN_ASSOC_STATUS_ACTIVE":
+
+        if association['account_id'] in customer_checking_accounts:
+          active_checking_assocs += 1
+          if active_checking_assocs > 1:
+            return ['unable_to_add_to_plan', {'reject_reason': 'Customer appears to have more than 1 checking account associated to an existing plan'}]
+
+        elif association['account_id'] in customer_savings_accounts:
+          active_savings_assocs += 1
+          customer_savings_accounts_on_plan.append(association['account_id'])
+          if active_savings_assocs > 3:
+            return ['unable_to_add_to_plan', {'reject_reason': 'Customer appears to have more than 3 savings accounts associated to an existing plan'}]
+
+    new_context['active_savings_assocs'] = json.dumps(active_savings_assocs)
+    new_context['active_checking_assocs'] = json.dumps(active_checking_assocs)
+    new_context['customer_savings_accounts_on_plan'] = json.dumps(customer_savings_accounts_on_plan)
+
+    if next_page_token:
+      new_context['next_page_token3'] = next_page_token
+      return ['retrieve_more_associations', new_context]
+
+    checking_on_plan = active_checking_assocs
+    customer_has_savings_accounts = len(customer_savings_accounts) > 0
+    customer_has_checking_accounts = len(customer_checking_accounts) > 0
+
+    if checking_on_plan:
+      reject_reason_base = 'Customer already has a US checking account associated to an existing plan'
+      if not customer_has_savings_accounts:
+        return ['unable_to_add_to_plan', {'reject_reason':reject_reason_base + ' and no open US savings accounts'}]
+
+      elif active_savings_assocs == 3:
+        return ['unable_to_add_to_plan', {'reject_reason':reject_reason_base + ' and 3 associated US savings accounts to the existing plan'}]
+
+      elif active_savings_assocs == len(customer_savings_accounts):
+        return ['unable_to_add_to_plan', {'reject_reason':reject_reason_base + ' and no open US savings accounts available to be associated to the existing plan'}]
+
+    elif not checking_on_plan and not customer_has_checking_accounts:
+      reject_reason_base = 'Customer has no open US checking accounts'
+      if active_savings_assocs == 3:
+        return ['unable_to_add_to_plan', {'reject_reason':reject_reason_base + ' and 3 associated US savings accounts to an existing plan'}]
+
+      elif active_savings_assocs == len(customer_savings_accounts):
+        return ['unable_to_add_to_plan', {'reject_reason':reject_reason_base + ' and no open US savings accounts available to be associated to the existing plan'}]
+
+    return ['able_to_add_to_plan', new_context]
+
+  create_selection_list_for_existing_plan: |
+    new_context = {}
+    accounts_to_exclude = json.loads(context.get('customer_other_accounts'))
+    active_savings_assocs = json.loads(context.get('active_savings_assocs'))
+    active_checking_assocs = json.loads(context.get('active_checking_assocs'))
+    customer_savings_accounts_on_plan = json.loads(context.get('customer_savings_accounts_on_plan'))
+    customer_checking_accounts = json.loads(context.get('customer_checking_accounts'))
+
+    if active_checking_assocs == 1:
+      accounts_to_exclude.extend(customer_checking_accounts)
+
+    accounts_to_exclude.extend(customer_savings_accounts_on_plan)
+
+    new_context['accounts_to_exclude'] = json.dumps(accounts_to_exclude)
+
+    return ['exclusion_list_created', new_context]
+
+  check_customer_accounts: |
+    new_context = {}
+    customer_savings_accounts = json.loads(context.get('customer_savings_accounts'))
+    customer_checking_accounts = json.loads(context.get('customer_checking_accounts'))
+
+    num_accounts = len(customer_savings_accounts) + len(customer_checking_accounts)
+
+    if num_accounts < 2 or len(customer_savings_accounts) == 0:
+      return ['accounts_missing', {'reject_reason': 'Customer does not have the required US accounts to create a new plan'}]
+
+    return ['valid_accounts_exist', {}]
+
+  validate_selected_accounts: |
+    new_context = {}
+    account_id_1 = context.get('account_id_1')
+    account_id_2 = context.get('account_id_2')
+    customer_checking_accounts = json.loads(context.get('customer_checking_accounts'))
+
+    if account_id_1 == account_id_2:
+      return ['select_again', {'invalid_selection_reason': 'You must select 2 different accounts'}]
+    elif account_id_1 in customer_checking_accounts and account_id_2 in customer_checking_accounts:
+      return ['select_again', {'invalid_selection_reason': 'You cannot select 2 US checking accounts'}]
+
+    return ['valid_selection', {}]

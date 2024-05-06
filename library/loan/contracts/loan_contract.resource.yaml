@@ -1,0 +1,110 @@
+# Copyright @ 2023 Thought Machine Group Limited. All rights reserved.
+---
+type: SMART_CONTRACT_VERSION
+id: loan
+payload: |
+  product_version:
+      display_name: KTA Payroll
+      code: '@{loan_rendered.py}'
+      product_id: loan
+      params:
+        - name: accrual_precision
+          value: '5'
+        - name: accrue_interest_on_due_principal
+          value: 'False'
+        - name: accrued_interest_receivable_account
+          value: '&{ACCRUED_INTEREST_RECEIVABLE_ACCOUNT}'
+        - name: amortisation_method
+          value: 'declining_principal'
+        - name: annual_interest_rate_cap
+          value: '1.0'
+        - name: annual_interest_rate_floor
+          value: '0'
+        - name: application_precision
+          value: '2'
+        - name: capitalised_interest_receivable_account
+          value: '&{CAPITALISED_INTEREST_RECEIVABLE_ACCOUNT}'
+        - name: capitalised_interest_received_account
+          value: '&{CAPITALISED_INTEREST_RECEIVED_ACCOUNT}'
+        - name: capitalise_penalty_interest
+          value: 'False'
+        - name: capitalised_penalties_received_account
+          value: '&{CAPITALISED_PENALTIES_RECEIVED_ACCOUNT}'
+        - name: capitalise_no_repayment_accrued_interest
+          value: 'no_capitalisation'
+        - name: check_delinquency_hour
+          value: '0'
+        - name: check_delinquency_minute
+          value: '0'
+        - name: check_delinquency_second
+          value: '2'
+        - name: check_overdue_hour
+          value: '0'
+        - name: check_overdue_minute
+          value: '0'
+        - name: check_overdue_second
+          value: '2'
+        - name: days_in_year
+          value: '365'
+        - name: delinquency_blocking_flags
+          value: '["&{REPAYMENT_HOLIDAY}"]'
+        - name: delinquency_flag
+          value: '["&{ACCOUNT_DELINQUENT}"]'
+        - name: denomination
+          value: 'IDR'
+        - name: due_amount_calculation_hour
+          value: '0'
+        - name: due_amount_calculation_minute
+          value: '1'
+        - name: due_amount_calculation_second
+          value: '0'
+        - name: due_amount_calculation_blocking_flags
+          value: '["&{REPAYMENT_HOLIDAY}"]'
+        - name: early_repayment_fee_income_account
+          value: '&{EARLY_REPAYMENT_FEE_INCOME_ACCOUNT}'
+        - name: early_repayment_flat_fee
+          value: '50'
+        - name: early_repayment_fee_rate
+          value: '0'
+        - name: grace_period
+          value: '1'
+        - name: interest_accrual_hour
+          value: '0'
+        - name: interest_accrual_minute
+          value: '0'
+        - name: interest_accrual_second
+          value: '1'
+        - name: interest_received_account
+          value: '&{INTEREST_RECEIVED_ACCOUNT}'
+        - name: late_repayment_fee
+          value: '10'
+        - name: late_repayment_fee_income_account
+          value: '&{LATE_REPAYMENT_FEE_INCOME_ACCOUNT}'
+        - name: overdue_amount_calculation_blocking_flags
+          value: '["&{REPAYMENT_HOLIDAY}"]'
+        - name: overpayment_fee_income_account
+          value: '&{OVERPAYMENT_FEE_INCOME_ACCOUNT}'
+        - name: overpayment_fee_rate
+          value: '0.05'
+        - name: overpayment_impact_preference
+          value: 'reduce_term'
+        - name: penalty_blocking_flags
+          value: '["&{REPAYMENT_HOLIDAY}"]'
+        - name: penalty_compounds_overdue_interest
+          value: 'True'
+        - name: penalty_includes_base_rate
+          value: 'True'
+        - name: penalty_interest_rate
+          value: '0.24'
+        - name: penalty_interest_received_account
+          value: '&{PENALTY_INTEREST_RECEIVED_ACCOUNT}'
+        - name: repayment_blocking_flags
+          value: '["&{REPAYMENT_HOLIDAY}"]'
+        - name: repayment_period
+          value: '7'
+        - name: upfront_fee_income_account
+          value: '&{UPFRONT_FEE_INCOME_ACCOUNT}'
+        - name: variable_interest_rate
+          value: '0.032'
+
+  migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_ADD_VERSION_APPLY_NEW_USERS

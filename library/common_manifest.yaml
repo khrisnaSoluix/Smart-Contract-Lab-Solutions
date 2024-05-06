@@ -1,0 +1,13 @@
+# Copyright @ 2021 Thought Machine Group Limited. All rights reserved.
+---
+pack_version: 1.0.0
+pack_name: GPL Common
+resource_ids:
+  # --------- FLAG DEFINITIONS
+  - ACCOUNT_DELINQUENT
+
+  # --------- INTERNAL ACCOUNT SMART CONTRACTS
+  - pnl_account_contract
+
+  # --------- INTERNAL ACCOUNTS
+  - PNL_ACCOUNT

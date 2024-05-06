@@ -1,0 +1,17 @@
+# Resource files ending with resources.yaml contain a list of resources
+---
+resources:
+  - type: CONTRACT_MODULE
+    id: amortisation
+    payload: |
+      contract_module:
+          display_name: Amortisation module
+          description: Functions required for calculating amortisation methods within loan type products
+  - type: CONTRACT_MODULE_VERSION
+    id: amortisation_version
+    payload: |
+      contract_module_version:
+            contract_module_id: '&{amortisation}'
+            description: Functions required for calculating amortisation methods within loan type products
+            display_name: Amortisation module
+            code: '@{amortisation.py}'

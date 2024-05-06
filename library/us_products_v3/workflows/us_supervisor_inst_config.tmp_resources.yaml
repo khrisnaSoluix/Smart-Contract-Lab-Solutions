@@ -1,0 +1,12 @@
+# Copyright @ 2021 Thought Machine Group Limited. All rights reserved.
+---
+resources:
+  - id: US_SUPERVISOR_ACCOUNT_ASSOCIATION
+    instantiation_resources:
+      - Customer account
+  - id: US_SUPERVISOR_SAVINGS_ACCOUNT_DISASSOCIATION
+    instantiation_resources:
+      - Customer account
+  - id: US_SUPERVISOR_CHECKING_AND_SAVINGS_ACCOUNT_APPLICATION
+    instantiation_resources:
+      - Customer

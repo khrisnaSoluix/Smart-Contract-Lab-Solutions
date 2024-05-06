@@ -1,0 +1,181 @@
+# Copyright @ 2021 Thought Machine Group Limited. All rights reserved.
+---
+name: Time Deposit Interest Preference Change
+instance_title: Time Deposit Interest Preference Change
+description: A workflow to change the interest application destination for a time deposit
+schema_version: 3.2.0
+definition_version: 1.0.1
+
+starting_state: get_account_details
+end_states:
+  - state: interest_destination_updated
+    result: SUCCESSFUL
+  - state: invalid_selection
+    result: FAILED
+
+states:
+  get_account_details:
+    display_name: Get account details
+    entry_actions:
+      save_to_global_state:
+        context_keys:
+          - user_id
+          - account_id
+      vault_callback:
+        path: core-api/v1/accounts/{id}
+        method: GET
+        arguments:
+          id: ${account_id}
+        response_event: account_details_retrieved
+        response_fields:
+          - key_name: account_details
+            response_json_path: details
+            extract_singleton_element: true
+    transitions:
+      - to: parse_existing_interest_destination
+        trigger: account_details_retrieved
+
+  parse_existing_interest_destination:
+    display_name: Parse existing interest destination
+    type: transform
+    transform_ref: parse_existing_interest_destination
+    transitions:
+      - to: request_new_interest_destination
+        trigger: existing_interest_destination_parsed
+        actions:
+          add_or_replace_global_ui_panels:
+            - panel_id: existing_interest_destination
+              display_name: Existing interest destination
+              json_definition:
+                key_value_table:
+                  items: json_object(${interest_destination_details_json})
+
+  request_new_interest_destination:
+    display_name: Request new interest destination
+    state_ui:
+      ui_actions:
+        - action_id: enter_new_interest_destination
+          event: new_interest_destination_entered
+          display_name: New interest destination
+          ui_inputs:
+            - key: interest_payment_destination
+              display_name: Interest payment destination
+              string_input: {}
+              json_definition:
+                value_selector:
+                  values:
+                    - value: "retain_on_account"
+                      label: "This account"
+                    - value: "vault"
+                      label: "Another Vault account"
+    transitions:
+      - to: evaluate_interest_payment_destination
+        trigger: new_interest_destination_entered
+
+  evaluate_interest_payment_destination:
+    display_name: Evaluate interest payment details
+    type: transform
+    transform_ref: evaluate_interest_payment_destination
+    transitions:
+      - to: save_retain_on_account
+        trigger: retain_on_account_selected
+        description: Retain on account selected
+      - to: capture_vault_account_details
+        trigger: vault_account_selected
+        description: Vault account selected
+      - to: invalid_selection
+        trigger: error
+        description: Invalid interest payment destination
+
+  capture_vault_account_details:
+    display_name: Request Vault account details
+    state_ui:
+      ui_actions:
+        - action_id: vault_account_details
+          event: vault_account_captured
+          display_name: Vault account details
+          ui_inputs:
+            - key: vault_account_id
+              display_name: Vault account
+              string_input: {}
+              json_definition:
+                account_selector:
+                  customer_id: ${user_id}
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - vault_account_id
+    transitions:
+      - to: save_vault_account
+        trigger: vault_account_captured
+        description: Vault account details entered
+
+  save_retain_on_account:
+    display_name: Save retain on account
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/accounts/{account_id}:updateDetails
+        method: PUT
+        arguments:
+          account_id: ${account_id}
+          request_id: generate_uuid()
+          items_to_add:
+            interest_payment_destination: retain_on_account
+          items_to_remove:
+            - interest_vault_account_id
+        response_event: account_details_updated_retain_on_account
+    transitions:
+      - to: interest_destination_updated
+        description: Account details updated
+        trigger: account_details_updated_retain_on_account
+
+  save_vault_account:
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/accounts/{account_id}:updateDetails
+        method: PUT
+        arguments:
+          account_id: ${account_id}
+          request_id: generate_uuid()
+          items_to_add:
+            interest_payment_destination: vault
+            interest_vault_account_id: ${vault_account_id}
+        response_event: account_details_updated_vault_account
+    transitions:
+      - to: interest_destination_updated
+        description: Account details updated
+        trigger: account_details_updated_vault_account
+
+  interest_destination_updated:
+    display_name: Interest destination updated
+
+  invalid_selection:
+    display_name: Invalid interest destination selected
+
+transforms:
+  parse_existing_interest_destination: |
+
+    account_details = json.loads(context['account_details'])
+
+    interest_destination = account_details.get('interest_payment_destination')
+
+    interest_destination_details_json = {}
+
+    if interest_destination == 'vault':
+      interest_vault_account_id = account_details.get('interest_vault_account_id', 'N/A')
+      interest_destination_details_json['Interest destination'] = 'Vault'
+      interest_destination_details_json['Interest vault disbursal account id'] = interest_vault_account_id
+    elif interest_destination == 'retain_on_account':
+      interest_destination_details_json['Interest destination'] = 'Retain on account'
+    else:
+      interest_destination_details_json['Interest destination'] = 'N/A'
+
+
+    return ['existing_interest_destination_parsed', {'interest_destination_details_json': json.dumps(interest_destination_details_json)}]
+
+  evaluate_interest_payment_destination: |
+    if context.get('interest_payment_destination') == 'retain_on_account':
+        return ['retain_on_account_selected', {}]
+    elif context.get('interest_payment_destination') == 'vault':
+        return ['vault_account_selected', {}]
+    return ['error', {}]

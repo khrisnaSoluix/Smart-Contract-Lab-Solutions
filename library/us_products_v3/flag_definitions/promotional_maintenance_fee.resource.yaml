@@ -1,0 +1,10 @@
+---
+type: FLAG_DEFINITION
+id: PROMOTIONAL_MAINTENANCE_FEE
+payload: |
+  flag_definition:
+    id: PROMOTIONAL_MAINTENANCE_FEE
+    name: PROMOTIONAL_MAINTENANCE_FEE
+    description: Promotional monthly maintenannce fee is applied
+    required_flag_level: FLAG_LEVEL_ACCOUNT
+    flag_visibility: FLAG_VISIBILITY_OPERATOR

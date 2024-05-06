@@ -1,0 +1,18 @@
+# Copyright @ 2021 Thought Machine Group Limited. All rights reserved.
+---
+resources:
+  - id: CASA_APPLICATION
+    instantiation_resources:
+      - Customer
+  - id: CASA_CLOSURE
+    instantiation_resources:
+      - Customer account
+  - id: CASA_OVERDRAFT_ADJUSTMENT
+    instantiation_resources:
+      - Customer account
+  - id: CASA_OVERDRAFT_CANCELLATION
+    instantiation_resources:
+      - Customer account
+  - id: CASA_OVERDRAFT_CREATION
+    instantiation_resources:
+      - Customer account

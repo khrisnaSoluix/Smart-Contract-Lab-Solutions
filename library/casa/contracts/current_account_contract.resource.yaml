@@ -1,0 +1,120 @@
+# Copyright @ 2021 Thought Machine Group Limited. All rights reserved.
+---
+type: SMART_CONTRACT_VERSION
+id: current_account
+payload: |
+  product_version:
+      display_name: Current Account
+      code: '@{casa.py}'
+      product_id: current_account
+      params:
+          - name: denomination
+            value:  'GBP'
+          - name: additional_denominations
+            value:  '["USD", "EUR"]'
+          - name: deposit_interest_application_frequency
+            value:  'monthly'
+          - name: deposit_interest_rate_tiers
+            value: '{
+                  "tier1": "0.01",
+                  "tier2": "0.03",
+                  "tier3": "0.04",
+                  "tier4": "0.05",
+                  "tier5": "0.06"
+                }'
+          - name: deposit_tier_ranges
+            value: '{
+                  "tier1": {"min": "0"},
+                  "tier2": {"min": "3000.00"},
+                  "tier3": {"min": "5000.00"},
+                  "tier4": {"min": "7500.00"},
+                  "tier5": {"min": "15000.00"}
+                }'
+          - name: account_tier_names
+            value:
+                  '["CASA_TIER_UPPER", "CASA_TIER_MIDDLE", "CASA_TIER_LOWER"]'
+          - name: interest_free_buffer
+            value: '{
+                  "CASA_TIER_UPPER": "500",
+                  "CASA_TIER_MIDDLE": "300",
+                  "CASA_TIER_LOWER": "200"
+                }'
+          - name: overdraft_interest_free_buffer_days
+            value: '{
+                  "CASA_TIER_UPPER": "-1",
+                  "CASA_TIER_MIDDLE": "21",
+                  "CASA_TIER_LOWER": "14"
+                }'
+          - name: overdraft_interest_rate
+            value: '0.1485'
+          - name: unarranged_overdraft_fee
+            value: '5.00'
+          - name: unarranged_overdraft_fee_cap
+            value: '80.00'
+          - name: interest_accrual_days_in_year
+            value: '365'
+          - name: interest_accrual_hour
+            value: '0'
+          - name: interest_accrual_minute
+            value: '0'
+          - name: interest_accrual_second
+            value: '0'
+          - name: interest_application_hour
+            value: '0'
+          - name: interest_application_minute
+            value: '1'
+          - name: interest_application_second
+            value: '0'
+          - name: maintenance_fee_annual
+            value: '0.00'
+          - name: maintenance_fee_monthly
+            value: '0.00'
+          - name: account_inactivity_fee
+            value: '0.00'
+          - name: minimum_balance_threshold
+            value: '{
+                  "CASA_TIER_UPPER": "25",
+                  "CASA_TIER_MIDDLE": "75",
+                  "CASA_TIER_LOWER": "100"
+                }'
+          - name: minimum_balance_fee
+            value: '0.00'
+          - name: fees_application_hour
+            value: '0'
+          - name: fees_application_minute
+            value: '1'
+          - name: fees_application_second
+            value: '0'
+          - name: accrued_interest_receivable_account
+            value: 'ACCRUED_INTEREST_RECEIVABLE'
+          - name: interest_received_account
+            value: 'INTEREST_RECEIVED'
+          - name: accrued_interest_payable_account
+            value: 'ACCRUED_INTEREST_PAYABLE'
+          - name: interest_paid_account
+            value: 'INTEREST_PAID'
+          - name: overdraft_fee_income_account
+            value: 'OVERDRAFT_FEE_INCOME'
+          - name: overdraft_fee_receivable_account
+            value: 'OVERDRAFT_FEE_RECEIVABLE'
+          - name: maintenance_fee_income_account
+            value: 'MAINTENANCE_FEE_INCOME'
+          - name: minimum_balance_fee_income_account
+            value: 'MINIMUM_BALANCE_FEE_INCOME'
+          - name: annual_maintenance_fee_income_account
+            value: 'ANNUAL_MAINTENANCE_FEE_INCOME'
+          - name: inactivity_fee_income_account
+            value: 'INACTIVITY_FEE_INCOME'
+          - name: maximum_daily_atm_withdrawal_limit
+            value: '{
+                  "CASA_TIER_UPPER": "5000",
+                  "CASA_TIER_MIDDLE": "2000",
+                  "CASA_TIER_LOWER": "1000"
+                }'
+          - name: transaction_code_to_type_map
+            value: '{"": "purchase", "6011": "ATM withdrawal"}'
+          - name: autosave_rounding_amount
+            value: '1.00'
+      tags:
+          - "CURRENT"
+  migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_ADD_VERSION_APPLY_NEW_USERS

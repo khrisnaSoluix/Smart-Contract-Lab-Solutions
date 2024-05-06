@@ -1,0 +1,299 @@
+# Copyright @ 2020 Thought Machine Group Limited. All rights reserved.
+---
+name: Posting Creation
+instance_title: Posting Creation
+description: A workflow to create a posting for transferring funds between accounts.
+schema_version: 3.2.0
+definition_version: 1.0.0
+starting_state: capture_input
+end_states:
+  - state: transfer_completed_successfully
+    result: SUCCESSFUL
+  - state: transfer_failed
+    result: FAILED
+
+states:
+  capture_input:
+    display_name: Capture fund transfer input
+    description: Capture input for transfering funds between accounts
+    state_ui:
+      ui_actions:
+        - action_id: transfer_details_captured
+          event: transfer_details_captured
+          display_name: Enter fund transfer details
+          ui_inputs:
+            - key: debtor_target_account_id
+              string_input:
+              display_name: Debtor account ID
+            - key: debtor_target_account_address
+              string_input:
+              display_name: Debtor account address
+            - key: creditor_target_account_id
+              string_input:
+              display_name: Creditor account ID
+            - key: creditor_target_account_address
+              string_input:
+              display_name: Creditor account address
+            - key: amount
+              display_name: Amount
+              number_input:
+                min_value: 0.01
+                precision: 2
+            - key: denomination
+              display_name: Denomination
+              string_input:
+            - key: asset
+              display_name: Asset
+              string_input:
+            - key: phase
+              display_name: Posting phase
+              string_input:
+              json_definition:
+                value_selector:
+                  values:
+                    - value: "POSTING_PHASE_PENDING_INCOMING"
+                      label: Pending incoming
+                    - value: "POSTING_PHASE_PENDING_OUTGOING"
+                      label: Pending outgoing
+                    - value: "POSTING_PHASE_COMMITTED"
+                      label: Committed
+            - key: proposed_date
+              optional: true
+              display_name: Provide a date for the posting.
+              string_input:
+              json_definition:
+                date:
+            - key: proposed_time
+              optional: true
+              display_name: Provide a time for the posting (HH:MM:SS).
+              string_input:
+                regex: /^(([0-1][0-9])|(2[0-3])):[0-5][0-9]:[0-5][0-9]$/
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - debtor_target_account_id
+          - debtor_target_account_address
+          - creditor_target_account_id
+          - creditor_target_account_address
+          - amount
+          - denomination
+          - asset
+          - phase
+        new_key_value_pairs:
+          client_batch_id: generate_uuid()
+    transitions:
+      - to: process_input_data
+        trigger: transfer_details_captured
+        description: Internal account input has been captured
+
+  process_input_data:
+    display_name: Process input data
+    type: transform
+    transform_ref: process_input_data
+    exit_actions:
+      save_to_global_state:
+          context_keys:
+            - value_timestamp
+            - metadata
+    transitions:
+      - to: add_metadata_key_values
+        trigger: input_data_processed
+        description: Input processed
+      - to: retry_timestamp_selection
+        trigger: invalid_timestamp
+        description: Timestamp format invalid
+
+  add_metadata_key_values:
+    display_name: Add metadata key-values
+    description: Add key-value pairs to the metadata
+    state_ui:
+      ui_panels:
+        - panel_id: add_key_value
+          display_name: Current metadata
+          json_definition:
+            key_value_table:
+              items:
+                json_object(${metadata})
+      ui_actions:
+        - action_id: add_extra_pair
+          event: add_extra_pair
+          display_name: Add metadata
+          ui_inputs:
+            - key: key
+              display_name: Key
+              string_input: {}
+            - key: value
+              display_name: Value
+              string_input: {}
+        - action_id: confirm_metadata
+          event: confirm_metadata
+          display_name: Confirm current metadata and submit
+    transitions:
+      - to: transfer_funds
+        trigger: confirm_metadata
+        description: Metadata confirmed
+      - to: add_key_value_pair
+        trigger: add_extra_pair
+        description: Add key-value pair
+
+  add_key_value_pair:
+    display_name: Add new key-value pair
+    description: Add new key-value pair
+    type: transform
+    transform_ref: add_pair
+    expected_context_keys:
+      - key
+      - value
+    transitions:
+      - to: add_metadata_key_values
+        trigger: pair_added
+        description: Key-value pair added
+        actions:
+          save_to_global_state:
+            context_keys:
+              - metadata
+
+  retry_timestamp_selection:
+    display_name: Retry timestamp selection
+    state_ui:
+      ui_panels:
+        - panel_id: invalid_timestamp
+          display_name: Invalid timestamp
+          json_definition:
+            text:
+              value: ${error_message}
+      ui_actions:
+        - action_id: try_again
+          display_name: Try again
+          event: retry_entry
+    transitions:
+      - to: capture_input
+        trigger: retry_entry
+        description: Retry input data
+
+
+  transfer_funds:
+    display_name: Transfer funds
+    description: Make a request to the CreatePostingInstructionBatchAsync endpoint
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/posting-instruction-batches:asyncCreate
+        method: POST
+        arguments:
+          request_id: generate_uuid()
+          posting_instruction_batch:
+            client_id: AsyncCreatePostingInstructionBatch
+            client_batch_id: ${client_batch_id}
+            posting_instructions:
+              - client_transaction_id: generate_uuid()
+                custom_instruction:
+                  postings:
+                    - credit: true
+                      amount: ${amount}
+                      denomination: ${denomination}
+                      account_id: ${creditor_target_account_id}
+                      account_address: ${creditor_target_account_address}
+                      asset: ${asset}
+                      phase: ${phase}
+                    - credit: false
+                      amount: ${amount}
+                      denomination: ${denomination}
+                      account_id: ${debtor_target_account_id}
+                      account_address: ${debtor_target_account_address}
+                      asset: ${asset}
+                      phase: ${phase}
+                instruction_details:
+                  json_object(${metadata})
+            value_timestamp: ${value_timestamp}
+    transitions:
+      - to: transfer_completed_successfully
+        trigger: request_successful
+        description: Transfer was successful
+        auto_trigger_conditions:
+          streaming_api_conditions:
+            topic: vault.api.v1.postings.posting_instruction_batch.created
+            message_content:
+              - path: "posting_instruction_batch.status"
+                values:
+                  - POSTING_INSTRUCTION_BATCH_STATUS_ACCEPTED
+                quantifier: any
+      - to: transfer_failed
+        trigger: request_failed
+        description: Transfer failed
+        auto_trigger_conditions:
+          streaming_api_conditions:
+            topic: vault.api.v1.postings.posting_instruction_batch.created
+            message_content:
+              - path: "posting_instruction_batch.status"
+                values:
+                  - POSTING_INSTRUCTION_BATCH_STATUS_ACCEPTED
+                quantifier: none
+
+  transfer_completed_successfully:
+    display_name: Transfer completed
+    state_ui:
+      ui_panels:
+        - panel_id: success_message
+          display_name: Posting instruction batch has been submitted
+          json_definition:
+            text:
+              value: See the posting batch instruction ledger for updates
+        - panel_id: posting_instruction_information
+          display_name: Posting instruction information
+          json_definition:
+            key_value_table:
+              items:
+                Amount: ${amount}
+                Denomination: ${denomination}
+                Debtor target account ID: ${debtor_target_account_id}
+                Creditor target account ID: ${creditor_target_account_id}
+                Client batch ID: ${client_batch_id}
+                Metadata: ${metadata}
+
+  transfer_failed:
+    display_name: Transfer failed
+    state_ui:
+      ui_panels:
+        - panel_id: fail_message
+          display_name: Posting instruction batch has not been submitted
+          json_definition:
+            text:
+              value: See the posting batch instruction ledger for updates
+        - panel_id: posting_instruction_information
+          display_name: Posting instruction information
+          json_definition:
+            key_value_table:
+              items:
+                Amount: ${amount}
+                Denomination: ${denomination}
+                Debtor target account ID: ${debtor_target_account_id}
+                Creditor target account ID: ${creditor_target_account_id}
+                Client batch ID: ${client_batch_id}
+                Metadata: ${metadata}
+
+transforms:
+  process_input_data: |
+    context_to_return = {}
+    proposed_date = context.get('proposed_date')
+    proposed_time = context.get('proposed_time')
+    context_to_return['metadata'] = json.dumps({})
+
+    if proposed_date and proposed_time:
+      proposed_datetime = proposed_date + " " + proposed_time
+      proposed_datetime = datetime.strptime("2006-01-02 15:04:05", proposed_datetime)
+      context_to_return['value_timestamp'] = datetime.strftime(proposed_datetime, '%Y-%m-%dT%H:%M:%SZ')
+      return ['input_data_processed', context_to_return]
+    else:
+      context_to_return['value_timestamp'] = datetime.strftime(datetime.utcnow(), '%Y-%m-%dT%H:%M:%SZ')
+      return ['input_data_processed', context_to_return]
+
+  add_pair: |
+    new_context = {}
+
+    key = context.get('key')
+    value = context.get('value')
+    current_metadata = json.loads(context.get('metadata'))
+    current_metadata[key] = value
+    new_context['metadata'] = json.dumps(current_metadata)
+
+    return ['pair_added', new_context]

@@ -1,0 +1,11 @@
+# Copyright @ 2022 Thought Machine Group Limited. All rights reserved.
+---
+type: FLAG_DEFINITION
+id: ACCOUNT_FREEZE
+payload: |
+  flag_definition:
+    id: ACCOUNT_FREEZE
+    name: ACCOUNT_FREEZE
+    description: Freeze account rejects postings and all applications
+    required_flag_level: FLAG_LEVEL_ACCOUNT
+    flag_visibility: FLAG_VISIBILITY_OPERATOR

@@ -1,0 +1,10 @@
+---
+type: FLAG_DEFINITION
+id: AUTO_TOP_UP_WALLET
+payload: |
+  flag_definition: 
+    id: AUTO_TOP_UP_WALLET
+    name: AUTO_TOP_UP_WALLET
+    description: Flag definition id to be used to indicate auto top-up functionality is active.
+    required_flag_level: FLAG_LEVEL_ACCOUNT
+    flag_visibility: FLAG_VISIBILITY_OPERATOR

@@ -1,0 +1,14 @@
+Unlike normal account schedule tags that are needed in general for operation event notifications,
+account schedule tags within this directory are for overriding in order to facilitate e2e and/or performance tests.
+These are CLU-like with the exception of timestamp fields:
+- test_pause_at_timestamp
+- schedule_status_override_start_timestamp
+- schedule_status_override_end_timestamp
+So that the timestamps can be set relative to runtime instead of being hardcoded. 
+As a result, the actual payload uploaded into vault will be created via the e2e test framework
+based on the "configs" here.
+Timestamp fields support two options:
+1 - A normal value (null or a timestamp). This is CLU compatible
+2 - A 'delta' dictionary whose key-value pairs are used to initialise a relativedelta object which
+    is added to datetime.now(timezone.utc). This allows test writers to ensure the pause is set
+    appropriately for the relevant schedule

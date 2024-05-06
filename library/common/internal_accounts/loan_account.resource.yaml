@@ -1,0 +1,11 @@
+# Copyright @ 2021 Thought Machine Group Limited. All rights reserved.
+---
+type: INTERNAL_ACCOUNT
+id: LOAN_ACCOUNT
+vault_id: LOAN
+payload: |
+  internal_account:
+      id: LOAN
+      product_id: '&{loan_account_contract:product_id}'
+      accounting:
+        tside: TSIDE_LIABILITY

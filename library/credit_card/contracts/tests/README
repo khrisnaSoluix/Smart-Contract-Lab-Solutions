@@ -1,0 +1,13 @@
+The tests are run with the Please build tool https://please.build/
+
+> plz test
+
+to run a subset of tests e.g. unit tests:
+
+plz test //library/credit_card/contracts/tests/unit:credit_card_test
+
+For simulator tests only
+
+Add your service account token and core API URL (e.g.
+https://core-api-staging.my-environment.tmachine.io/) to
+"common/test_utils/contracts/simulation/test_config"

@@ -1,0 +1,11 @@
+# Copyright @ 2022 Thought Machine Group Limited. All rights reserved.
+---
+type: INTERNAL_ACCOUNT
+id: DORMANCY_FEE_INCOME_ACCOUNT
+vault_id: DORMANCY_FEE_INCOME
+payload: |
+  internal_account:
+      id: DORMANCY_FEE_INCOME
+      product_id: dormancy_fee_income_account_contract
+      accounting:
+        tside: TSIDE_ASSET

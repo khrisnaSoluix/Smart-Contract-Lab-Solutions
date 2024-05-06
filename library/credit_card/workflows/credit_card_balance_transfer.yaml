@@ -1,0 +1,459 @@
+# Copyright @ 2020 Thought Machine Group Limited. All rights reserved.
+---
+name: Credit Card Balance Transfer
+instance_title: Credit card balance transfer
+description: Perform balance transfer on credit card
+schema_version: 3.2.0
+definition_version: 1.4.0
+starting_state: retrieve_account_parameter_details
+end_states:
+  - state: successful_balance_transfer
+    result: SUCCESSFUL
+  - state: rejected_balance_transfer
+    result: FAILED
+
+states:
+  retrieve_account_parameter_details:
+    display_name: Retrieve account parameter details
+    expected_context_keys:
+      - account_id
+    entry_actions:
+      save_to_global_state:
+        context_keys:
+          - account_id
+      vault_callback:
+        path: core-api/v1/accounts/{id}
+        method: GET
+        arguments:
+          id: ${account_id}
+        response_event: account_retrieved
+        response_fields:
+          - key_name: account_status
+            response_json_path: status
+            extract_singleton_element: true
+          - key_name: instance_param_vals
+            response_json_path: instance_param_vals
+            extract_singleton_element: true
+          - key_name: opening_timestamp
+            response_json_path: opening_timestamp
+            extract_singleton_element: true
+          - key_name: product_id
+            response_json_path: product_id
+            extract_singleton_element: true
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - instance_param_vals
+    transitions:
+      - to: validate_account_details
+        trigger: account_retrieved
+        description: Retrieved account details
+
+  validate_account_details:
+    expected_context_keys:
+      - account_status
+      - instance_param_vals
+      - opening_timestamp
+      - product_id
+    display_name: Process account details
+    type: transform
+    transform_ref: validate_account_details
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - combine
+          - fee_cap
+          - flat_fee
+          - percentage_fee
+    transitions:
+      - to: capture_transfer_value
+        description: Account details validated
+        trigger: account_details_validated
+      - to: rejected_balance_transfer
+        description: Invalid account details
+        trigger: invalid_account_details
+
+  capture_transfer_value:
+    display_name: Capture balance transfer value
+    state_ui:
+      ui_actions:
+        - action_id: chosen_transfer_value
+          event: transfer_value_chosen
+          display_name: Set balance transfer value
+          ui_inputs:
+            - key: transfer_value
+              number_input:
+                min_value: 0
+                precision: 2
+                step: 0.01
+    transitions:
+      - to: query_balances
+        description: Transfer value chosen
+        trigger: transfer_value_chosen
+        actions:
+          save_to_global_state:
+            context_keys:
+              - transfer_value
+
+  query_balances:
+    display_name: Checking live balances from customer's credit card account
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/balances/live
+        method: GET
+        arguments:
+          account_ids: 
+            - ${account_id}
+          page_size: 100
+        response_event: balance_retrieved
+        response_fields:
+          - key_name: live_balance
+            response_json_path: balances
+            extract_singleton_element: true
+    transitions:
+      - to: validate_transfer_value
+        description: Balance retrieved
+        trigger: balance_retrieved
+
+  validate_transfer_value:
+    display_name: Validate balance transfer value is within limits
+    expected_context_keys:
+      - live_balance
+    type: transform
+    transform_ref: validate_transfer_value
+    transitions:
+      - to: capture_interest_free_period
+        trigger: transfer_value_validated
+        description: Transfer value validated
+        actions:
+          save_to_global_state:
+            new_key_value_pairs:
+              new_txn_ref: generate_uuid()
+      - to: rejected_balance_transfer
+        trigger: transfer_value_invalid
+        description: Invalid transfer details
+
+  capture_interest_free_period:
+    display_name: Capture interest free period
+    state_ui:
+      ui_actions:
+        - action_id: no_interest_free_period
+          event: no_interest_free_period
+          display_name: No interest free period
+        - action_id: interest_free_end_time_chosen
+          event: interest_free_end_time_chosen
+          display_name: Enter future end date of interest free period
+          ui_inputs:
+            - key: interest_free_end_date
+              display_name: Enter end date of interest free period${invalid_date_message:}
+              string_input: {}
+              json_definition:
+                date:
+            - key: interest_free_end_time
+              display_name: Enter end time of interest free period, UTC time zone (HH:MM:SS).
+              string_input:
+                regex: /^(([0-1][0-9])|(2[0-3])):[0-5][0-9]:[0-5][0-9]$/
+    transitions:
+      - to: validate_interest_free_end_date
+        trigger: interest_free_end_time_chosen
+        description: Interest free period
+      - to: confirm_transfer_details
+        trigger: no_interest_free_period
+        description: No interest free period
+
+  validate_interest_free_end_date:
+    display_name: Validate interest free end date
+    expected_context_keys:
+      - interest_free_end_date
+      - interest_free_end_time
+    type: transform
+    transform_ref: validate_interest_free_end_date
+    transitions:
+      - to: confirm_transfer_details
+        trigger: interest_free_end_date_validated
+        description: Date OK
+        actions:
+          save_to_global_state:
+            context_keys:
+              - interest_free_expiry_str
+      - to: capture_interest_free_period
+        trigger: invalid_interest_free_end_date
+        description: Date Invalid
+
+  confirm_transfer_details:
+    display_name: Confirm transfer details
+    state_ui:
+      ui_panels:
+        - panel_id: confirm_transfer_details
+          display_name: Confirm transfer details
+          json_definition:
+            key_value_table:
+              items:
+                Transfer amount: ${transfer_value} GBP
+                Interest free period end: ${interest_free_expiry_str:No interest free period}
+      ui_actions:
+        - action_id: details_confirmed
+          event: details_confirmed
+          display_name: Proceed with transfer
+        - action_id: retry_requested
+          event: retry_requested
+          display_name: Re-enter transfer details
+    transitions:
+      - to: capture_transfer_value
+        trigger: retry_requested
+        description: Retry
+        actions:
+          # Invalidate the expiry date in case they choose no interest free period on the retry
+          save_to_global_state:
+            new_key_value_pairs:
+              interest_free_expiry_str: ""
+      - to: determine_account_parameters
+        trigger: details_confirmed
+        description: Details confirmed
+
+  determine_account_parameters:
+    display_name: Determine account parameters
+    type: transform
+    transform_ref: determine_account_parameters
+    transitions:
+      - to: update_account_parameters
+        trigger: account_parameters_determined
+        description: Determine account parameters
+
+  update_account_parameters:
+    display_name: Update account parameters
+    expected_context_keys:
+      - transaction_annual_percentage_rate
+      - transaction_base_interest_rates
+      - transaction_references
+      - transaction_interest_free_expiry
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/account-updates
+        method: POST
+        arguments:
+          request_id: generate_uuid()
+          account_update:
+            id: generate_uuid()
+            account_id: ${account_id}
+            instance_param_vals_update:
+              instance_param_vals:
+                transaction_annual_percentage_rate: ${transaction_annual_percentage_rate}
+                transaction_base_interest_rates: ${transaction_base_interest_rates}
+                transaction_references: ${transaction_references}
+                transaction_interest_free_expiry: ${transaction_interest_free_expiry}
+    transitions:
+      - to: make_balance_transfer
+        trigger: account_update_success
+        description: Successfully updated account with new transaction reference
+        auto_trigger_conditions:
+          streaming_api_conditions:
+            topic: vault.api.v1.accounts.account.instance_param_vals.updated
+            message_content:
+              - path: update_status
+                values:
+                  - ACCOUNT_UPDATE_STATUS_COMPLETED
+                quantifier: any
+      - to: rejected_balance_transfer
+        trigger: account_update_failure
+        description: Failure updating account
+        auto_trigger_conditions:
+          streaming_api_conditions:
+            topic: vault.api.v1.accounts.account.instance_param_vals.updated
+            message_content:
+              - path: update_status
+                values:
+                  - ACCOUNT_UPDATE_STATUS_COMPLETED
+                quantifier: none
+
+  make_balance_transfer:
+    display_name: Make balance transfer
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/posting-instruction-batches:asyncCreate
+        method: POST
+        arguments:
+          request_id: generate_uuid()
+          posting_instruction_batch:
+            client_id: AsyncCreatePostingInstructionBatch
+            client_batch_id: generate_uuid()
+            posting_instructions:
+              - client_transaction_id: generate_uuid()
+                instruction_details:
+                  transaction_code: bb
+                  transaction_ref: ${new_txn_ref}
+                outbound_hard_settlement:
+                  amount: ${transfer_value}
+                  denomination: GBP
+                  target_account:
+                    account_id: ${account_id}
+                  internal_account_id: "1"
+            batch_details: {}
+    transitions:
+      - to: successful_balance_transfer
+        trigger: successful_balance_transfer
+        description: Posting success
+        auto_trigger_conditions:
+          streaming_api_conditions:
+            topic: vault.api.v1.postings.posting_instruction_batch.created
+            message_content:
+              - path: "posting_instruction_batch.status"
+                values:
+                  - POSTING_INSTRUCTION_BATCH_STATUS_ACCEPTED
+                quantifier: any
+      - to: rejected_balance_transfer
+        trigger: rejected_balance_transfer
+        description: Posting failed
+        auto_trigger_conditions:
+          streaming_api_conditions:
+            topic: vault.api.v1.postings.posting_instruction_batch.created
+            message_content:
+              - path: "posting_instruction_batch.status"
+                values:
+                  - POSTING_INSTRUCTION_BATCH_STATUS_REJECTED
+                quantifier: any
+
+  successful_balance_transfer:
+    display_name: Balance transfer successful
+
+  rejected_balance_transfer:
+    display_name: Balance transfer rejected
+    state_ui:
+      ui_panels:
+        - panel_id: account_opening_failure_panel
+          display_name: Balance transfer rejected
+          json_definition:
+            text:
+              value: ${failure_message:Could not complete balance transfer}
+
+transforms:
+  validate_account_details: |
+    if context['account_status'] != 'ACCOUNT_STATUS_OPEN':
+      return ['invalid_account_details', {'failure_message': 'account_status is not ACCOUNT_STATUS_OPEN'}]
+
+    if context['product_id'] != 'credit_card' and context['product_id'] != 'speedy_credit_card' and context['product_id'][:15] != 'e2e_credit_card':
+      return ['invalid_account_details', {'failure_message': 'Balance transfer only supports accounts of type credit_card'}]
+
+    new_context = {
+      'combine': 'False',
+      'fee_cap': '0',
+      'flat_fee': '0',
+      'percentage_fee': '0'
+    }
+
+    instance_param_vals = json.loads(context['instance_param_vals'])
+
+    if instance_param_vals.get('transaction_type_limits'):
+      transaction_type_limits = json.loads(instance_param_vals['transaction_type_limits'])
+
+      allowed_days_after_opening = int(transaction_type_limits.get('balance_transfer', {}).get('allowed_days_after_opening', '0'))
+
+      if allowed_days_after_opening > 0:
+        opening_timestamp = datetime.strptime("2006-01-02T15:04:05Z07:00", context['opening_timestamp'])
+        end_of_allowed_period = opening_timestamp + (allowed_days_after_opening * 24 * 60 * 60)
+        if datetime.utcnow() >= end_of_allowed_period:
+          failure_message = 'We are outside of the allowed balance transfer window. Balance transfers from this account are limited to ' \
+          + str(allowed_days_after_opening) \
+          + ' days after account opening. The deadline of ' \
+          + datetime.strftime(end_of_allowed_period, '%Y-%m-%d %H:%M:%S') \
+          + ' UTC has passed.'
+          return ['invalid_account_details', {'failure_message': failure_message}]
+
+    if instance_param_vals.get('transaction_type_fees'):
+      transaction_type_fees = json.loads(instance_param_vals['transaction_type_fees'])
+
+      if transaction_type_fees.get('balance_transfer'):
+        balance_transfer_fees = transaction_type_fees['balance_transfer']
+        new_context = {
+          "combine": balance_transfer_fees.get('combine', 'False'),
+          "fee_cap": balance_transfer_fees.get('fee_cap', '0'),
+          "flat_fee": balance_transfer_fees.get('flat_fee', '0'),
+          "percentage_fee": balance_transfer_fees.get('percentage_fee', '0')
+        }
+
+    return ['account_details_validated', new_context]
+
+  validate_transfer_value: |
+    live_balance = json.loads(context['live_balance'])
+
+    available_balance_info = [balance for balance in live_balance if balance['account_address'] == 'AVAILABLE_BALANCE']
+
+    if len(available_balance_info) != 1:
+      return ['transfer_value_invalid', {'failure_message': 'Unable to extract available balance information & validate transfer value'}]
+
+    available_balance = str(available_balance_info[0]['amount'])
+
+    combine = context['combine']
+    fee_cap = str(context['fee_cap'])
+    flat_fee = str(context['flat_fee'])
+    percentage_fee = str(context['percentage_fee'])
+    transfer_value = str(context['transfer_value'])
+
+    fee_amount_without_flat_fee = decimal.mul(transfer_value, percentage_fee)
+
+    if combine == 'True':
+      fee_amount = decimal.add(fee_amount_without_flat_fee, flat_fee)
+    else:
+      fee_amount = decimal.max(flat_fee, fee_amount_without_flat_fee)
+    if decimal.greaterthan(fee_cap, '0'):
+      fee_amount = decimal.min(fee_amount, fee_cap)
+
+    transfer_value_plus_fee = decimal.add(transfer_value, fee_amount)
+
+    if decimal.lessthan(transfer_value_plus_fee, available_balance) or decimal.equal(transfer_value_plus_fee, available_balance):
+      return ['transfer_value_validated', {'fee_amount': str(fee_amount)}]
+    else:
+      return ['transfer_value_invalid', {'failure_message': 'Transfer value ' + str(transfer_value) + ' + transfer fee ' + str(fee_amount) + ' exceeds available balance ' + str(available_balance)}]
+
+  validate_interest_free_end_date: |
+    # Check the end of the interest free period is in the future
+    # We asked for UTC and form that into a naive datetime object, which we compare with utcnow(), also naive.
+    end_date = context['interest_free_end_date']
+    end_time = context['interest_free_end_time']
+    interest_free_expiry_str = end_date + ' ' + end_time
+    interest_free_expiry = datetime.strptime('2006-01-02 15:04:05', interest_free_expiry_str)
+    if interest_free_expiry <= datetime.utcnow():
+      message = '. Previous entry was invalid: ' + interest_free_expiry_str + ' is not in the future. '
+      return ['invalid_interest_free_end_date', {'invalid_date_message': message}]
+    else:
+      return ['interest_free_end_date_validated', {'interest_free_expiry_str': interest_free_expiry_str}]
+
+  determine_account_parameters: |
+    # Add the generated transaction reference to the account's instance_param_vals
+    instance_param_vals = json.loads(context['instance_param_vals'])
+
+    transaction_annual_percentage_rate = json.loads(instance_param_vals.get('transaction_annual_percentage_rate', '{}'))
+    transaction_base_interest_rates = json.loads(instance_param_vals.get('transaction_base_interest_rates', '{}'))
+    transaction_references = json.loads(instance_param_vals.get('transaction_references', '{}'))
+    transaction_interest_free_expiry = json.loads(instance_param_vals.get('transaction_interest_free_expiry', '{}'))
+
+    new_ref = context['new_txn_ref']
+    txn_type = 'balance_transfer'
+
+    # Adding a demo annual percentage rate value under our new transaction reference
+    transaction_annual_percentage_rate.setdefault(txn_type, {})
+    transaction_annual_percentage_rate[txn_type][new_ref] =  '0.02'
+
+    # Adding a demo base interest rate value under our new transaction reference
+    transaction_base_interest_rates.setdefault(txn_type, {})
+    transaction_base_interest_rates[txn_type][new_ref] = '0.022'
+
+    # Appending our new transaction reference to the existing list
+    transaction_references.setdefault(txn_type, [])
+    if new_ref not in transaction_references[txn_type]:
+      transaction_references[txn_type].append(new_ref)
+
+    # Linking the transaction reference to the interest free expiry, if there is one
+    if context.get('interest_free_expiry_str'):
+      expiry = context['interest_free_expiry_str']
+      transaction_interest_free_expiry.setdefault(txn_type, {})
+      transaction_interest_free_expiry[txn_type][new_ref] = expiry
+
+    new_context = {
+      'transaction_annual_percentage_rate': json.dumps(transaction_annual_percentage_rate),
+      'transaction_base_interest_rates': json.dumps(transaction_base_interest_rates),
+      'transaction_references': json.dumps(transaction_references),
+      'transaction_interest_free_expiry': json.dumps(transaction_interest_free_expiry)
+    }
+
+    return ['account_parameters_determined', new_context]

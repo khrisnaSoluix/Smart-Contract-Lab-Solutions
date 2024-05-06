@@ -1,0 +1,68 @@
+dataloader_setup:
+  contract_name: "wallet"
+  dependency_groups:
+    - customer:
+        id_base: 700
+      flags: []
+      accounts:
+        - account_opening_timestamp:
+            delta:
+              days: -2
+          instance_param_vals: &instance_param_vals
+            denomination: "SGD"
+            customer_wallet_limit: "1000"
+            nominated_account: "1"
+            daily_spending_limit: "999"
+            additional_denominations: '["USD","GBP"]'
+          flags: []
+simulation_setup:
+  start:
+    delta:
+      days: -2
+  end:
+    delta:
+      days: -1
+  events:
+    - type: create_account_instruction
+      timestamp: start
+      account_id: "1"
+      product_id: "1"
+      instance_param_vals: {}
+    - type: create_account_instruction
+      timestamp: start
+      account_id: "Main account"
+      product_id: "2"
+      instance_param_vals: *instance_param_vals
+    - type: create_inbound_hard_settlement_instruction
+      amount: "500"
+      event_datetime: start
+      denomination: "SGD"
+      client_transaction_id: "initial_top_up"
+      client_batch_id: "initial_top_up"
+postings_setup:
+  stage_range:
+    start: 50
+    stop: 101
+    step: 25
+    duration: 300
+    timeout: 600
+  pib_template:
+    - client_id: "AsyncCreatePostingInstructionBatch"
+      client_batch_id: "overdeposit_batch_id"
+      posting_instructions:
+        - client_transaction_id: "overdeposit_transaction_id"
+          inbound_hard_settlement:
+            amount: "2000"
+            denomination: "SGD"
+            target_account:
+              account_id: "Main account"
+            advice: False
+          pics: []
+          instruction_details:
+            description: "Make an overdeposit which will trigger a transfer of the remainder sum to the nominated account."
+          override:
+            restrictions:
+          transaction_code:
+      batch_details:
+        description: "test_overdeposit"
+      dry_run: False

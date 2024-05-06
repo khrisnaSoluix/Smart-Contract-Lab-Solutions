@@ -1,0 +1,270 @@
+# Copyright @ 2020 Thought Machine Group Limited. All rights reserved.
+---
+name: Time Deposit Applied Interest Transfer
+instance_title: Time Deposit Applied Interest Transfer
+description: Simple Time Deposit interest application transfer process if a different account is specified.
+schema_version: 3.2.0
+definition_version: 1.1.0
+starting_state: get_account_details
+end_states:
+  - state: interest_applied
+    result: SUCCESSFUL
+  - state: no_transfer_needed
+    result: SUCCESSFUL
+  - state: transfer_failed
+    result: FAILED
+  - state: invalid_preference
+    result: FAILED
+
+states:
+  get_account_details:
+    display_name: Get account details
+    expected_context_keys:
+      - account_id
+      - applied_interest_amount
+    entry_actions:
+      save_to_global_state:
+        context_keys:
+          - account_id
+          - applied_interest_amount
+      vault_callback:
+        path: core-api/v1/accounts/{id}
+        method: GET
+        arguments:
+          id: ${account_id}
+        response_event: account_details_retrieved
+        response_fields:
+          - key_name: account_details
+            response_json_path: details
+            extract_singleton_element: true
+          - key_name: customer_id
+            response_json_path: stakeholder_ids[0]
+            extract_singleton_element: true
+    transitions:
+      - to: retrieve_source_account_balances
+        trigger: account_details_retrieved
+        actions:
+          save_to_global_state:
+            context_keys:
+              - account_details
+              - customer_id
+
+  retrieve_source_account_balances:
+    display_name: Retrieve balances
+    description: Retrieve account balances
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/balances/live
+        method: GET
+        arguments:
+          account_ids: 
+            - ${account_id}
+          page_size: 100
+        response_event: source_account_balance_retrieved
+        response_fields:
+          - key_name: account_denomination
+            response_json_path: balances[?(@.phase == 'POSTING_PHASE_COMMITTED' & @.account_address == 'DEFAULT')].denomination
+            extract_singleton_element: true
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - account_denomination
+    transitions:
+      - to: parse_interest_application_preference
+        description: Balance retrieved
+        trigger: source_account_balance_retrieved
+
+  parse_interest_application_preference:
+    display_name: Parse interest application preference
+    type: transform
+    transform_ref: parse_interest_application_preference
+    transitions:
+      - to: no_transfer_needed
+        trigger: no_transfer_needed
+      - to: transfer_applied_interest_vault
+        trigger: vault_account_transfer
+        actions:
+          save_to_global_state:
+            context_keys:
+              - vault_transfer_account_id
+      - to: invalid_preference
+        trigger: invalid_preference
+
+  transfer_applied_interest_vault:
+    display_name: Transfer applied interest vault
+    expected_context_keys:
+      - vault_transfer_account_id
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/posting-instruction-batches:asyncCreate
+        method: POST
+        arguments:
+          request_id: generate_uuid()
+          posting_instruction_batch:
+            client_id: AsyncCreatePostingInstructionBatch
+            client_batch_id: generate_uuid()
+            posting_instructions:
+              - client_transaction_id: generate_uuid()
+                transfer:
+                  amount: ${applied_interest_amount}
+                  denomination: ${account_denomination}
+                  debtor_target_account:
+                    account_id: ${account_id}
+                  creditor_target_account:
+                    account_id: ${vault_transfer_account_id}
+            batch_details:
+              note: Vault disbursement for Time Deposit interest application
+              withdrawal_override: "true"
+              calendar_override: "true"
+    transitions:
+      - to: retrieve_account_balance_after_posting
+        trigger: vault_applied_interest_transferred
+        auto_trigger_conditions:
+          streaming_api_conditions:
+            topic: vault.api.v1.postings.posting_instruction_batch.created
+            message_content:
+              - path: "posting_instruction_batch.status"
+                values:
+                  - POSTING_INSTRUCTION_BATCH_STATUS_ACCEPTED
+                quantifier: any
+            response_fields:
+              - key_name: posting_instruction_batch_id
+                response_json_path: posting_instruction_batch.id
+                extract_singleton_element: true
+              - key_name: value_timestamp
+                response_json_path: posting_instruction_batch.value_timestamp
+                extract_singleton_element: true
+        actions:
+          save_to_global_state:
+            new_key_value_pairs:
+              balance_check_counter: 1
+              posting_instruction_batch_id: ${posting_instruction_batch_id}
+              value_timestamp: ${value_timestamp}
+      - to: transfer_failed
+        trigger: initial_transfer_failed
+        auto_trigger_conditions:
+          streaming_api_conditions:
+            topic: vault.api.v1.postings.posting_instruction_batch.created
+            message_content:
+              - path: "posting_instruction_batch.status"
+                values:
+                  - POSTING_INSTRUCTION_BATCH_STATUS_ACCEPTED
+                quantifier: none
+
+  retrieve_account_balance_after_posting:
+    display_name: Retrieve account balance after transfer
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/balances/timerange
+        method: GET
+        arguments:
+          account_ids: 
+            - ${account_id}
+          from_time: ${value_timestamp}
+          to_time: ${value_timestamp}
+          page_size: 30
+        response_event: balance_after_posting_retrieved
+        response_fields:
+          - key_name: balances
+            response_json_path: balances
+            extract_singleton_element: true
+    transitions:
+      - to: check_balances_updated_after_posting
+        description: Balances after posting retrieved
+        trigger: balance_after_posting_retrieved
+
+  check_balances_updated_after_posting:
+    display_name: Check balances are updated after posting
+    type: transform
+    transform_ref: check_for_updated_balances
+    transitions:
+      - to: interest_applied
+        description: Balances updated after posting
+        trigger: balances_updated_after_posting
+      - to: retrieve_account_balance_after_posting
+        description: Balances not updated after posting
+        trigger: balances_not_updated_after_posting
+        actions:
+          save_to_global_state:
+            context_keys:
+              - balance_check_counter
+      - to: balances_stuck_after_posting
+        description: Balances updated after posting
+        trigger: balances_stuck_after_posting
+
+  balances_stuck_after_posting:
+    display_name: Balances stuck after posting
+    state_ui:
+      ui_panels:
+        - panel_id: choose_action_after_stuck_balance
+          display_name: Choose action after stuck balance
+          json_definition:
+            text:
+              value: >
+                Balances are not updating for posting instruction batch
+                ${posting_instruction_batch_id} after ${balance_check_counter} attempts.
+                You may retry another ${balance_check_counter} attempts in case this was
+                due to a transient issue. Otherwise it is recommended you check with support to
+                determine the root cause before retrying further or cancelling the workflow.
+      ui_actions:
+        - action_id: retry_check_balances_updated_after_posting
+          event: retry_check_balances_updated_after_posting
+          display_name: Retry checking balances updated for posting
+    transitions:
+      - to: retrieve_account_balance_after_posting
+        description: Retry check balances updated after posting
+        trigger: retry_check_balances_updated_after_posting
+        actions:
+          save_to_global_state:
+            new_key_value_pairs:
+              balance_check_counter: 1
+
+  interest_applied:
+    display_name: Applied interest transferred
+
+  no_transfer_needed:
+    display_name: No transfer needed
+
+  invalid_preference:
+    display_name: Invalid preference
+    state_ui:
+      ui_panels:
+        - panel_id: error_message
+          display_name: Error
+          json_definition:
+            text:
+              value: "Invalid account details for interest application process: ${account_details}"
+              is_error: true
+
+  transfer_failed:
+    display_name: Vault transfer failed
+
+transforms:
+  parse_interest_application_preference: |
+
+    account_details = json.loads(context['account_details'])
+
+    interest_preference = account_details.get('interest_payment_destination')
+
+    if interest_preference == 'retain_on_account':
+      return ['no_transfer_needed', {}]
+    elif interest_preference == 'vault' and account_details.get('interest_vault_account_id'):
+      return ['vault_account_transfer', {'vault_transfer_account_id': account_details['interest_vault_account_id']}]
+
+    return ['invalid_preference', {}]
+
+  check_for_updated_balances: |
+    balances = json.loads(context.get('balances', '[]'))
+    posting_instruction_batch_id = context.get('posting_instruction_batch_id')
+
+    if len(balances) > 0 and any([posting_instruction_batch_id == balance['posting_instruction_batch_id'] for balance in balances]):
+      return ['balances_updated_after_posting', {}]
+    else:
+      balance_check_counter = int(context.get('balance_check_counter', 1)) + 1
+      if balance_check_counter <= 10:
+        return [
+          'balances_not_updated_after_posting',
+          {'balance_check_counter': balance_check_counter}
+        ]
+      else:
+        return ['balances_stuck_after_posting', {}]

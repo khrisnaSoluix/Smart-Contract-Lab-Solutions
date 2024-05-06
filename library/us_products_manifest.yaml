@@ -1,0 +1,45 @@
+# Copyright @ 2021 Thought Machine Group Limited. All rights reserved.
+---
+pack_version: 1.0.0
+pack_name: GPL US Products
+resource_ids:
+  # --------- SMART CONTRACTS
+  - us_checking_account
+
+  # --------- FLAG DEFINITIONS
+  # Common
+  - ACCOUNT_DORMANT
+  - ACCOUNT_INACTIVE
+  - LOWER_TIER
+  - MIDDLE_TIER
+  - UPPER_TIER
+
+  # --------- ACCOUNT SCHEDULE TAGS
+  - CHECKING_ACCOUNT_APPLY_INACTIVITY_FEE_AST
+  - CHECKING_ACCOUNT_APPLY_INTEREST_AST
+  - CHECKING_ACCOUNT_APPLY_MINIMUM_BALANCE_FEE_AST
+  - CHECKING_ACCOUNT_ACCRUE_INTEREST_AST
+  - CHECKING_ACCOUNT_APPLY_PAPER_STATEMENT_FEE_AST
+  - CHECKING_ACCOUNT_APPLY_MONTHLY_FEE_AST
+
+  # --------- INTERNAL ACCOUNT SMART CONTRACTS
+  - accrued_interest_payable_account_contract
+  - interest_paid_account_contract
+  - accrued_interest_receivable_account_contract
+  - interest_received_account_contract
+  - inactivity_fee_income_account_contract
+  - monthly_maintenance_fee_income_account_contract
+  - minimum_balance_fee_income_account_contract
+  - out_of_network_atm_fee_rebate_account_contract
+  - paper_statement_fee_income_account_contract
+
+  # --------- INTERNAL ACCOUNTS
+  - ACCRUED_INTEREST_PAYABLE_ACCOUNT
+  - INTEREST_PAID_ACCOUNT
+  - ACCRUED_INTEREST_RECEIVABLE_ACCOUNT
+  - INTEREST_RECEIVED_ACCOUNT
+  - INACTIVITY_FEE_INCOME_ACCOUNT
+  - MONTHLY_MAINTENANCE_FEE_INCOME_ACCOUNT
+  - MINIMUM_BALANCE_FEE_INCOME_ACCOUNT
+  - PAPER_STATEMENT_FEE_INCOME_ACCOUNT
+  - OUT_OF_NETWORK_ATM_FEE_REBATE_ACCOUNT

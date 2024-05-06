@@ -1,0 +1,16 @@
+# Copyright @ 2021 Thought Machine Group Limited. All rights reserved.
+---
+resources:
+  - id: SAVINGS_SWEEP_ACCOUNT_ASSOCIATION
+    instantiation_resources:
+      - Customer account
+  - id: SAVINGS_SWEEP_HIERARCHY_MANAGEMENT
+    instantiation_resources:
+      - Customer account
+  - id: SAVINGS_SWEEP_SAVINGS_ACCOUNT_DISASSOCIATION
+    instantiation_resources:
+      - Customer account
+  - id: SAVINGS_SWEEP_CHECKING_AND_SAVINGS_ACCOUNT_APPLICATION
+    instantiation_resources:
+      - Customer
+

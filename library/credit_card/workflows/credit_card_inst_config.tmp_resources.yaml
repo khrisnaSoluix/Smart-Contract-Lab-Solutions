@@ -1,0 +1,9 @@
+# Copyright @ 2021 Thought Machine Group Limited. All rights reserved.
+---
+resources:
+  - id: CREDIT_CARD_APPLICATION
+    instantiation_resources:
+      - Customer
+  - id: CREDIT_CARD_BALANCE_TRANSFER
+    instantiation_resources:
+      - Customer account

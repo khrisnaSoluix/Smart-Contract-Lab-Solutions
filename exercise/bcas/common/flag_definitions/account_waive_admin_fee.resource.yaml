@@ -1,0 +1,11 @@
+# Copyright @ 2022 Thought Machine Group Limited. All rights reserved.
+---
+type: FLAG_DEFINITION
+id: ACCOUNT_WAIVE_ADMIN_FEE
+payload: |
+  flag_definition:
+    id: ACCOUNT_WAIVE_ADMIN_FEE
+    name: ACCOUNT_WAIVE_ADMIN_FEE
+    description: Admin Fee will be waived off if flag is set
+    required_flag_level: FLAG_LEVEL_ACCOUNT
+    flag_visibility: FLAG_VISIBILITY_OPERATOR

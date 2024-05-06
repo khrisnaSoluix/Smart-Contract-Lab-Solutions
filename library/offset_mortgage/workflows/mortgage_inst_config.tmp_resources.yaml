@@ -1,0 +1,12 @@
+# Copyright @ 2021 Thought Machine Group Limited. All rights reserved.
+---
+resources:
+  - id: OFFSET_MORTGAGE_APPLICATION
+    instantiation_resources:
+      - Customer
+  - id: OFFSET_MORTGAGE_CLOSURE
+    instantiation_resources:
+      - Customer account
+  - id: OFFSET_MORTGAGE_UPDATE
+    instantiation_resources:
+      - Customer

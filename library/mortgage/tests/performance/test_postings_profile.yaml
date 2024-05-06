@@ -1,0 +1,93 @@
+dataloader_setup:
+  contract_name: "mortgage"
+  dependency_groups:
+    - customer:
+        id_base: 600
+      flags: []
+      accounts:
+        - account_id_base: mortgage_
+          account_opening_timestamp: "2020-06-11 12:00:00 UTC"
+          instance_param_vals: &instance_param_vals
+            fixed_interest_rate: "0.129971"
+            fixed_interest_term: "0"
+            total_term: "120"
+            overpayment_fee_percentage: "0.05"
+            interest_only_term: "0"
+            principal: "300000"
+            repayment_day: "12"
+            deposit_account: "1"
+            overpayment_percentage: "0.1"
+            variable_rate_adjustment: "-0.001"
+            mortgage_start_date: "2020-06-11"
+simulation_setup:
+  start: "2020-06-11 12:00:00 UTC"
+  end: "2020-07-12 12:00:00 UTC"
+  expected_number_of_postings: 32
+  tside: 'ASSET'
+  postings_to_skip:
+    - name: "Mortgage principal disbursement from post activate code"
+      client_batch_id_regex: "Main account_3__.*"
+      from: "2020-06-11 12:00:00 UTC"
+      to: "2020-06-11 12:00:01 UTC"
+  events:
+    # generic setup events
+    - type: create_account_instruction
+      timestamp: start
+      account_id: "1"
+      product_id: "1"
+      instance_param_vals: {}
+    - type: create_account_instruction
+      timestamp: start
+      account_id: "Main account"
+      product_id: "2"
+      instance_param_vals: *instance_param_vals
+postings_setup:
+  stage_range:
+    start: 50
+    stop: 101
+    step: 25
+    duration: 300
+    timeout: 600
+  pib_template:
+    - client_id: "AsyncCreatePostingInstructionBatch"
+      client_batch_id: "Mortgage_1"
+      posting_instructions:
+        - client_transaction_id: "tps_test_mortgage_repayment"
+          inbound_hard_settlement:
+            amount: "200"
+            denomination: "GBP"
+            target_account:
+              account_id: "Main account"
+            instruction_details:
+            description: "Underpayment"
+      batch_details:
+        description: "perf tps test"
+      dry_run: False
+    - client_id: "AsyncCreatePostingInstructionBatch"
+      client_batch_id: "Mortgage_1"
+      posting_instructions:
+        - client_transaction_id: "tps_test_mortgage_repayment"
+          inbound_hard_settlement:
+            amount: "2910.69"
+            denomination: "GBP"
+            target_account:
+              account_id: "Main account"
+            instruction_details:
+            description: "EMI repayment"
+      batch_details:
+        description: "perf tps test"
+      dry_run: False
+    - client_id: "AsyncCreatePostingInstructionBatch"
+      client_batch_id: "Mortgage_1"
+      posting_instructions:
+        - client_transaction_id: "tps_test_mortgage_repayment"
+          inbound_hard_settlement:
+            amount: "3000"
+            denomination: "GBP"
+            target_account:
+              account_id: "Main account"
+            instruction_details:
+            description: "Overpayment"
+      batch_details:
+        description: "perf tps test"
+      dry_run: False

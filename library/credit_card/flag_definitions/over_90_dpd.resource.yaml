@@ -1,0 +1,10 @@
+---
+type: FLAG_DEFINITION
+id: OVER_90_DPD
+payload: |
+  flag_definition: 
+    id: OVER_90_DPD
+    name: OVER_90_DPD
+    description: Customer 90 days past due
+    required_flag_level: FLAG_LEVEL_ACCOUNT
+    flag_visibility: FLAG_VISIBILITY_OPERATOR

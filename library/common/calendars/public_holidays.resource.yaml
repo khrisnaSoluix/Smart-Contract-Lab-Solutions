@@ -1,0 +1,12 @@
+---
+# Due to limitations with CLU if the calendar already exists
+# a 409 Conflict error is returned and CLU fails to upload the
+# calendar and any of its dependants.
+# The workaround is detailed here: https://pennyworth.atlassian.net/browse/INC-5137
+type: CALENDAR
+id: PUBLIC_HOLIDAYS
+payload: |
+  calendar:
+    id: PUBLIC_HOLIDAYS
+    description: Public Holiday
+    is_active: true

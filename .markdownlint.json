@@ -1,0 +1,18 @@
+{
+    // see https://github.com/DavidAnson/markdownlint/blob/main/doc/Rules.md for error codes
+    // allow hard tabs
+    "MD010": {
+        "code_blocks": false,
+        "spaces_per_tab": 4
+    },
+    // do not need to check for line length
+    "MD013": false,
+    // allow nested heading names to be the same as other sections
+    "MD024": {
+        "allow_different_nesting": true
+    },
+    // ignore for copyright notices
+    "MD036": false,
+    // ignore for copyright notices
+    "MD041": false
+}

@@ -1,0 +1,10 @@
+---
+type: FLAG_DEFINITION
+id: PROMOTIONAL_INTEREST_RATES
+payload: |
+  flag_definition:
+    id: PROMOTIONAL_INTEREST_RATES
+    name: PROMOTIONAL_INTEREST_RATES
+    description: Promotional interest rates applied
+    required_flag_level: FLAG_LEVEL_ACCOUNT
+    flag_visibility: FLAG_VISIBILITY_OPERATOR

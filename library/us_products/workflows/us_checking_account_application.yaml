@@ -1,0 +1,200 @@
+# Copyright @ 2020 Thought Machine Group Limited. All rights reserved.
+---
+name: US Checking Account Application
+instance_title: US Checking Account Application
+description: Apply for a US Checking Account
+schema_version: 3.2.0
+definition_version: 1.0.4
+
+starting_state: choose_overdraft_limit
+end_states:
+  - state: account_opened_successfully
+    result: SUCCESSFUL
+  - state: account_opening_failed
+    result: FAILED
+
+states:
+  choose_overdraft_limit:
+    display_name: Choose overdraft limit
+    entry_actions:
+      save_to_global_state:
+        context_keys:
+          - user_id
+    state_ui:
+      ui_panels:
+        - panel_id: overdraft
+          display_name: Proceed with overdraft
+          json_definition:
+            text:
+              value: Enter overdraft limit
+      ui_actions:
+        - action_id: chosen_overdraft_limit
+          event: chosen_overdraft_limit
+          display_name: Set overdraft
+          ui_inputs:
+            - key: chosen_limit
+              number_input:
+                min_value: 0
+                max_value: 10000
+                precision: 0
+                step: 1
+    transitions:
+      - to: capture_interest_application_preferences
+        description: Proceed
+        trigger: chosen_overdraft_limit
+        actions:
+          save_to_global_state:
+            context_keys:
+              - chosen_limit
+
+  capture_interest_application_preferences:
+    display_name: Capture interest application preferences for Checking Account
+    state_ui:
+      ui_actions:
+        - action_id: set_interest_application_day
+          event: interest_application_day_provided
+          display_name: Set interest application day for Checking Account
+          ui_inputs:
+            - key: interest_application_day
+              display_name: Interest application day (1-31)
+              number_input:
+                default_value: 1
+                min_value: 1
+                max_value: 31
+                precision: 0
+                step: 1
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - interest_application_day
+    transitions:
+      - to: create_checking_account
+        description: Interest application day captured
+        trigger: interest_application_day_provided
+
+  create_checking_account:
+    display_name: Create the Checking Account
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/accounts
+        method: POST
+        arguments:
+          request_id: generate_uuid()
+          account:
+            id: generate_uuid()
+            product_id: us_checking_account
+            status: ACCOUNT_STATUS_PENDING
+            stakeholder_ids:
+              - ${user_id}
+            permitted_denominations:
+              - "USD"
+            instance_param_vals:
+              fee_free_overdraft_limit: '0'
+              standard_overdraft_limit: ${chosen_limit}
+              interest_application_day: ${interest_application_day}
+              daily_atm_withdrawal_limit: '-1'
+            details: {}
+        response_fields:
+          - key_name: account_id
+            response_json_path: id
+            extract_singleton_element: true
+        response_event: account_created
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - account_id
+    transitions:
+      - to: capture_standard_overdraft_transaction_coverage_preference
+        description: Account provisionally created
+        trigger: account_created
+
+  capture_standard_overdraft_transaction_coverage_preference:
+    display_name: Capture standard overdraft transaction coverage preference
+    state_ui:
+      ui_actions:
+        - action_id: include_standard_overdraft_transaction_coverage
+          event: standard_overdraft_transaction_coverage_selected
+          display_name: Include standard overdraft transaction coverage
+        - action_id: exclude_standard_overdraft_transaction_coverage
+          event: standard_overdraft_transaction_coverage_not_selected
+          display_name: No standard overdraft transaction coverage
+    transitions:
+      - to: create_overdraft_transaction_coverage_flag
+        trigger: standard_overdraft_transaction_coverage_selected
+      - to: open_checking_account
+        trigger: standard_overdraft_transaction_coverage_not_selected
+
+  create_overdraft_transaction_coverage_flag:
+    display_name: Create standard overdraft transaction coverage flag
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/flags
+        method: POST
+        arguments:
+          flag:
+            flagDefinitionId: "&{STANDARD_OVERDRAFT_TRANSACTION_COVERAGE}"
+            accountId: ${account_id}
+            description: Setting overdraft transaction coverage
+          requestId: generate_uuid()
+        response_event: overdraft_transaction_coverage_flag_created
+    transitions:
+      - to: open_checking_account
+        trigger: overdraft_transaction_coverage_flag_created
+
+  open_checking_account:
+    display_name: Open Checking account
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/accounts/{account.id}
+        method: PUT
+        arguments:
+          request_id: generate_uuid()
+          account:
+            id: ${account_id}
+            status: ACCOUNT_STATUS_OPEN
+          update_mask: status
+        response_event: account_opened
+    transitions:
+      - to: account_opened_successfully
+        trigger: account_open_successful
+        auto_trigger_conditions:
+          streaming_api_conditions:
+            topic: vault.core_api.v1.accounts.account_update.events
+            message_content:
+              - path: "['*'].account_update.status"
+                values:
+                  - ACCOUNT_UPDATE_STATUS_COMPLETED
+                quantifier: any
+      - to: account_opening_failed
+        trigger: account_open_failure
+        auto_trigger_conditions:
+          streaming_api_conditions:
+            topic: vault.core_api.v1.accounts.account_update.events
+            message_content:
+              - path: "['*'].account_update.status"
+                values:
+                  - ACCOUNT_UPDATE_STATUS_COMPLETED
+                  - ACCOUNT_UPDATE_STATUS_PENDING_EXECUTION
+                quantifier: none
+            response_fields:
+            - key_name: failure_reason
+              response_json_path: "['*'].account_update.failure_reason"
+              extract_singleton_element: true
+        actions:
+          save_to_global_state:
+            new_key_value_pairs:
+              failure_message: Account activation failed - ${failure_reason}
+
+  account_opened_successfully:
+    display_name: Account opened successfully
+
+  account_opening_failed:
+    display_name: Account opening failed
+    state_ui:
+      ui_panels:
+        - panel_id: account_opening_failure_panel
+          display_name: Account opening failed
+          json_definition:
+            text:
+              value: ${failure_message}
+              is_error: true

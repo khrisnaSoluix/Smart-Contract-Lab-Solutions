@@ -1,0 +1,41 @@
+# Code auto-generated
+
+# Objects below have been imported from:
+#    import_repeated_definitions.py
+# md5:ea6a0e14dedbd187d7a6e7987f87eaea
+
+api = "4.0.0"
+
+# Objects below have been imported from:
+#    module_2.py
+# md5:7f62a36d6bbb0a914544571ae907497d
+
+module_2_CONST_1 = "CONST_1"
+module_2_CONST_2 = "CONST_2"
+
+# Objects below have been imported from:
+#    module_3.py
+# md5:7f62a36d6bbb0a914544571ae907497d
+
+module_3_CONST_1 = "CONST_1"
+module_3_CONST_2 = "CONST_2"
+
+# Objects below have been imported from:
+#    module_1.py
+# md5:7d11384b2146c96e83bb43f8be16eb98
+
+
+def module_1_function_1():
+    a = module_2_CONST_1
+    b = module_2_CONST_2
+    c = module_3_CONST_1
+    d = module_3_CONST_2
+
+
+# Objects below have been imported from:
+#    import_repeated_definitions.py
+# md5:ea6a0e14dedbd187d7a6e7987f87eaea
+
+
+def function_1() -> None:
+    module_1_function_1()

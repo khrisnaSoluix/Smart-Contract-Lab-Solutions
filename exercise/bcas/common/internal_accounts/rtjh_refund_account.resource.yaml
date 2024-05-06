@@ -1,0 +1,11 @@
+# Copyright @ 2022 Thought Machine Group Limited. All rights reserved.
+---
+type: INTERNAL_ACCOUNT
+id: RTJH_REFUND_ACCOUNT
+vault_id: RTJH_REFUND_ACCOUNT
+payload: |
+  internal_account:
+      id: RTJH_REFUND_ACCOUNT
+      product_id: rtjh_refund_account_contract
+      accounting:
+        tside: TSIDE_LIABILITY

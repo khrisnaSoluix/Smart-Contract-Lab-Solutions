@@ -1,0 +1,74 @@
+[tool.black]
+line-length = 100
+include = "(\\.py$)"
+
+[tool.isort]
+profile = "black"
+line_length = 100
+# don't delete noqa comments
+# ! There is a bug where this doesn't honor `# noqa: CODE` comments
+# ! please use `# noqa` without specific codes during imports
+honor_noqa = true
+order_by_type = true
+group_by_package = true
+combine_as_imports = true
+# update sections to recognise different inception specific groupings
+extra_standard_library = "dateutil"
+import_heading_stdlib  ="standard libs"
+import_heading_thirdparty = "third party"
+known_inception_sdk = "inception_sdk"
+import_heading_inception_sdk = "inception sdk"
+known_library = ["library", "showcase"]
+import_heading_library = "library"
+known_star_imports = [
+  "library.features.v3.common.common_imports",
+  "library.features.v3.common.supervisor_imports"
+]
+import_heading_star_imports="common imports"
+known_features="library.features"
+import_heading_features="features"
+known_contracts_api="contracts_api"
+import_heading_contracts_api="contracts api"
+# defines the order sections should appear in
+sections=[
+  "FUTURE",
+  "STDLIB",
+  "THIRDPARTY",
+  "FIRSTPARTY",
+  "LIBRARY",
+  "STAR_IMPORTS",
+  "FEATURES",
+  "CONTRACTS_API",
+  "INCEPTION_SDK",
+  "LOCALFOLDER"
+]
+
+
+[tool.mypy]
+files = [
+    "library/bnpl/**/*.py",
+    "library/current_account/**/*.py",
+    "library/features/v4/**/*.py",
+    "library/home_loan_redraw/**/*.py",
+    "library/loan/**/*.py",
+    "library/mortgage/**/*.py",
+    "library/offset_mortgage/**/*.py",
+    "library/savings_account/**/*.py",
+    "library/shariah_savings_account/**/*.py",
+    "library/wallet/**/*.py",
+]
+# we will remove this once all directories are in scope. Without this setting we trigger
+# inception_sdk errors despite mypy not being rolled out there yet
+follow_imports = "skip"
+# this avoids errors from we having test_<product>.py in multiple directories
+explicit_package_bases = true
+namespace_packages = true
+
+
+[[tool.mypy.overrides]]
+module = "absl"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "confluent_kafka"
+ignore_missing_imports = true

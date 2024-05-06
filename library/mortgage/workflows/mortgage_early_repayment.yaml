@@ -1,0 +1,643 @@
+# Copyright @ 2021 Thought Machine Group Limited. All rights reserved.
+---
+name: Mortgage early repayment
+instance_title: Early repayment of mortgage account
+description: Allows early repayment of mortgage account
+schema_version: 3.2.0
+definition_version: 1.5.0
+
+starting_state: get_account_details
+end_states:
+  - state: account_charged_successfully
+    result: SUCCESSFUL
+  - state: transfer_failed
+    result: FAILED
+  - state: posting_to_check_is_not_defined
+    result: FAILED
+
+states:
+  get_account_details:
+    display_name: Get account details
+    description: Get account maturity process preferences
+    entry_actions:
+      save_to_global_state:
+        context_keys:
+          - account_id
+          - applied_interest_amount
+      vault_callback:
+        path: core-api/v1/accounts/{id}
+        method: GET
+        arguments:
+          id: ${account_id}
+          fields_to_include:
+            - INCLUDE_FIELD_DERIVED_INSTANCE_PARAM_VALS
+        response_event: account_details_retrieved
+        response_fields:
+          - key_name: instance_param_vals
+            response_json_path: instance_param_vals
+            extract_singleton_element: true
+          - key_name: derived_instance_param_vals
+            response_json_path: derived_instance_param_vals
+            extract_singleton_element: true
+          - key_name: account_status
+            response_json_path: status
+            extract_singleton_element: true
+          - key_name: customer_id
+            response_json_path: stakeholder_ids[0]
+            extract_singleton_element: true
+    transitions:
+      - to: retrieve_source_account_balances
+        trigger: account_details_retrieved
+        description: Account details retrieved
+        actions:
+          save_to_global_state:
+            context_keys:
+              - account_status
+              - customer_id
+              - instance_param_vals
+              - derived_instance_param_vals
+
+  retrieve_source_account_balances:
+    display_name: Retrieve denomination
+    description: Retrieve account denomination
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/balances/live
+        method: GET
+        arguments:
+          account_ids: 
+            - ${account_id}
+          page_size: 100
+        response_event: balance_retrieved
+        response_fields:
+          - key_name: account_denomination
+            response_json_path: balances[?(@.phase == 'POSTING_PHASE_COMMITTED' & @.account_address == 'DEFAULT')].denomination
+            extract_singleton_element: true
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - live_balance
+    transitions:
+      - to: process_account_details
+        description: Balance retrieved
+        trigger: balance_retrieved
+        actions:
+          save_to_global_state:
+            context_keys:
+              - account_denomination
+
+  process_account_details:
+    display_name: Process account details
+    type: transform
+    transform_ref: process_account_details
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - total_outstanding_debt
+          - overpayment_allowance_remaining
+          - remaining_principal
+          - overpayment_fee_percentage
+          - overpaid_this_period
+    transitions:
+      - to: choose_fee_type
+        trigger: processed_account_details
+
+  choose_fee_type:
+    display_name: Choose fee type
+    state_ui:
+      ui_actions:
+        - action_id: manual
+          event: manual_fee
+          display_name: Enter Manual Fee
+        - action_id: auto
+          event: auto_fee
+          display_name: Apply ERC
+    transitions:
+      - to: capture_fee_details
+        trigger: manual_fee
+      - to: input_erc_percentage
+        trigger: auto_fee
+
+  capture_fee_details:
+    display_name: Capture fee details
+    state_ui:
+      ui_actions:
+        - action_id: fee_details
+          event: fee_details_given
+          display_name: Choose the fee details
+          ui_inputs:
+            - key: fee_amount
+              display_name: Enter fee amount
+              number_input:
+                min_value: 0
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - fee_amount
+    transitions:
+      - to: check_if_fee_zero
+        trigger: fee_details_given
+
+  input_erc_percentage:
+    display_name: Input ERC percentage fee
+    state_ui:
+      ui_actions:
+        - action_id: erc_fee_details
+          event: erc_fee_details_given
+          display_name: Set ERC percentage
+          ui_inputs:
+            - key: erc_fee_percentage
+              display_name: Enter fee percentage
+              number_input:
+                min_value: 0
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - erc_fee_percentage
+    transitions:
+      - to: calculate_erc
+        trigger: erc_fee_details_given
+
+  calculate_erc:
+    display_name: Calculate ERC
+    type: transform
+    transform_ref: calculate_erc_transform
+    transitions:
+      - to: check_if_fee_zero
+        trigger: fee_calculated
+        actions:
+          save_to_global_state:
+            context_keys:
+              - fee_amount
+
+  check_if_fee_zero:
+    display_name: Check if fee is zero
+    type: transform
+    transform_ref: handle_zero_fee_scenario
+    transitions:
+      - to: apply_fee
+        trigger: non_zero_fee
+      - to: check_if_overpaid_in_period
+        trigger: zero_fee
+
+  apply_fee:
+    display_name: Apply fee for early repayment
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/posting-instruction-batches:asyncCreate
+        method: POST
+        arguments:
+          request_id: generate_uuid()
+          posting_instruction_batch:
+            client_id: AsyncCreatePostingInstructionBatch
+            client_batch_id: generate_uuid()
+            posting_instructions:
+              - client_transaction_id: generate_uuid()
+                transfer:
+                  amount: ${fee_amount}
+                  denomination: ${account_denomination}
+                  debtor_target_account:
+                    account_id: ${account_id}
+                  creditor_target_account:
+                    account_id: "1"
+            batch_details:
+              note: Fee applied for early repayment
+              fee: "True"
+    transitions:
+      - to: retrieve_account_balance_after_posting
+        trigger: fee_has_been_deducted
+        auto_trigger_conditions:
+          streaming_api_conditions:
+            topic: vault.api.v1.postings.posting_instruction_batch.created
+            message_content:
+              - path: "posting_instruction_batch.status"
+                values:
+                  - POSTING_INSTRUCTION_BATCH_STATUS_ACCEPTED
+                quantifier: any
+            response_fields:
+              - key_name: posting_instruction_batch_id
+                response_json_path: posting_instruction_batch.id
+                extract_singleton_element: true
+              - key_name: value_timestamp
+                response_json_path: posting_instruction_batch.value_timestamp
+                extract_singleton_element: true
+        actions:
+          save_to_global_state:
+            new_key_value_pairs:
+              balance_check_counter: 1
+              posting_instruction_batch_id: ${posting_instruction_batch_id}
+              posting_to_check: early_repayment_fee
+              value_timestamp: ${value_timestamp}
+      - to: transfer_failed
+        trigger: fee_transfer_failed
+        auto_trigger_conditions:
+          streaming_api_conditions:
+            topic: vault.api.v1.postings.posting_instruction_batch.created
+            message_content:
+              - path: "posting_instruction_batch.status"
+                values:
+                  - POSTING_INSTRUCTION_BATCH_STATUS_REJECTED
+                quantifier: any
+
+  check_if_overpaid_in_period:
+    display_name: Check if over overpayment allowance
+    type: transform
+    transform_ref: check_if_overpaid_in_period_transform
+    transitions:
+      - to: apply_overpayment_fee
+        trigger: fee_required
+        actions:
+          save_to_global_state:
+            context_keys:
+              - fee_amount
+      - to: refresh_account_details
+        trigger: fee_not_required
+
+  apply_overpayment_fee:
+    display_name: Apply fee for overpayment
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/posting-instruction-batches:asyncCreate
+        method: POST
+        arguments:
+          request_id: generate_uuid()
+          posting_instruction_batch:
+            client_id: AsyncCreatePostingInstructionBatch
+            client_batch_id: generate_uuid()
+            posting_instructions:
+              - client_transaction_id: generate_uuid()
+                transfer:
+                  amount: ${fee_amount}
+                  denomination: ${account_denomination}
+                  debtor_target_account:
+                    account_id: ${account_id}
+                  creditor_target_account:
+                    account_id: "1"
+            batch_details:
+              note: Fee applied for overpayment
+              fee: "True"
+    transitions:
+      - to: retrieve_account_balance_after_posting
+        trigger: fee_has_been_deducted_2
+        auto_trigger_conditions:
+          streaming_api_conditions:
+            topic: vault.api.v1.postings.posting_instruction_batch.created
+            message_content:
+              - path: "posting_instruction_batch.status"
+                values:
+                  - POSTING_INSTRUCTION_BATCH_STATUS_ACCEPTED
+                quantifier: any
+            response_fields:
+              - key_name: posting_instruction_batch_id
+                response_json_path: posting_instruction_batch.id
+                extract_singleton_element: true
+              - key_name: value_timestamp
+                response_json_path: posting_instruction_batch.value_timestamp
+                extract_singleton_element: true
+        actions:
+          save_to_global_state:
+            new_key_value_pairs:
+              balance_check_counter: 1
+              posting_instruction_batch_id: ${posting_instruction_batch_id}
+              posting_to_check: overpayment_fee
+              value_timestamp: ${value_timestamp}
+      - to: transfer_failed
+        trigger: fee_transfer_failed_2
+        auto_trigger_conditions:
+          streaming_api_conditions:
+            topic: vault.api.v1.postings.posting_instruction_batch.created
+            message_content:
+              - path: "posting_instruction_batch.status"
+                values:
+                  - POSTING_INSTRUCTION_BATCH_STATUS_REJECTED
+                quantifier: any
+
+  retrieve_account_balance_after_posting:
+    display_name: Retrieve account balance after transfer
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/balances/timerange
+        method: GET
+        arguments:
+          account_ids: 
+            - ${account_id}
+          from_time: ${value_timestamp}
+          to_time: ${value_timestamp}
+          page_size: 30
+        response_event: balance_after_posting_retrieved
+        response_fields:
+          - key_name: balances
+            response_json_path: balances
+            extract_singleton_element: true
+    transitions:
+      - to: check_balances_updated_after_posting
+        description: Balances after posting retrieved
+        trigger: balance_after_posting_retrieved
+
+  check_balances_updated_after_posting:
+    display_name: Check balances are updated after posting
+    type: transform
+    transform_ref: check_for_updated_balances
+    transitions:
+      - to: check_if_overpaid_in_period
+        description: Balances updated after early repayment fee posting
+        trigger: balances_updated_after_early_repayment_fee
+      - to: refresh_account_details
+        description: Balances updated after overpayment fee posting
+        trigger: balances_updated_after_overpayment_fee
+      - to: posting_to_check_is_not_defined
+        description: Unknown posting to check
+        trigger: unknown_posting_to_check
+      - to: retrieve_account_balance_after_posting
+        description: Balances not updated after posting
+        trigger: balances_not_updated_after_posting
+        actions:
+          save_to_global_state:
+            context_keys:
+              - balance_check_counter
+      - to: balances_stuck_after_posting
+        description: Balances updated after posting
+        trigger: balances_stuck_after_posting
+
+  balances_stuck_after_posting:
+    display_name: Balances stuck after posting
+    state_ui:
+      ui_panels:
+        - panel_id: choose_action_after_stuck_balance
+          display_name: Choose action after stuck balance
+          json_definition:
+            text:
+              value: >
+                Balances are not updating for posting instruction batch
+                ${posting_instruction_batch_id} after ${balance_check_counter} attempts.
+                You may retry another ${balance_check_counter} attempts in case this was
+                due to a transient issue. Otherwise it is recommended you check with support to
+                determine the root cause before retrying further or cancelling the workflow.
+      ui_actions:
+        - action_id: retry_check_balances_updated_after_posting
+          event: retry_check_balances_updated_after_posting
+          display_name: Retry checking balances updated for posting
+    transitions:
+      - to: retrieve_account_balance_after_posting
+        description: Retry check balances updated after posting
+        trigger: retry_check_balances_updated_after_posting
+        actions:
+          save_to_global_state:
+            new_key_value_pairs:
+              balance_check_counter: 1
+
+  refresh_account_details:
+    display_name: Get account details
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/accounts/{id}
+        method: GET
+        arguments:
+          id: ${account_id}
+          fields_to_include:
+            - INCLUDE_FIELD_DERIVED_INSTANCE_PARAM_VALS
+        response_event: account_details_refreshed
+        response_fields:
+          - key_name: instance_param_vals
+            response_json_path: instance_param_vals
+            extract_singleton_element: true
+          - key_name: derived_instance_param_vals
+            response_json_path: derived_instance_param_vals
+            extract_singleton_element: true
+          - key_name: account_status
+            response_json_path: status
+            extract_singleton_element: true
+          - key_name: customer_id
+            response_json_path: stakeholder_ids[0]
+            extract_singleton_element: true
+    transitions:
+      - to: refresh_account_balances
+        trigger: account_details_refreshed
+        description: Account details retrieved
+        actions:
+          save_to_global_state:
+            context_keys:
+              - account_status
+              - account_denomination
+              - customer_id
+              - instance_param_vals
+              - derived_instance_param_vals
+
+  refresh_account_balances:
+    display_name: Retrieve denomination
+    description: Retrieve account denomination
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/balances/live
+        method: GET
+        arguments:
+          account_ids: 
+            - ${account_id}
+          page_size: 100
+        response_event: balance_refreshed
+        response_fields:
+          - key_name: account_denomination
+            response_json_path: balances[?(@.phase == 'POSTING_PHASE_COMMITTED' & @.account_address == 'DEFAULT')].denomination
+            extract_singleton_element: true
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - live_balance
+    transitions:
+      - to: process_new_account_details
+        description: Balance retrieved
+        trigger: balance_refreshed
+        actions:
+          save_to_global_state:
+            context_keys:
+              - account_denomination
+
+  process_new_account_details:
+    display_name: Process account details
+    type: transform
+    transform_ref: process_new_account_details
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - total_outstanding_debt
+          - overpayment_allowance_remaining
+          - remaining_principal
+    transitions:
+      - to: choose_repayment_account
+        trigger: processed_new_account_details
+
+  choose_repayment_account:
+    display_name: Select source account for remaining balance repayment
+    entry_actions:
+      add_or_replace_global_ui_panels:
+        - panel_id: outstanding_debt
+          display_name: Total outstanding debt due
+          json_definition:
+            text:
+              value: ${total_outstanding_debt}
+    state_ui:
+      ui_actions:
+        - action_id: select_account
+          event: account_selected
+          display_name: Select account to debit
+          ui_inputs:
+            - key: repayment_account_id
+              display_name: Account
+              string_input: {}
+              json_definition:
+                account_selector:
+                  customer_id: ${customer_id}
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - repayment_account_id
+    transitions:
+      - to: attempt_repayment
+        trigger: account_selected
+
+  attempt_repayment:
+    display_name: Making repayment to pay off mortgage
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/posting-instruction-batches:asyncCreate
+        method: POST
+        arguments:
+          request_id: generate_uuid()
+          posting_instruction_batch:
+            client_id: AsyncCreatePostingInstructionBatch
+            client_batch_id: generate_uuid()
+            posting_instructions:
+              - client_transaction_id: generate_uuid()
+                transfer:
+                  amount: ${total_outstanding_debt}
+                  denomination: ${account_denomination}
+                  debtor_target_account:
+                    account_id: ${repayment_account_id}
+                  creditor_target_account:
+                    account_id: ${account_id}
+            batch_details:
+              note: Early repayment of mortgage
+              event: early_repayment
+    transitions:
+      - to: account_charged_successfully
+        trigger: fee_has_been_deducted_4
+        auto_trigger_conditions:
+          streaming_api_conditions:
+            topic: vault.api.v1.postings.posting_instruction_batch.created
+            message_content:
+              - path: "posting_instruction_batch.status"
+                values:
+                  - POSTING_INSTRUCTION_BATCH_STATUS_ACCEPTED
+                quantifier: any
+      - to: repayment_transfer_failed
+        trigger: fee_transfer_failed_4
+        auto_trigger_conditions:
+          streaming_api_conditions:
+            topic: vault.api.v1.postings.posting_instruction_batch.created
+            message_content:
+              - path: "posting_instruction_batch.status"
+                values:
+                  - POSTING_INSTRUCTION_BATCH_STATUS_REJECTED
+                quantifier: any
+
+  repayment_transfer_failed:
+    display_name: Repayment failed
+    description: Repayment failed from account. Please ensure there are enough funds and try again.
+    state_ui:
+      ui_actions:
+        - action_id: try_again
+          event: try_again
+          display_name: Try again
+    transitions:
+      - to: refresh_account_details
+        trigger: try_again
+
+  account_charged_successfully:
+    display_name: account_charged_successfully
+
+  transfer_failed:
+    display_name: transfer_failed
+
+  posting_to_check_is_not_defined:
+    display_name: Posting to check is not defined
+
+transforms:
+  process_account_details: |
+    new_context = {}
+
+    instance_param_vals = json.loads(context['instance_param_vals'])
+    derived_instance_param_vals = json.loads(context['derived_instance_param_vals'])
+
+    new_context['total_outstanding_debt'] = derived_instance_param_vals['total_outstanding_debt']
+    new_context['remaining_principal'] = derived_instance_param_vals['remaining_principal']
+    new_context['overpayment_allowance_remaining'] = derived_instance_param_vals['overpayment_allowance_remaining']
+    new_context['overpayment_fee_percentage'] = instance_param_vals['overpayment_fee_percentage']
+    new_context['overpaid_this_period'] = derived_instance_param_vals['overpaid_this_period']
+
+    return ['processed_account_details', new_context]
+
+  process_new_account_details: |
+    new_context = {}
+
+    instance_param_vals = json.loads(context['instance_param_vals'])
+    derived_instance_param_vals = json.loads(context['derived_instance_param_vals'])
+
+    new_context['total_outstanding_debt'] = derived_instance_param_vals['total_outstanding_debt']
+    new_context['remaining_principal'] = derived_instance_param_vals['remaining_principal']
+    new_context['overpayment_allowance_remaining'] = derived_instance_param_vals['overpayment_allowance_remaining']
+    new_context['overpayment_fee_percentage'] = instance_param_vals['overpayment_fee_percentage']
+    new_context['overpaid_this_period'] = derived_instance_param_vals['overpaid_this_period']
+
+    return ['processed_new_account_details', new_context]
+
+  calculate_erc_transform: |
+    new_context = {}
+
+    fee_percentage = context['erc_fee_percentage']
+    remaining_principal = context['remaining_principal']
+
+    erc_fee = decimal.mul(remaining_principal, decimal.div(fee_percentage, '100'))
+    erc_fee = decimal.quantize(erc_fee, '.01')
+
+    new_context['fee_amount'] = erc_fee
+
+    return ['fee_calculated', new_context]
+
+  check_if_overpaid_in_period_transform: |
+    new_context = {}
+
+    overpayment_allowance_remaining = context['overpayment_allowance_remaining']
+    fee_percentage = context['overpayment_fee_percentage']
+
+    if decimal.lessthan(overpayment_allowance_remaining, '0'):
+        if overpayment_allowance_remaining[0] in ('-', '+'):
+          overpayment_allowance_remaining = overpayment_allowance_remaining[1:]
+        fee_amount = decimal.mul(overpayment_allowance_remaining, fee_percentage)
+        fee_amount = decimal.quantize(fee_amount, '.01')
+        new_context['fee_amount'] = fee_amount
+        return ['fee_required', new_context]
+    else:
+        return ['fee_not_required', {}]
+
+  check_for_updated_balances: |
+    balances = json.loads(context.get('balances', '[]'))
+    posting_instruction_batch_id = context.get('posting_instruction_batch_id')
+    if len(balances) > 0 and any([posting_instruction_batch_id == balance['posting_instruction_batch_id'] for balance in balances]):
+      if context.get('posting_to_check') == 'early_repayment_fee':
+        return ['balances_updated_after_early_repayment_fee', {}]
+      elif context.get('posting_to_check') == 'overpayment_fee':
+        return ['balances_updated_after_overpayment_fee', {}]
+      else:
+        return ['unknown_posting_to_check', {}]
+    else:
+      balance_check_counter = int(context.get('balance_check_counter', 1)) + 1
+      if balance_check_counter <= 10:
+        return [
+          'balances_not_updated_after_posting',
+          {'balance_check_counter': balance_check_counter}
+        ]
+      else:
+        return ['balances_stuck_after_posting', {}]
+
+  handle_zero_fee_scenario: |
+    return ['zero_fee', {}] if decimal.equal(context['fee_amount'], "0") else ['non_zero_fee', {}]

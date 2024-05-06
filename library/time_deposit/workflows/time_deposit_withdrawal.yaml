@@ -1,0 +1,691 @@
+# Copyright @ 2021 Thought Machine Group Limited. All rights reserved.
+---
+name: Time Deposit withdrawal
+instance_title: Time Deposit withdrawal
+description: A workflow to make an withdrawal from a Time Desposit account
+schema_version: 3.2.0
+definition_version: 1.1.0
+starting_state: confirm_product_id
+end_states:
+  - state: withdrawal_successful
+    result: SUCCESSFUL
+  - state: withdrawal_failed_no_error_message
+    result: FAILED
+  - state: withdrawal_failed
+    result: FAILED
+
+states:
+  confirm_product_id:
+    display_name: Confirm product id
+    description: Confirm product id by checking context or defaulting to 'time_deposit'
+    expected_context_keys:
+      - account_id
+    type: transform
+    transform_ref: confirm_product_id
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - account_id
+          - product_id
+    transitions:
+      - to: retrieve_time_deposit_account_parameters
+        trigger: product_id_confirmed
+
+  retrieve_time_deposit_account_parameters:
+    display_name: Retrieve Time Deposit account parameters
+    expected_context_keys:
+      - account_id
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/accounts/{id}
+        method: GET
+        arguments:
+          id: ${account_id}
+          fields_to_include:
+            - INCLUDE_FIELD_DERIVED_INSTANCE_PARAM_VALS
+        response_fields:
+          - key_name: user_id
+            response_json_path: stakeholder_ids[0]
+            extract_singleton_element: true
+          - key_name: product_version_id
+            response_json_path: product_version_id
+            extract_singleton_element: true
+          - key_name: maturity_date
+            response_json_path: derived_instance_param_vals.maturity_date
+            extract_singleton_element: true
+          - key_name: deposit_period_end_date
+            response_json_path: derived_instance_param_vals.deposit_period_end_date
+            extract_singleton_element: true
+          - key_name: cool_off_period_end_date
+            response_json_path: derived_instance_param_vals.cool_off_period_end_date
+            extract_singleton_element: true
+          - key_name: grace_period_end_date
+            response_json_path: derived_instance_param_vals.grace_period_end_date
+            extract_singleton_element: true
+          - key_name: fee_free_withdrawal_limit
+            response_json_path: derived_instance_param_vals.fee_free_withdrawal_limit
+            extract_singleton_element: true
+          - key_name: withdrawal_fee
+            response_json_path: instance_param_vals.withdrawal_fee
+            extract_singleton_element: true
+          - key_name: withdrawal_percentage_fee
+            response_json_path: instance_param_vals.withdrawal_percentage_fee
+            extract_singleton_element: true
+        response_event: time_deposit_account_parameters_retrieved
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - user_id
+          - product_version_id
+          - maturity_date
+          - deposit_period_end_date
+          - fee_free_withdrawal_limit
+          - withdrawal_fee
+          - withdrawal_percentage_fee
+          - cool_off_period_end_date
+          - grace_period_end_date
+    transitions:
+      - to: retrieve_time_deposit_template_parameters
+        trigger: time_deposit_account_parameters_retrieved
+
+  retrieve_time_deposit_template_parameters:
+    display_name: Retrieve Time Deposit template parameters
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/product-versions
+        method: GET
+        arguments:
+          product_id: ${product_id}
+          page_size: 30
+          page_token: ${next_page_token:}
+          view: PRODUCT_VERSION_VIEW_INCLUDE_PARAMETERS
+        response_event: time_deposit_template_parameters_retrieved
+        response_fields:
+          - key_name: time_deposit_denomination
+            response_json_path: product_versions[?(@.is_current == true)].params[?(@.name == 'denomination')].value
+            extract_singleton_element: true
+          - key_name: next_page_token
+            response_json_path: next_page_token
+            extract_singleton_element: true
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - time_deposit_denomination
+    transitions:
+      - to: check_eligibility
+        trigger: time_deposit_template_parameters_retrieved
+
+  check_eligibility:
+    display_name: Check Time Deposit maturity
+    description: Check the Time Deposit maturity date has not passed (as the maturity workflow should be used)
+    type: transform
+    transform_ref: check_eligibility
+    transitions:
+      - to: select_withdrawal_parameters
+        trigger: account_eligible_for_withdrawal
+      - to: withdrawal_failed
+        trigger: account_not_eligible_for_withdrawal
+
+  select_withdrawal_parameters:
+    display_name: Select withdrawal parameters
+    state_ui:
+      ui_actions:
+        - action_id: withdrawal_parameters
+          event: withdrawal_parameters_selected
+          display_name: Select withdrawal amount and disbursement destination
+          ui_inputs:
+            - key: withdrawal_type
+              display_name: Withdrawal type
+              string_input: {}
+              json_definition:
+                value_selector:
+                  values:
+                    - value: "full"
+                      label: "Full"
+                    - value: "partial"
+                      label: "Partial"
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - withdrawal_type
+    transitions:
+      - to: retrieve_account_balances
+        trigger: withdrawal_parameters_selected
+
+  retrieve_account_balances:
+    display_name: Retrieve Time Deposit balances
+    description: Retrieve Time Deposit account balances
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/balances/live
+        method: GET
+        arguments:
+          account_ids: 
+            - ${account_id}
+          page_size: 100
+        response_event: time_deposit_balance_retrieved
+        response_fields:
+          - key_name: live_balances
+            response_json_path: balances
+            extract_singleton_element: true
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - live_balances
+    transitions:
+      - to: retrieve_account_balance
+        description: Balance retrieved
+        trigger: time_deposit_balance_retrieved
+
+  retrieve_account_balance:
+    display_name: Check Time Deposit balances
+    description: Check Time Deposit balances
+    type: transform
+    transform_ref: retrieve_account_balance
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - time_deposit_available_balance
+          - time_deposit_accrued_interest_balance
+    transitions:
+      - to: check_partial_withdrawal
+        trigger: time_deposit_available_balance_retrieved
+      - to: withdrawal_failed
+        trigger: insufficient_funds
+
+  check_partial_withdrawal:
+    display_name: Check partial withdrawal
+    description: Check partial withdrawal
+    type: transform
+    transform_ref: check_partial_withdrawal
+    transitions:
+      - to: select_partial_withdrawal_amount
+        trigger: partial_withdrawal_amount_required
+      - to: check_pending_accrued_interest
+        trigger: full_withdrawal_amount_required
+
+  select_partial_withdrawal_amount:
+    display_name: Select partial withdrawal amount
+    state_ui:
+      ui_panels:
+        - panel_id: partial_withdrawal_information_panel
+          display_name: Withdrawal daily limit
+          json_definition:
+            text:
+              value: "Account Balance: ${time_deposit_available_balance} | Withdrawal Fee Free Limit: ${fee_free_withdrawal_limit}"
+      ui_actions:
+        - action_id: partial_withdrawal_amount
+          event: partial_withdrawal_amount_selected
+          display_name: Select withdrawal amount
+          ui_inputs:
+            - key: requested_withdrawal_amount
+              display_name: Withdrawal amount
+              number_input:
+                min_value: 0
+                precision: 2
+                step: 0.01
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - requested_withdrawal_amount
+    transitions:
+      - to: calculate_withdrawal_fees_and_denomination
+        trigger: partial_withdrawal_amount_selected
+
+  check_pending_accrued_interest:
+    display_name: Check pending accrued interest
+    type: transform
+    transform_ref: check_pending_accrued_interest
+    transitions:
+      - to: transfer_accrued_interest
+        trigger: pending_accrued_interest_found
+        actions:
+          save_to_global_state:
+            context_keys:
+              - pending_accrued_interest_check_count
+      - to: calculate_withdrawal_fees_and_denomination
+        trigger: no_pending_accrued_interest
+      - to: withdrawal_failed_no_error_message
+        trigger: pending_accrued_interest_timed_out
+
+  transfer_accrued_interest:
+    display_name: Transfer accrued interest
+    entry_actions:
+      instantiate_workflow:
+        definition_id: TIME_DEPOSIT_APPLIED_INTEREST_TRANSFER
+        definition_version: 1.0.1
+        child_context:
+          account_id: ${account_id}
+          applied_interest_amount: ${time_deposit_accrued_interest_balance}
+    transitions:
+      - to: retrieve_account_balances
+        trigger: applied_interest_transferred
+        auto_trigger_conditions:
+          children_end_states:
+            - interest_applied
+            - no_transfer_needed
+      - to: withdrawal_failed_no_error_message
+        trigger: applied_interest_transfer_failed
+        auto_trigger_conditions:
+          children_end_states:
+            - payment_failed
+            - transfer_failed
+            - invalid_preference
+
+  calculate_withdrawal_fees_and_denomination:
+    display_name: Calculate withdrawal fees
+    description: Calculate withdrawal fees
+    type: transform
+    transform_ref: calculate_withdrawal_fees_and_denomination
+    transitions:
+      - to: capture_vault_account
+        trigger: withdrawal_fees_calculated
+      - to: withdrawal_failed
+        trigger: withdrawal_fees_not_calculated
+
+  capture_vault_account:
+    display_name: Capture payment account details
+    entry_actions:
+      save_to_global_state:
+        context_keys:
+          - withdrawal_amount
+          - withdrawal_amount_to_customer
+          - withdrawal_fee_amount
+          - withdrawal_percentage_fee_amount
+          - transaction_details
+    state_ui:
+      ui_actions:
+        - action_id: vault_account_captured
+          event: vault_account_captured
+          display_name: Vault account details
+          ui_inputs:
+            - key: disbursement_account_id
+              display_name: Vault account
+              string_input: {}
+              json_definition:
+                account_selector:
+                  customer_id: ${user_id}
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - disbursement_account_id
+    transitions:
+      - to: evaluate_posting_path
+        trigger: vault_account_captured
+
+  evaluate_posting_path:
+    display_name: Evaluate the required posting
+    type: transform
+    transform_ref: evaluate_posting_path
+    transitions:
+      - to: disburse_to_vault_account_without_fees
+        trigger: vault_account_without_fees_required
+      - to: disburse_to_vault_account_with_fees
+        trigger: vault_account_with_fees_required
+      - to: withdrawal_failed
+        trigger: invalid_evaluate_posting_path
+
+  disburse_to_vault_account_without_fees:
+    display_name: Disburse to Vault account
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/posting-instruction-batches:asyncCreate
+        method: POST
+        arguments:
+          request_id: generate_uuid()
+          posting_instruction_batch:
+            client_id: AsyncCreatePostingInstructionBatch
+            client_batch_id: generate_uuid()
+            posting_instructions:
+              - client_transaction_id: generate_uuid()
+                transfer:
+                  amount: ${withdrawal_amount}
+                  denomination: ${time_deposit_denomination}
+                  debtor_target_account:
+                    account_id: ${account_id}
+                  creditor_target_account:
+                    account_id: ${disbursement_account_id}
+            batch_details:
+              note: Vault disbursement for withdrawal from Time Deposit/n${transaction_details}
+              withdrawal_override: "true"
+              calendar_override: "true"
+    transitions:
+      - to: check_account_closure_required
+        trigger: disburse_to_vault_account_without_fees_succeeded
+        auto_trigger_conditions:
+          streaming_api_conditions:
+            topic: vault.api.v1.postings.posting_instruction_batch.created
+            message_content:
+              - path: "posting_instruction_batch.status"
+                values:
+                  - POSTING_INSTRUCTION_BATCH_STATUS_ACCEPTED
+                quantifier: any
+      - to: withdrawal_failed_no_error_message
+        trigger: disburse_to_vault_account_without_fees_failed
+        actions:
+          save_to_global_state:
+            new_key_value_pairs:
+              transfer_failure_reason: Transfer of maturity to existing vault account failed
+        auto_trigger_conditions:
+          streaming_api_conditions:
+            topic: vault.api.v1.postings.posting_instruction_batch.created
+            message_content:
+              - path: "posting_instruction_batch.status"
+                values:
+                  - POSTING_INSTRUCTION_BATCH_STATUS_ACCEPTED
+                quantifier: none
+
+  disburse_to_vault_account_with_fees:
+    display_name: Disburse to Vault account
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/posting-instruction-batches:asyncCreate
+        method: POST
+        arguments:
+          request_id: generate_uuid()
+          posting_instruction_batch:
+            client_id: AsyncCreatePostingInstructionBatch
+            client_batch_id: generate_uuid()
+            posting_instructions:
+              - client_transaction_id: generate_uuid()
+                transfer:
+                  amount: ${withdrawal_amount_to_customer}
+                  denomination: ${time_deposit_denomination}
+                  debtor_target_account:
+                    account_id: ${account_id}
+                  creditor_target_account:
+                    account_id: ${disbursement_account_id}
+              - client_transaction_id: generate_uuid()
+                instruction_details:
+                  note: Fee component
+                outbound_hard_settlement:
+                  amount: ${withdrawal_fee_amount}
+                  denomination: ${time_deposit_denomination}
+                  target_account:
+                    account_id: ${account_id}
+                  internal_account_id: WITHDRAWAL_FEE_INCOME
+            batch_details:
+              note: Vault disbursement for withdrawal from Time Deposit/n${transaction_details}
+              withdrawal_override: "true"
+              calendar_override: "true"
+    transitions:
+      - to: check_account_closure_required
+        trigger: disburse_to_vault_account_with_flat_and_percentage_fees_succeeded
+        auto_trigger_conditions:
+          streaming_api_conditions:
+            topic: vault.api.v1.postings.posting_instruction_batch.created
+            message_content:
+              - path: "posting_instruction_batch.status"
+                values:
+                  - POSTING_INSTRUCTION_BATCH_STATUS_ACCEPTED
+                quantifier: any
+      - to: withdrawal_failed_no_error_message
+        trigger: initial_transfer_to_vault_acc_failed
+        actions:
+          save_to_global_state:
+            new_key_value_pairs:
+              transfer_failure_reason: Transfer of maturity to existing vault account failed
+        auto_trigger_conditions:
+          streaming_api_conditions:
+            topic: vault.api.v1.postings.posting_instruction_batch.created
+            message_content:
+              - path: "posting_instruction_batch.status"
+                values:
+                  - POSTING_INSTRUCTION_BATCH_STATUS_ACCEPTED
+                quantifier: none
+
+  check_account_closure_required:
+    display_name: Check account closure required
+    description: Check if account closure is required
+    type: transform
+    transform_ref: check_account_closure_required
+    transitions:
+      - to: update_account_status_to_pending_closure
+        trigger: account_closure_required
+      - to: withdrawal_successful
+        trigger: account_closure_not_required
+
+  update_account_status_to_pending_closure:
+    display_name: Update account status to pending closure
+    description: Update account status to pending closure
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/accounts/{account.id}
+        method: PUT
+        arguments:
+          request_id: generate_uuid()
+          account:
+            id: ${account_id}
+            status: ACCOUNT_STATUS_PENDING_CLOSURE
+          update_mask: status
+    transitions:
+      - to: update_account_status_to_closed
+        trigger: account_pending_closure
+        auto_trigger_conditions:
+          streaming_api_conditions:
+            topic: vault.core_api.v1.accounts.account_update.events
+            message_content:
+              - path: "['*'].account_update.status"
+                values:
+                  - ACCOUNT_UPDATE_STATUS_COMPLETED
+                quantifier: any
+      - to: withdrawal_failed_no_error_message
+        trigger: account_update_failure
+        auto_trigger_conditions:
+          streaming_api_conditions:
+            topic: vault.core_api.v1.accounts.account_update.events
+            message_content:
+              - path: "['*'].account_update.status"
+                values:
+                  - ACCOUNT_UPDATE_STATUS_COMPLETED
+                  - ACCOUNT_UPDATE_STATUS_PENDING_EXECUTION
+                quantifier: none
+
+  update_account_status_to_closed:
+    display_name: Update account status to closed
+    description: Update account status to closed via synchronous API call (no need to wait for topic msg)
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/accounts/{account.id}
+        method: PUT
+        arguments:
+          request_id: generate_uuid()
+          account:
+            id: ${account_id}
+            status: ACCOUNT_STATUS_CLOSED
+          update_mask: status
+        response_event: account_closed
+    transitions:
+      - to: withdrawal_successful
+        trigger: account_closed
+        description: Account closed
+
+  withdrawal_successful:
+    display_name: Time Deposit withdrawal successfully
+
+  withdrawal_failed_no_error_message:
+    display_name: Time Deposit withdrawal failed
+
+  withdrawal_failed:
+    display_name: Time Deposit withdrawal failed
+    expected_context_keys:
+      - error_message
+    entry_actions:
+      save_to_global_state:
+        context_keys:
+          - error_message
+      add_or_replace_global_ui_panels:
+        - panel_id: time_deposit_withdrawal_failed
+          display_name: Failed withdrawal from Time Deposit account
+          json_definition:
+            key_value_table:
+              items:
+                Error: "${error_message}"
+
+transforms:
+  confirm_product_id: |
+    context['product_id'] = context.get('product_id', 'time_deposit')
+    return ['product_id_confirmed', context]
+
+  check_eligibility: |
+    maturity_date = datetime.strptime("2006-01-02 15:04:05", context['maturity_date'])
+    if datetime.utcnow() > maturity_date:
+      return [
+        'account_not_eligible_for_withdrawal',
+        {
+          'error_message': 'Account has passed maturity date.'
+        }
+      ]
+
+    return ['account_eligible_for_withdrawal', {}]
+
+  retrieve_account_balance: |
+    time_deposit_available_balance = '0'
+    time_deposit_accrued_interest_balance = '0'
+
+    live_balances = json.loads(context['live_balances'])
+    for balance in live_balances:
+      if (
+        balance.get('account_address') in ['DEFAULT']
+        and balance.get('phase') in ['POSTING_PHASE_COMMITTED']
+      ):
+        time_deposit_available_balance = decimal.add(balance.get('amount'), time_deposit_available_balance)
+      elif (
+        balance.get('account_address') in ['ACCRUED_INCOMING']
+        and balance.get('phase') in ['POSTING_PHASE_COMMITTED']
+      ):
+        time_deposit_accrued_interest_balance = decimal.add(balance.get('amount'), time_deposit_accrued_interest_balance)
+
+    return [
+      'time_deposit_available_balance_retrieved',
+      {
+        'time_deposit_available_balance': time_deposit_available_balance,
+        'time_deposit_accrued_interest_balance': time_deposit_accrued_interest_balance
+      }
+    ]
+
+  check_partial_withdrawal: |
+    withdrawal_type = context['withdrawal_type']
+    if withdrawal_type == "full":
+      return ['full_withdrawal_amount_required', {}]
+
+    return ['partial_withdrawal_amount_required', {}]
+
+  check_pending_accrued_interest: |
+    time_deposit_available_balance = context['time_deposit_available_balance']
+    time_deposit_accrued_interest_balance = context['time_deposit_accrued_interest_balance']
+    pending_accrued_interest_check_count = int(context.get('pending_accrued_interest_check_count', '0'))
+
+    MAX_PENDING_INTEREST_CHECKS = 5
+    if decimal.greaterthan(time_deposit_accrued_interest_balance, '0') and pending_accrued_interest_check_count < MAX_PENDING_INTEREST_CHECKS:
+      pending_accrued_interest_check_count += 1
+      return ['pending_accrued_interest_found', {'pending_accrued_interest_check_count': str(pending_accrued_interest_check_count)}]
+    elif pending_accrued_interest_check_count >= MAX_PENDING_INTEREST_CHECKS:
+      return ['pending_accrued_interest_timed_out', {}]
+    else:
+      return ['no_pending_accrued_interest', {}]
+
+  calculate_withdrawal_fees_and_denomination: |
+    transaction_details = []
+    # get specified time if its valid else get a date in the past.
+    grace_period_end_date = context['grace_period_end_date']
+    cool_off_period_end_date = context['cool_off_period_end_date']
+
+    if  grace_period_end_date == "None":
+      grace_period_end_date = datetime.strptime("2006-01-02 15:04:05",  "1900-01-01 00:00:00")
+    else:
+      grace_period_end_date = datetime.strptime("2006-01-02 15:04:05",  grace_period_end_date)
+
+    if  cool_off_period_end_date == "None":
+      cool_off_period_end_date = datetime.strptime("2006-01-02 15:04:05", "1900-01-01 00:00:00")
+    else:
+      cool_off_period_end_date = datetime.strptime("2006-01-02 15:04:05", cool_off_period_end_date)
+
+    time_deposit_available_balance = context['time_deposit_available_balance']
+    withdrawal_type = context['withdrawal_type']
+    fee_free_withdrawal_limit = context['fee_free_withdrawal_limit']
+    withdrawal_fixed_fee_amount = context['withdrawal_fee']
+    withdrawal_percentage_fee = context['withdrawal_percentage_fee']
+    withdrawal_amount_requested = context['requested_withdrawal_amount'] if withdrawal_type == 'partial' else time_deposit_available_balance
+
+    if decimal.greaterthan(withdrawal_amount_requested, time_deposit_available_balance):
+      return [
+        'withdrawal_fees_not_calculated',
+        {
+          'error_message': 'The withdrawal amount exceeds the available balance'
+        }
+      ]
+
+    withdrawal_percentage_fee_amount = '0'
+    transaction_details.append('Withdrawal of ' + withdrawal_amount_requested + ' requested by customer.')
+
+    # fees charged only if withdrawal amount requested exceeds the free daily limit
+    # also if within grace period or cool off period no fees should be charge.
+
+    is_outside_period = datetime.utcnow() > max(cool_off_period_end_date, grace_period_end_date)
+
+    if decimal.greaterthan(withdrawal_amount_requested, fee_free_withdrawal_limit) and is_outside_period:
+      excess_amount_requested = decimal.minus(withdrawal_amount_requested, fee_free_withdrawal_limit)
+      withdrawal_percentage_fee_amount = decimal.mul(excess_amount_requested, withdrawal_percentage_fee)
+      withdrawal_total_fee_amount = decimal.add(withdrawal_percentage_fee_amount, withdrawal_fixed_fee_amount)
+      withdrawal_amount_to_customer = decimal.minus(withdrawal_amount_requested, withdrawal_total_fee_amount)
+
+      if decimal.greaterthan(withdrawal_percentage_fee_amount, '0'):
+        transaction_details.append('Percentage fee of ' + withdrawal_percentage_fee_amount + ' applied.')
+      if decimal.greaterthan(withdrawal_fixed_fee_amount, '0'):
+        transaction_details.append('Fixed fee of ' + withdrawal_fixed_fee_amount + ' applied.')
+
+    else:
+      withdrawal_percentage_fee_amount = 0
+      withdrawal_total_fee_amount = 0
+      withdrawal_amount_to_customer = withdrawal_amount_requested
+
+    transaction_details.append('Total amount to customer ' + withdrawal_amount_to_customer + '.')
+
+    if decimal.lessthan(withdrawal_amount_to_customer, '0'):
+      return [
+        'withdrawal_fees_not_calculated',
+        {
+          'error_message': 'The withdrawal fees are not covered by the amount requested',
+        }
+      ]
+
+    return [
+      'withdrawal_fees_calculated',
+      {
+        'withdrawal_amount_to_customer': withdrawal_amount_to_customer,
+        'withdrawal_amount': withdrawal_amount_requested,
+        'withdrawal_fee_amount': withdrawal_total_fee_amount,
+        'withdrawal_percentage_fee_amount': withdrawal_percentage_fee_amount,
+        'transaction_details': '/n'.join(transaction_details)
+      }
+    ]
+
+  evaluate_posting_path: |
+    withdrawal_fee = context['withdrawal_fee']
+    withdrawal_fee_amount = context['withdrawal_fee_amount']
+    withdrawal_percentage_fee_amount = context['withdrawal_percentage_fee_amount']
+
+    # no fee
+    if not decimal.greaterthan(withdrawal_fee_amount, '0'):
+      return ['vault_account_without_fees_required', {}]
+
+    # flat and/or percentage fee
+    elif decimal.greaterthan(withdrawal_fee_amount, '0'):
+      return ['vault_account_with_fees_required', {}]
+
+    # unhandled path
+    else:
+      return [
+        'invalid_evaluate_posting_path',
+        {
+          'error_message': 'Unhandled posting path'
+        }
+      ]
+
+  check_account_closure_required: |
+    withdrawal_type = context['withdrawal_type']
+    if withdrawal_type == 'full':
+      return ['account_closure_required', {}]
+
+    return ['account_closure_not_required', {}]

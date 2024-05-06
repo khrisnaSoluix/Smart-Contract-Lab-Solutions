@@ -1,0 +1,10 @@
+---
+type: FLAG_DEFINITION
+id: MANUAL_WRITE_OFF
+payload: |
+  flag_definition: 
+    id: MANUAL_WRITE_OFF
+    name: MANUAL_WRITE_OFF
+    description: Manual write off
+    required_flag_level: FLAG_LEVEL_ACCOUNT
+    flag_visibility: FLAG_VISIBILITY_OPERATOR

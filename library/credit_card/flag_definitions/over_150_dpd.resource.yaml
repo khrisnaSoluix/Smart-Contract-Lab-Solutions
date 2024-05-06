@@ -1,0 +1,10 @@
+---
+type: FLAG_DEFINITION
+id: OVER_150_DPD
+payload: |
+  flag_definition: 
+    id: OVER_150_DPD
+    name: OVER_150_DPD
+    description: Customer 150 days past due
+    required_flag_level: FLAG_LEVEL_ACCOUNT
+    flag_visibility: FLAG_VISIBILITY_OPERATOR

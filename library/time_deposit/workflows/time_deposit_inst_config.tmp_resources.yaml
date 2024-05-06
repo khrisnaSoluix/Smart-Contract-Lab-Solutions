@@ -1,0 +1,21 @@
+# Copyright @ 2021 Thought Machine Group Limited. All rights reserved.
+---
+resources:
+  - id: TIME_DEPOSIT_ACCOUNT_INFORMATION_UPDATE
+    instantiation_resources:
+      - Customer account
+  - id: TIME_DEPOSIT_APPLICATION
+    instantiation_resources:
+      - Customer
+  - id: TIME_DEPOSIT_CLOSURE
+    instantiation_resources:
+      - Customer account
+  - id: TIME_DEPOSIT_INTEREST_PREFERENCE_CHANGE
+    instantiation_resources:
+      - Customer account
+  - id: TIME_DEPOSIT_UPDATE_ACCOUNT_INFO
+    instantiation_resources:
+      - Customer account
+  - id: TIME_DEPOSIT_WITHDRAWAL
+    instantiation_resources:
+      - Customer account

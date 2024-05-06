@@ -1,0 +1,12 @@
+# Copyright @ 2021 Thought Machine Group Limited. All rights reserved.
+---
+resources:
+  - id: ADJUSTMENT_CREATION
+    instantiation_resources:
+      - Customer account
+  - id: INTERNAL_TRANSFER
+    instantiation_resources:
+      - Customer
+  - id: ONBOARD_NEW_CUSTOMER
+    instantiation_resources:
+      - Customers list

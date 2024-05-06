@@ -1,0 +1,172 @@
+# Copyright @ 2021 Thought Machine Group Limited. All rights reserved.
+---
+name: Current Account Overdraft Creation
+instance_title: Current Account Overdraft Creation
+description: Add an arranged overdraft to a Current Account.
+schema_version: 3.2.0
+definition_version: 1.0.1
+
+starting_state: retrieve_account_parameters
+end_states:
+  - state: cancel_operation
+    result: FAILED
+  - state: overdraft_created
+    result: SUCCESSFUL
+
+states:
+  retrieve_account_parameters:
+    display_name: Retrieve account parameters
+    expected_context_keys:
+      - user_id
+      - account_id
+    entry_actions:
+      save_to_global_state:
+        new_key_value_pairs:
+          account_id: ${account_id}
+          customer_id: ${user_id}
+      vault_callback:
+        path: core-api/v1/accounts/{id}
+        method: GET
+        arguments:
+          id: ${account_id}
+        response_fields:
+          - key_name: arranged_overdraft_limit
+            response_json_path: instance_param_vals.arranged_overdraft_limit
+            extract_singleton_element: true
+          - key_name: account_status
+            response_json_path: status
+            extract_singleton_element: true
+        response_event: parameters_retrieved
+    transitions:
+      - to: check_account_status
+        description: Have account parameters
+        trigger: parameters_retrieved
+
+  check_account_status:
+    display_name: Check for existing overdraft
+    type: transform
+    transform_ref: check_account_status
+    expected_context_keys:
+      - arranged_overdraft_limit
+      - account_status
+    transitions:
+      - to: "choose_arranged_overdraft_limit"
+        description: No existing arranged overdraft
+        trigger: "no_arranged_overdraft"
+      - to: "notify_account_not_open"
+        description: Account not open
+        trigger: "account_not_open"
+      - to: "notify_overdraft_exists"
+        description: Arranged overdraft exists
+        trigger: "arranged_overdraft_exists"
+
+  notify_overdraft_exists:
+    display_name: Notify overdraft exists
+    description: The account already has an overdraft
+    state_ui:
+      ui_panels:
+        - panel_id: overdraft
+          display_name: Existing overdraft
+          json_definition:
+            text:
+              value: There is already an arranged overdraft on this account
+    transitions:
+      - to: cancel_operation
+        description: No overdraft
+        trigger: cancelled
+
+  notify_account_not_open:
+    display_name: Notify account not open
+    state_ui:
+      ui_panels:
+        - panel_id: overdraft
+          display_name: Account not open
+          json_definition:
+            text:
+              value: The action cannot be completed because the account is not open
+    transitions:
+      - to: cancel_operation
+        description: No overdraft
+        trigger: operation_cancelled
+
+  choose_arranged_overdraft_limit:
+    display_name: Choose arranged overdraft limit
+    state_ui:
+      ui_panels:
+        - panel_id: overdraft
+          display_name: Proceed with overdraft
+          json_definition:
+            text:
+              value: Enter overdraft limit
+      ui_actions:
+        - action_id: chosen_overdraft_limit
+          event: chosen_overdraft_limit
+          display_name: Set overdraft
+          ui_inputs:
+            - key: chosen_limit
+              number_input:
+                min_value: 0
+                max_value: 2000
+                precision: 0
+                step: 1
+    transitions:
+      - to: update_account_arranged_overdraft
+        description: Proceed
+        trigger: chosen_overdraft_limit
+
+  update_account_arranged_overdraft:
+    display_name: Update account arranged overdraft limit
+    expected_context_keys:
+      - chosen_limit
+    entry_actions:
+      save_to_global_state:
+        context_keys:
+          - chosen_limit
+      vault_callback:
+        path: core-api/v1/account-updates
+        method: POST
+        arguments:
+          request_id: generate_uuid()
+          account_update:
+            id: generate_uuid()
+            account_id: ${account_id}
+            instance_param_vals_update:
+              instance_param_vals:
+                arranged_overdraft_limit: ${chosen_limit}
+        response_event: updated_account_arranged_overdraft
+    transitions:
+      - to: display_overdraft
+        description: Limit updated
+        trigger: updated_account_arranged_overdraft
+
+  display_overdraft:
+    display_name: Display overdraft
+    state_ui:
+      ui_panels:
+        - panel_id: overdraft
+          display_name: Display overdraft
+          json_definition:
+            text:
+              value: Your arranged overdraft of £${chosen_limit} is now confirmed.
+      ui_actions:
+        - action_id: display overdraft
+          event: overdraft_displayed
+          display_name: Ok
+    transitions:
+      - to: overdraft_created
+        description: overdraft displayed
+        trigger: overdraft_displayed
+
+  overdraft_created:
+    display_name: Your overdraft is now created
+
+  cancel_operation: {}
+
+transforms:
+  check_account_status: |
+    if context.get('account_status') != 'ACCOUNT_STATUS_OPEN':
+      return ['account_not_open', {}]
+    elif decimal.greaterthan(context['arranged_overdraft_limit'], '0'):
+      return ['arranged_overdraft_exists', {}]
+    else:
+      return ['no_arranged_overdraft', {}]

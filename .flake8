@@ -1,0 +1,40 @@
+[flake8]
+max-line-length = 100
+exclude = BUILD
+select = E,W,F,B,CTR
+ignore =
+    E1    # ignores indentation errors
+    E2    # ignores whitespace errors
+    E3    # ignores blank line errors
+    E731  # ignores do not assign lambda use def
+    W504  # ignores line break after binary operator
+    W503  # ignores line break before binary operator
+    B001  # do not use bare except - we should move away from this
+    B008  # do not perform function calls in arg defaults - we should move away from this
+per-file-ignores =
+    # init files may import from modules to control package use, without using them
+    **/__init__.py: F401
+    # Ignore F821,F405 for contracts due to magic imports & bundled imports
+    library/**/contracts/*.py:F821,F405
+    # Ignore F821 across contracts/supervisors/modules due to magic imports
+    projects/*/contracts/*.py:F821
+    library/*/supervisors/*.py:F821
+    projects/*/supervisors/*.py:F821
+    library/common/contract_modules/*.py:F821
+    projects/*/contract_modules/*.py:F821
+    demo_suite/*.py:F821
+    # Ignore F405 in smart contract template files due to bundled imports
+    library/**/template/*.py:F405
+    library/**/supervisors/template/*.py:F405
+    projects/**/template/*.py:F405
+    projects/**/supervisors/template/*.py:F405
+    # Ignore E501 in rendered output (INC-5470)
+    library/**/contracts/*_rendered.py:E501,F821
+
+
+[flake8:local-plugins]
+extension =
+    CTR = flake8_contracts:ContractLinter
+
+paths =
+   ./buildtools/lint

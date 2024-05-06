@@ -1,0 +1,375 @@
+# Copyright @ 2020 Thought Machine Group Limited. All rights reserved.
+---
+name: Onboard a new customer
+instance_title: Onboard a new customer
+description: A workflow to onboard a new customer
+schema_version: 3.2.0
+definition_version: 1.3.2
+
+starting_state: request_customer_details
+end_states:
+  - state: customer_onboarded
+    result: SUCCESSFUL
+
+states:
+  request_customer_details:
+    display_name: Request customer details
+    description: Request personal details
+    state_ui:
+      ui_actions:
+        - action_id: customer_details
+          event: customer_details_given
+          display_name: Enter customer details
+          ui_inputs:
+            - key: first_name
+              display_name: First name
+              string_input:
+                min_length: 1
+                max_length: 256
+            - key: last_name
+              display_name: Last name
+              string_input:
+                min_length: 1
+                max_length: 256
+            - key: date_of_birth
+              display_name: Date of birth
+              string_input:
+              json_definition:
+                date:
+            - key: mobile_phone_number
+              display_name: Mobile phone number
+              string_input:
+                regex: /^\+?[0-9()\- ]{5,20}$/
+            - key: home_phone_number
+              display_name: Home phone number
+              string_input:
+                regex: /^\+?[0-9()\- ]{5,20}$/
+            - key: contact_method
+              display_name: Contact method
+              string_input:
+              json_definition:
+                customer_contact_method:
+            - key: email
+              display_name: Email address
+              string_input:
+                regex: /^[\w.+-]{1,128}@[\w+-]{1,64}\.[\w.+-]{1,64}$/
+            - key: country_of_residence
+              display_name: Country of residence
+              string_input:
+              json_definition:
+                country:
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - first_name
+          - last_name
+          - date_of_birth
+          - email
+          - mobile_phone_number
+          - home_phone_number
+          - contact_method
+          - country_of_residence
+      add_or_replace_global_ui_panels:
+        - panel_id: customer_details
+          display_name: Customer details
+          json_definition:
+            key_value_table:
+              items:
+                First name: ${first_name}
+                Last name: ${last_name}
+                Date of birth: ${date_of_birth}
+                Email: ${email}
+                Mobile phone number: ${mobile_phone_number}
+                Home phone number: ${home_phone_number}
+                Contact method: ${contact_method}
+                Country of residence: ${country_of_residence}
+    transitions:
+      - to: request_customer_address
+        trigger: customer_details_given
+        description: Customer entered details
+
+  request_customer_address:
+    display_name: Request customer address
+    description: Request customer address
+    state_ui:
+      ui_actions:
+        - action_id: customer_details
+          event: customer_address_given
+          display_name: Enter address
+          ui_inputs:
+            - key: house_name
+              display_name: House name
+              string_input:
+                max_length: 256
+              optional: true
+            - key: street_number
+              display_name: House number
+              string_input:
+                max_length: 256
+            - key: street
+              display_name: Street
+              string_input:
+                max_length: 256
+            - key: town
+              optional: true
+              display_name: Town
+              string_input:
+                max_length: 256
+            - key: city
+              display_name: City
+              string_input:
+                max_length: 256
+            - key: postal_area
+              display_name: Postcode
+              string_input:
+                max_length: 256
+            - key: county
+              optional: true
+              display_name: County
+              string_input:
+                max_length: 256
+            - key: effective_from
+              string_input: {}
+              json_definition:
+                date:
+              display_name: Effective from (date cannot be in the future)
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - house_name
+          - street_number
+          - street
+          - town
+          - city
+          - postal_area
+          - county
+          - effective_from
+      add_or_replace_global_ui_panels:
+        - panel_id: customer_address
+          display_name: Customer address
+          json_definition:
+            key_value_table:
+              items:
+                House name: ${house_name:""}
+                House number: ${street_number}
+                Street: ${street}
+                Town: ${town}
+                City: ${city}
+                Postcode: ${postal_area}
+                County: ${county}
+                Country: ${country_of_residence}
+    transitions:
+      - to: validate_date
+        trigger: customer_address_given
+        description: Customer entered address
+
+  validate_date:
+    display_name: Validate effective date
+    description: Validates date input is not in future
+    type: transform
+    transform_ref: check_date_not_in_future
+    transitions:
+      - to: request_passport_upload
+        trigger: date_is_valid
+        actions:
+          save_to_global_state:
+            context_keys:
+              - effective_timestamp
+      - to: invalid_date
+        trigger: date_is_invalid
+
+  invalid_date:
+    display_name: Invalid effective date
+    state_ui:
+      ui_panels:
+        - panel_id: invalid_date
+          display_name: Invalid date
+          json_definition:
+            text:
+              value: Invalid "effective from" date - cannot be in the future
+      ui_actions:
+        - action_id: try_again
+          display_name: Try again
+          event: retry_entry
+    transitions:
+      - to: request_customer_address
+        trigger: retry_entry
+
+  request_passport_upload:
+    display_name: Request customer ID upload
+    description: Upload a photo ID for identification checks.
+    state_ui:
+      ui_actions:
+        - action_id: upload_passport
+          event: document_uploaded
+          display_name: Upload passport
+          ui_inputs:
+            - key: passport_document_file
+              file_input: {}
+              display_name: Passport
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - passport_document_file
+    transitions:
+      - to: extract_passport_document_id
+        trigger: document_uploaded
+        description: Document uploaded
+
+  extract_passport_document_id:
+    type: transform
+    transform_ref: extract_passport_document_id
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - passport_document_version
+          - passport_document_id
+    transitions:
+      - to: request_live_photo_upload
+        description: Extracted document ID
+        trigger: extracted_passport_id
+
+  request_live_photo_upload:
+    display_name: Request customer live photo upload
+    description: Upload a live photo for identification checks
+    state_ui:
+      ui_actions:
+        - action_id: upload_live_photo
+          event: photo_uploaded
+          display_name: Upload live photo
+          ui_inputs:
+            - key: livephoto_document_file
+              file_input: {}
+              display_name: Live photo
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - livephoto_document_file
+    transitions:
+      - to: extract_live_photo_document_id
+        trigger: photo_uploaded
+        description: Document uploaded
+
+  extract_live_photo_document_id:
+    type: transform
+    transform_ref: extract_live_photo_document_id
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - live_photo_document_version
+          - live_photo_document_id
+    transitions:
+      - to: know_your_customer_check
+        description: Extracted document ID
+        trigger: extracted_photo_id
+
+  know_your_customer_check:
+    display_name: Know your customer check
+    description: Know your customer check
+    state_ui:
+      ui_panels:
+        - panel_id: kyc_check
+          display_name: KYC Check
+          json_definition:
+            text:
+                value: Stubbed out KYC check here
+    type: transform
+    transform: |
+      return ['kyc_check_successful', {}]
+    transitions:
+      - to: create_customer
+        trigger: kyc_check_successful
+        description: KYC check successful
+
+  create_customer:
+    display_name: Create customer
+    description: Create customer
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/customers
+        method: POST
+        arguments:
+          request_id: generate_uuid()
+          customer:
+            status: CUSTOMER_STATUS_ACTIVE
+            customer_details:
+              first_name: ${first_name}
+              last_name: ${last_name}
+              dob: ${date_of_birth}
+              email_address: ${email}
+              mobile_phone_number: ${mobile_phone_number}
+              home_phone_number: ${home_phone_number}
+              contact_method: ${contact_method}
+              country_of_residence: ${country_of_residence}
+        response_fields:
+          - key_name: user_id
+            response_json_path: id
+            extract_singleton_element: true
+        response_event: customer_created
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - user_id
+    transitions:
+      - to: create_address
+        trigger: customer_created
+        description: Customer created
+
+  create_address:
+    display_name: Create customer address
+    description: Create customer address
+    expected_context_keys:
+      - user_id
+    entry_actions:
+      save_to_global_state:
+        context_keys:
+          - user_id
+      vault_callback:
+        path: core-api/v1/customer-addresses
+        method: POST
+        arguments:
+          request_id: generate_uuid()
+          customer_address:
+            house_name: ${house_name:""}
+            street_number: ${street_number}
+            street: ${street}
+            local_municipality: ${town}
+            city: ${city}
+            postal_area: ${postal_area}
+            governing_district: ${county}
+            country: ${country_of_residence}
+            start_timestamp: ${effective_timestamp}
+            customer_id: ${user_id}
+        response_event: address_created
+    transitions:
+      - to: customer_onboarded
+        trigger: address_created
+        description: Address Created
+
+  customer_onboarded:
+    display_name: Customer On-boarding Successful
+
+transforms:
+  check_date_not_in_future: |
+    new_context = {}
+    no_later_than = datetime.utcnow()
+    effective_from = datetime.strptime('2006-01-02', context['effective_from'])
+    if effective_from > no_later_than:
+      return ['date_is_invalid', {}]
+    else:
+      new_context['effective_timestamp'] = context['effective_from'] + 'T00:00:00Z'
+      return ['date_is_valid', new_context]
+
+  extract_passport_document_id: |
+    new_context = {}
+    body = json.loads(context.pop('passport_document_file'))
+    new_context['passport_document_version'] = body['document_version']
+    new_context['passport_document_id'] = body['document_id']
+    return ['extracted_passport_id', new_context]
+
+  extract_live_photo_document_id: |
+    new_context = {}
+    body = json.loads(context.pop('livephoto_document_file'))
+    new_context['live_photo_document_version'] = body['document_version']
+    new_context['live_photo_document_id'] = body['document_id']
+    return ['extracted_photo_id', new_context]

@@ -1,0 +1,20 @@
+---
+name: Simple Notification
+description: A simple notification
+schema_version: 3.2.0
+definition_version: 3.0.0
+starting_state: start
+end_states:
+  - state: end
+    result: SUCCESSFUL
+states:
+  start:
+    display_name: Start
+    type: transform
+    transform: |
+      return ['complete', {}]
+    transitions:
+      - to: end
+        trigger: complete
+  end:
+    display_name: End

@@ -1,0 +1,9 @@
+
+# This rule is just to make sure we don't delete the __init__.py file later as it won't break
+# any tests we run through plz otherwise. Plz itself does not need it as it automatically
+# adds __init__.py files when building python_binary/python_test pex files
+filegroup(
+    name = "extensions",
+    srcs = ["__init__.py"],
+    visibility = ["PUBLIC"]
+)

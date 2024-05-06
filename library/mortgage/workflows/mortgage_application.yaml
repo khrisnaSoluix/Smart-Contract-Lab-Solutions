@@ -1,0 +1,272 @@
+# Copyright @ 2023 Thought Machine Group Limited. All rights reserved.
+---
+name: Mortgage Application
+instance_title: Mortgage Application
+description: A workflow to apply for a Mortgage.
+schema_version: 3.2.0
+definition_version: 2.0.0
+
+starting_state: confirm_product_id
+end_states:
+  - state: account_created_successfully
+    result: SUCCESSFUL
+  - state: account_creation_failed
+    result: FAILED
+
+states:
+  confirm_product_id:
+    display_name: Confirm product id
+    description: Confirm product id by checking context or defaulting to 'mortgage'
+    expected_context_keys:
+      - user_id
+    type: transform
+    transform_ref: confirm_product_id
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - user_id
+          - product_id
+    transitions:
+      - to: query_contract_versions
+        trigger: product_id_confirmed
+
+  query_contract_versions:
+    display_name: Fetch contract version
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/product-versions
+        method: GET
+        arguments:
+          product_id: ${product_id}
+          page_size: 30
+          view: PRODUCT_VERSION_VIEW_INCLUDE_PARAMETERS
+          page_token: ${next_page_token:}
+        response_event: contract_versions_returned
+        response_fields:
+          - key_name: product_versions
+            response_json_path: product_versions
+            extract_singleton_element: true
+          - key_name: next_page_token
+            response_json_path: next_page_token
+            extract_singleton_element: true
+    transitions:
+      - to: retrieve_account_details
+        trigger: contract_versions_returned
+        description: Contracts returned
+
+  retrieve_account_details:
+    display_name: Retrieve account details
+    expected_context_keys:
+      - product_versions
+      - next_page_token
+    type: transform
+    transform_ref: retrieve_account_details
+    transitions:
+      - to: choose_mortgage_parameters
+        trigger: mortgage_denomination_retrieved
+        description: account denomination retrieved
+      - to: query_contract_versions
+        trigger: current_product_version_not_found
+        description: Fetch more product versions
+      - to: account_creation_failed
+        trigger: no_valid_contract
+        description: No valid contract
+
+  choose_mortgage_parameters:
+    display_name: Choose mortgage parameters
+    entry_actions:
+      save_to_global_state:
+        context_keys:
+          - mortgage_denomination
+          - variable_interest_rate
+    state_ui:
+      ui_actions:
+        - action_id: choose_mortgage_parameters
+          event: mortgage_parameters_chosen
+          display_name: Choose mortgage parameters
+          ui_inputs:
+            - key: fixed_interest_rate
+              display_name: Fixed interest rate
+              number_input:
+                min_value: 0
+                max_value: 1
+                precision: 4
+                step: 0.0001
+                default_value: 0.0275
+            - key: fixed_interest_term
+              display_name: Fixed rate Mortgage term (months)
+              number_input:
+                min_value: 0
+                precision: 1
+                step: 1
+                default_value: 0
+            - key: interest_only_term
+              display_name: Interest only Mortgage term (months)
+              number_input:
+                min_value: 0
+                precision: 1
+                step: 1
+                default_value: 0
+            - key: variable_rate_adjustment
+              display_name: Adjustment to be added to variable interest rate (negative or positive value)
+              number_input:
+                min_value: -1
+                max_value: 1
+                precision: 4
+                step: 0.0001
+                default_value: 0
+            - key: principal
+              display_name: Mortgage principal (${mortgage_denomination})
+              number_input:
+                min_value: 1
+                step: 1
+                default_value: 100000
+            - key: deposit_account
+              display_name: Deposit account
+              string_input:
+            - key: due_amount_calculation_day
+              display_name: Day to calculate due amounts
+              number_input:
+                min_value: 1
+                max_value: 28
+                step: 1
+                default_value: 15
+            - key: total_repayment_count
+              display_name: Number of repayments
+              number_input:
+                min_value: 1
+                step: 1
+                default_value: 12
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - fixed_interest_rate
+          - fixed_interest_term
+          - interest_only_term
+          - principal
+          - deposit_account
+          - variable_rate_adjustment
+          - due_amount_calculation_day
+          - total_repayment_count
+    transitions:
+      - to: check_valid_params
+        trigger: mortgage_parameters_chosen
+
+  check_valid_params:
+    display_name: Check valid parameters
+    type: transform
+    transform_ref: check_valid_params
+    transitions:
+      - to: create_mortgage
+        trigger: valid_params
+      - to: invalid_params
+        trigger: invalid_params
+
+  invalid_params:
+    display_name: Invalid parameters
+    state_ui:
+      ui_panels:
+        - panel_id: invalid_params
+          display_name: Invalid params
+          json_definition:
+            text:
+              value: ${error_message}
+      ui_actions:
+        - action_id: try_again
+          display_name: Try again
+          event: retry_entry
+    transitions:
+      - to: choose_mortgage_parameters
+        trigger: retry_entry
+
+# we only support creating accounts directly in the OPEN status so we must do the same here in the workflow
+  create_mortgage:
+    display_name: Create mortgage
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/accounts
+        method: POST
+        arguments:
+          request_id: generate_uuid()
+          account:
+            product_id: ${product_id}
+            status: ACCOUNT_STATUS_OPEN
+            stakeholder_ids:
+              - ${user_id}
+            permitted_denominations:
+              - ${mortgage_denomination}
+            instance_param_vals:
+              fixed_interest_rate: ${fixed_interest_rate}
+              fixed_interest_term: ${fixed_interest_term}
+              interest_only_term: ${interest_only_term}
+              principal: ${principal}
+              deposit_account: ${deposit_account}
+              due_amount_calculation_day: ${due_amount_calculation_day}
+              total_repayment_count: ${total_repayment_count}
+              variable_rate_adjustment: ${variable_rate_adjustment}
+        response_fields:
+          - key_name: account_id
+            response_json_path: id
+            extract_singleton_element: true
+        response_event: mortgage_created
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - account_id
+    transitions:
+      - to: account_created_successfully
+        description: Mortgage created
+        trigger: mortgage_created
+
+  account_created_successfully:
+    display_name: Account opened successfully - Please ensure the account activation update was successful
+
+  account_creation_failed:
+    display_name: Account opening failed
+    state_ui:
+      ui_panels:
+        - panel_id: account_opening_failure_panel
+          display_name: Create mortgage account failed
+          json_definition:
+            text:
+              value: ${failure_message}
+              is_error: true
+
+transforms:
+  confirm_product_id: |
+    context['product_id'] = context.get('product_id', 'mortgage')
+    return ['product_id_confirmed', context]
+
+  retrieve_account_details: |
+    new_context = {}
+    product_versions = json.loads(context.get('product_versions', '[]'))
+    for version in product_versions:
+      if version.get('is_current'):
+        new_context = {}
+        params = {param['name']:param for param in version['params']}
+        params_list = list(params)
+
+        for param in ['variable_interest_rate', 'denomination']:
+          if param not in params_list:
+            return ['no_valid_contract', {'failure_message': 'Expected parameter(s) not found'}]
+
+        new_context['variable_interest_rate'] = params['variable_interest_rate']['value']
+        new_context['mortgage_denomination'] = params['denomination']['value']
+        return ['mortgage_denomination_retrieved', new_context]
+
+    next_page_token = context.get('next_page_token')
+    if next_page_token:
+      return ['current_product_version_not_found', {'next_page_token': next_page_token}]
+    else:
+      return ['no_valid_contract', {'failure_message': 'Current product version not found'}]
+
+  check_valid_params: |
+    error_list = []
+    if decimal.lessthan(decimal.add(context.get('variable_interest_rate'), context.get('variable_rate_adjustment')), '0'):
+      error_list.append(' - Sum of variable rate and adjustment cannot be less than 0')
+
+    if not error_list:
+      return ['valid_params', {}]
+    else:
+      error_message = 'Invalid params were submitted:\n' + '\n'.join(error_list)
+      return ['invalid_params', {'error_message': error_message}]

@@ -1,0 +1,11 @@
+# Copyright @ 2021 Thought Machine Group Limited. All rights reserved.
+---
+type: INTERNAL_ACCOUNT
+id: PNL_ACCOUNT
+vault_id: "1"
+payload: |
+  internal_account:
+      id: "1"
+      product_id: '&{pnl_account_contract:product_id}'
+      accounting:
+        tside: TSIDE_LIABILITY

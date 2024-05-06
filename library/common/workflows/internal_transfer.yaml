@@ -1,0 +1,756 @@
+# Copyright @ 2020 Thought Machine Group Limited. All rights reserved.
+---
+name: Transfer funds between a customer's accounts
+instance_title: Transfer funds between a customer's accounts
+description: Process to make a transfer between a customer's accounts
+schema_version: 3.2.0
+definition_version: 1.6.0
+
+starting_state: save_user_id
+end_states:
+  - state: notify_insufficient_accounts
+    result: FAILED
+  - state: transfer_rejected
+    result: FAILED
+  - state: transfer_unknown
+    result: FAILED
+  - state: transfer_successful
+    result: SUCCESSFUL
+
+states:
+  save_user_id:
+    display_name: Save user_id to global context
+    description: Save the transient user_id from the local context to the global context in a separate state, so that the state select_source_account can be entered from multiple places in the workflow
+    expected_context_keys:
+      - user_id
+    type: transform
+    entry_actions:
+      save_to_global_state:
+        new_key_value_pairs:
+          customer_id: ${user_id}
+    transform: |
+      return ['saved_user_id', {}]
+    transitions:
+      - to: retrieve_customer_accounts
+        trigger: saved_user_id
+
+  retrieve_customer_accounts:
+    display_name: Retrieve customer accounts
+    description: Internal call to retrieve customer account list
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/accounts
+        method: GET
+        arguments:
+          page_size: 1000
+          stakeholder_id: ${customer_id}
+        response_event: accounts_received
+        response_fields:
+          - key_name: accounts
+            response_json_path: accounts[?(@.status == 'ACCOUNT_STATUS_OPEN')].id
+    transitions:
+      - to: check_sufficient_accounts
+        trigger: accounts_received
+
+  check_sufficient_accounts:
+    display_name: Check customer accounts
+    description: Check there are at least 2 accounts to transfer between
+    expected_context_keys:
+      - accounts
+    type: transform
+    transform_ref: check_sufficient_accounts
+    transitions:
+      - to: select_source_account
+        trigger: sufficient_accounts
+      - to: notify_insufficient_accounts
+        trigger: insufficient_accounts
+
+  select_source_account:
+    display_name: Select source account
+    entry_actions:
+      add_or_replace_global_ui_panels:
+        - panel_id: source_balance
+          display_name: Source account balance
+          json_definition:
+            text:
+              value: Select source account to view balance
+        - panel_id: destination_balance
+          display_name: Destination account balance
+          json_definition:
+            text:
+              value: Select destination account to view balance
+        - panel_id: transfer_denominations
+          display_name: Denomination for this transfer
+          json_definition:
+            text:
+              value: Select source and destination account to view transfer denomination
+    state_ui:
+      ui_panels:
+        - panel_id: customers_accounts
+          display_name: Customer's accounts
+          json_definition:
+            customer_accounts:
+              customer_id: ${customer_id}
+      ui_actions:
+        - action_id: select_source_account
+          event: source_account_specified
+          display_name: Select source account
+          ui_inputs:
+            - key: from_account_id
+              string_input: {}
+              display_name: Account to make transfer from
+              json_definition:
+                account_selector:
+                  customer_id: ${customer_id}
+    transitions:
+      - to: retrieve_source_permitted_denominations
+        description: Source account specified
+        trigger: source_account_specified
+        actions:
+          save_to_global_state:
+            new_key_value_pairs:
+              from_account_id: ${from_account_id}
+
+  notify_insufficient_accounts:
+    display_name: Notify insufficient accounts
+    description: Notify there is an insufficient number of customer accounts to be able to make a transfer
+    state_ui:
+      ui_panels:
+        - panel_id: transfer_status
+          display_name: Insufficient number of customer accounts
+          json_definition:
+            text:
+              value: A minimum of 2 customer accounts are required for a transfer
+              is_error: true
+
+  retrieve_source_permitted_denominations:
+    display_name: Retrieve source permitted denominations
+    description: Retrieve source account permitted denominations
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/accounts/{id}
+        method: GET
+        arguments:
+          id: ${from_account_id}
+        response_event: account_received
+        response_fields:
+          - key_name: permitted_denominations_source
+            response_json_path: permitted_denominations
+            extract_singleton_element: true
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - permitted_denominations_source
+    transitions:
+      - to: retrieve_source_account_balances
+        trigger: account_received
+        actions:
+          save_to_global_state:
+            new_key_value_pairs:
+              permitted_denominations_source: ${permitted_denominations_source}
+
+  retrieve_source_account_balances:
+    display_name: Retrieve source balances
+    description: Retrieve source account balances
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/balances/live
+        method: GET
+        arguments:
+          account_ids: 
+            - ${from_account_id}
+          page_size: 100
+        response_event: source_balance_retrieved
+        response_fields:
+          - key_name: denominations
+            response_json_path: balances[?(@.phase == 'POSTING_PHASE_COMMITTED' & @.account_address == 'DEFAULT')].denomination
+            extract_singleton_element: true
+          - key_name: balances
+            response_json_path: balances[?(@.phase == 'POSTING_PHASE_COMMITTED' & @.account_address == 'DEFAULT')].amount
+            extract_singleton_element: true
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - denominations
+          - balances
+    transitions:
+      - to: extract_source_denomination_balance
+        description: Balance retrieved
+        trigger: source_balance_retrieved
+
+  extract_source_denomination_balance:
+    display_name: Extract source info
+    description: Extract source account denomination and balance
+    entry_actions:
+      save_to_global_state:
+        new_key_value_pairs:
+          current_state: 'extract_source_denomination_balance'
+    type: transform
+    transform_ref: extract_denomination_balance
+    exit_actions:
+      add_or_replace_global_ui_panels:
+        - panel_id: source_balance
+          display_name: Source account balance
+          json_definition:
+            text:
+              value: ${extracted_balance} ${extracted_denomination}
+    transitions:
+      - to: retrieve_customer_name
+        trigger: source_denomination_balance_extracted
+        actions:
+          save_to_global_state:
+            new_key_value_pairs:
+              source_denomination: ${extracted_denomination}
+
+  retrieve_customer_name:
+    display_name: Retrieve customer name
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/customers/{id}
+        method: GET
+        arguments:
+          id: ${customer_id}
+        response_event: customer_details_retrieved
+        response_fields:
+          - key_name: customer_first_name
+            response_json_path: customer_details.first_name
+            extract_singleton_element: true
+          - key_name: customer_last_name
+            response_json_path: customer_details.last_name
+            extract_singleton_element: true
+    transitions:
+      - to: select_destination_account
+        trigger: customer_details_retrieved
+        actions:
+          save_to_global_state:
+            new_key_value_pairs:
+              debitor_name: ${customer_first_name} ${customer_last_name}
+
+  select_destination_account:
+    display_name: Select destination account
+    state_ui:
+      ui_actions:
+        - action_id: select_destination_account
+          event: destination_account_specified
+          display_name: Select destination account
+          ui_inputs:
+            - key: destination_account_id
+              string_input: {}
+              display_name: Destination account
+              json_definition:
+                account_selector:
+                  customer_id: ${customer_id}
+                  exclude_account_ids:
+                    - ${from_account_id}
+        - action_id: reselect_source_account
+          event: reselect_source_account
+          display_name: Select a different source account
+    transitions:
+      - to: retrieve_destination_permitted_denominations
+        description: Destination account specified
+        trigger: destination_account_specified
+        actions:
+          save_to_global_state:
+            new_key_value_pairs:
+              destination_account_id: ${destination_account_id}
+      - to: select_source_account
+        description: Reselect source account
+        trigger: reselect_source_account
+
+  retrieve_destination_permitted_denominations:
+    display_name: Retrieve destination permitted denominations
+    description: Retrieve destination account permitted denominations
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/accounts/{id}
+        method: GET
+        arguments:
+          id: ${destination_account_id}
+        response_event: destination_account_received
+        response_fields:
+          - key_name: permitted_denominations_destination
+            response_json_path: permitted_denominations
+            extract_singleton_element: true
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - permitted_denominations_destination
+    transitions:
+      - to: retrieve_destination_account_balances
+        trigger: destination_account_received
+        actions:
+          save_to_global_state:
+            new_key_value_pairs:
+              permitted_denominations_destination: ${permitted_denominations_destination}
+
+  retrieve_destination_account_balances:
+    display_name: Retrieve source balances
+    description: Retrieve source account balances
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/balances/live
+        method: GET
+        arguments:
+          account_ids: 
+            - ${destination_account_id}
+          page_size: 100
+        response_event: destination_account_balance_retrieved
+        response_fields:
+          - key_name: denominations
+            response_json_path: balances[?(@.phase == 'POSTING_PHASE_COMMITTED' & @.account_address == 'DEFAULT')].denomination
+            extract_singleton_element: true
+          - key_name: balances
+            response_json_path: balances[?(@.phase == 'POSTING_PHASE_COMMITTED' & @.account_address == 'DEFAULT')].amount
+            extract_singleton_element: true
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - denominations
+          - balances
+    transitions:
+      - to: extract_destination_denomination_balance
+        description: Balance retrieved
+        trigger: destination_account_balance_retrieved
+
+  extract_destination_denomination_balance:
+    display_name: Extract destination info
+    description: Extract destination account denomination and balance
+    entry_actions:
+      save_to_global_state:
+        new_key_value_pairs:
+          current_state: 'extract_destination_denomination_balance'
+    type: transform
+    transform_ref: extract_denomination_balance
+    exit_actions:
+      add_or_replace_global_ui_panels:
+        - panel_id: destination_balance
+          display_name: Destination account balance
+          json_definition:
+            text:
+              value: ${extracted_balance} ${extracted_denomination}
+    transitions:
+      - to: determine_transfer_denomination
+        trigger: destination_denomination_balance_extracted
+
+  determine_transfer_denomination:
+    display_name: Determine denomination
+    description: Determine denomination to be used for this transfer
+    type: transform
+    transform_ref: determine_transfer_denomination
+    exit_actions:
+      add_or_replace_global_ui_panels:
+        - panel_id: transfer_denominations
+          display_name: Denomination for this transfer
+          json_definition:
+            text:
+              value: ${transfer_denomination}
+    transitions:
+      - to: specify_amount
+        trigger: transfer_denomination_options_processed
+      - to: retry_select_destination_account
+        trigger: no_denomination_options
+
+  specify_amount:
+    display_name: Specify amount
+    entry_actions:
+      save_to_global_state:
+        new_key_value_pairs:
+          transfer_denomination: ${transfer_denomination}
+    state_ui:
+      ui_panels:
+        - panel_id: source_account
+          display_name: Source account for the transfer
+          json_definition:
+            account:
+              account_id: ${from_account_id}
+        - panel_id: destination_account
+          display_name: Destination account for the transfer
+          json_definition:
+            account:
+              account_id: ${destination_account_id}
+        - panel_id: transfer_denomination
+          display_name: Denomination of transfer
+          json_definition:
+            text:
+              value: ${transfer_denomination}
+      ui_actions:
+        - action_id: initiate_transfer_to_external_account
+          event: external_transfer_info_specified
+          display_name: Specify transfer details
+          ui_inputs:
+            - key: transfer_amount
+              number_input:
+                min_value: 0.01
+                precision: 2
+              display_name: Amount
+            - key: transfer_reference
+              string_input:
+                min_length: 1
+                max_length: 18
+              display_name: Transfer reference
+        - action_id: respecify_destination_account
+          event: respecify_destination_account
+          display_name: Select a different destination account
+    transitions:
+      - to: validate_transfer_details
+        description: transfer details specified
+        trigger: external_transfer_info_specified
+        actions:
+          save_to_global_state:
+            new_key_value_pairs:
+              transfer_amount: ${transfer_amount}
+              transfer_reference: ${transfer_reference}
+              client_batch_id: generate_uuid()
+      - to: select_destination_account
+        description: Reselect destination account
+        trigger: respecify_destination_account
+
+  validate_transfer_details:
+    display_name: Validate transfer details
+    state_ui:
+      ui_panels:
+        - panel_id: from_account
+          display_name: Source account
+          json_definition:
+            account:
+              account_id: ${from_account_id}
+        - panel_id: destination_account
+          display_name: Destination account
+          json_definition:
+            account:
+              account_id: ${destination_account_id}
+        - panel_id: transfer_information
+          display_name: Transfer details
+          json_definition:
+            key_value_table:
+              items:
+                transfer amount: ${transfer_amount}
+                transfer denomination: ${transfer_denomination}
+                transfer reference: ${transfer_reference}
+      ui_actions:
+        - action_id: confirm_transfer_info
+          event: transfer_info_confirmed
+          display_name: Confirm transfer details
+        - action_id: edit_transfer_info
+          event: edit_transfer_info
+          display_name: Edit transfer details
+    transitions:
+      - to: create_transfer
+        trigger: transfer_info_confirmed
+      - to: specify_amount
+        trigger: edit_transfer_info
+
+  create_transfer:
+    display_name: Create transfer
+    description: Create internal payment
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/posting-instruction-batches:asyncCreate
+        method: POST
+        arguments:
+          request_id: generate_uuid()
+          posting_instruction_batch:
+            client_id: AsyncCreatePostingInstructionBatch
+            client_batch_id: ${client_batch_id}
+            posting_instructions:
+              - client_transaction_id: generate_uuid()
+                transfer:
+                  amount: ${transfer_amount}
+                  denomination: ${transfer_denomination}
+                  debtor_target_account:
+                    account_id: ${from_account_id}
+                  creditor_target_account:
+                    account_id: ${destination_account_id}
+                instruction_details:
+                  note: ${transfer_reference}
+    transitions:
+      - to: retrieve_final_source_account_balances
+        trigger: successful_balance_transfer
+        description: Posting success
+        auto_trigger_conditions:
+          streaming_api_conditions:
+            topic: vault.api.v1.postings.posting_instruction_batch.created
+            message_content:
+              - path: "posting_instruction_batch.status"
+                values:
+                  - POSTING_INSTRUCTION_BATCH_STATUS_ACCEPTED
+                quantifier: any
+      - to: check_rejection_reason
+        trigger: rejected_balance_transfer
+        description: Posting failed
+        auto_trigger_conditions:
+          streaming_api_conditions:
+            topic: vault.api.v1.postings.posting_instruction_batch.created
+            message_content:
+              - path: "posting_instruction_batch.status"
+                values:
+                  - POSTING_INSTRUCTION_BATCH_STATUS_REJECTED
+                quantifier: any
+            response_fields:
+            - key_name: transfer_status
+              response_json_path: posting_instruction_batch.status
+              extract_singleton_element: true
+            - key_name: posting_violation
+              response_json_path: posting_instruction_batch.posting_instructions[0].posting_violations
+              extract_singleton_element: true
+            - key_name: account_violation
+              response_json_path: posting_instruction_batch.posting_instructions[0].account_violations
+              extract_singleton_element: true
+            - key_name: restriction_violation
+              response_json_path: posting_instruction_batch.posting_instructions[0].restriction_violations
+              extract_singleton_element: true
+            - key_name: contract_violation
+              response_json_path: posting_instruction_batch.posting_instructions[0].contract_violations
+              extract_singleton_element: true
+
+  check_rejection_reason:
+    display_name: Check rejection reason
+    type: transform
+    transform_ref: check_rejection_reason
+    transitions:
+      - to: transfer_rejected
+        trigger: transfer_rejected
+      - to: transfer_unknown
+        trigger: transfer_unknown
+
+  retrieve_final_source_account_balances:
+    display_name: Retrieve final source balances
+    description: Retrieve final source account balances
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/balances/live
+        method: GET
+        arguments:
+          account_ids: 
+            - ${from_account_id}
+          page_size: 100
+        response_event: final_source_balance_retrieved
+        response_fields:
+          - key_name: denominations
+            response_json_path: balances[?(@.phase == 'POSTING_PHASE_COMMITTED' & @.account_address == 'DEFAULT')].denomination
+            extract_singleton_element: true
+          - key_name: balances
+            response_json_path: balances[?(@.phase == 'POSTING_PHASE_COMMITTED' & @.account_address == 'DEFAULT')].amount
+            extract_singleton_element: true
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - denominations
+          - balances
+    transitions:
+      - to: extract_final_source_denomination_balance
+        description: Balance retrieved
+        trigger: final_source_balance_retrieved
+
+  extract_final_source_denomination_balance:
+    display_name: Extract final source balance
+    description: Extract source account's final denomination balance
+    entry_actions:
+      save_to_global_state:
+        new_key_value_pairs:
+          current_state: 'extract_final_source_denomination_balance'
+    type: transform
+    transform_ref: extract_denomination_balance
+    exit_actions:
+      add_or_replace_global_ui_panels:
+        - panel_id: source_balance
+          display_name: Source account final balance
+          json_definition:
+            text:
+              value: ${extracted_balance} ${extracted_denomination}
+        - panel_id: transfer_denominations
+          display_name: Denomination for this transfer
+          json_definition:
+            text:
+              value: ${transfer_denomination}
+    transitions:
+      - to: retrieve_final_destination_account_balances
+        trigger: final_source_denomination_balance_extracted
+
+  retrieve_final_destination_account_balances:
+    display_name: Retrieve final destination balances
+    description: Retrieve final destination account balances
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/balances/live
+        method: GET
+        arguments:
+          account_ids: 
+            - ${destination_account_id}
+          page_size: 100
+        response_event: final_destination_balance_retrieved
+        response_fields:
+          - key_name: denominations
+            response_json_path: balances[?(@.phase == 'POSTING_PHASE_COMMITTED' & @.account_address == 'DEFAULT')].denomination
+            extract_singleton_element: true
+          - key_name: balances
+            response_json_path: balances[?(@.phase == 'POSTING_PHASE_COMMITTED' & @.account_address == 'DEFAULT')].amount
+            extract_singleton_element: true
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - denominations
+          - balances
+    transitions:
+      - to: extract_final_destination_denomination_balance
+        description: Balance retrieved
+        trigger: final_destination_balance_retrieved
+
+  extract_final_destination_denomination_balance:
+    display_name: Extract final destination balance
+    description: Extract destination account's final denomination balance
+    entry_actions:
+      save_to_global_state:
+        new_key_value_pairs:
+          current_state: 'extract_final_destination_denomination_balance'
+    type: transform
+    transform_ref: extract_denomination_balance
+    exit_actions:
+      add_or_replace_global_ui_panels:
+        - panel_id: destination_balance
+          display_name: Destination account final balance
+          json_definition:
+            text:
+              value: ${extracted_balance} ${extracted_denomination}
+    transitions:
+      - to: transfer_successful
+        trigger: final_destination_denomination_balance_extracted
+
+  transfer_successful:
+    display_name: Transfer successful
+
+  retry_select_destination_account:
+    display_name: Retry select destination
+    description: Give another opportunity to select the destination account
+    state_ui:
+      ui_panels:
+        - panel_id: transfer_denomination
+          display_name: Incompatible account denominations
+          json_definition:
+            key_value_table:
+              items:
+                Error: The destination account does not permit a transfer in the source account denomination
+                Source Account Denomination: ${source_denomination}
+                Destination Account Permitted Denominations: ${permitted_denominations_destination_pretty}
+        - panel_id: from_account
+          display_name: Source account
+          json_definition:
+            account:
+              account_id: ${from_account_id}
+        - panel_id: destination_account
+          display_name: Destination account
+          json_definition:
+            account:
+              account_id: ${destination_account_id}
+      ui_actions:
+        - action_id: retry_select_destination
+          event: retry_select_destination_account
+          display_name: Retry
+    transitions:
+      - to: select_destination_account
+        description: Retry
+        trigger: retry_select_destination_account
+
+  transfer_rejected:
+    display_name: Transfer unsuccessful
+    state_ui:
+      ui_panels:
+        - panel_id: transfer_status
+          display_name: Transfer status
+          json_definition:
+            text:
+              value: ${transfer_status}
+              is_error: true
+        - panel_id: violation
+          display_name: ${violation_type} violations
+          json_definition:
+            key_value_table:
+              items:
+                Account ID: ${violation_account_id}
+                Type: ${violation_type_subtype}
+
+  transfer_unknown:
+    display_name: Transfer status unknown
+    state_ui:
+      ui_panels:
+        - panel_id: transfer_status
+          display_name: Transfer status
+          json_definition:
+            text:
+              value: ${transfer_status}
+              is_error: true
+
+transforms:
+  check_sufficient_accounts: |
+    accounts = json.loads(context['accounts'])
+
+    if len(accounts) < 2:
+      return ['insufficient_accounts', {}]
+    else:
+      return ['sufficient_accounts', {}]
+
+  check_rejection_reason: |
+    status = context['transfer_status']
+
+    if status == 'POSTING_INSTRUCTION_BATCH_STATUS_REJECTED':
+      posting_violation = json.loads(context['posting_violation'])
+      account_violation = json.loads(context['account_violation'])
+      restriction_violation = json.loads(context['restriction_violation'])
+      contract_violation = json.loads(context['contract_violation'])
+      if posting_violation:
+        violation_type = "Posting"
+        violation_account_id = str(posting_violation[0]["account_id"])
+        violation_type_subtype = str(posting_violation[0]["type"])
+      elif account_violation:
+        violation_type = "Account"
+        violation_account_id = str(account_violation[0]["account_id"])
+        violation_type_subtype = str(account_violation[0]["type"])
+      elif restriction_violation:
+        violation_type = "Restriction"
+        violation_account_id = str(restriction_violation[0]["account_id"])
+        violation_type_subtype = str(restriction_violation[0]["restriction_set_id"])
+      elif contract_violation:
+        violation_type = "Contract"
+        violation_account_id = str(contract_violation[0]["account_id"])
+        violation_type_subtype = str(contract_violation[0]["type"])
+      else:
+        violation_type = "No"
+        violation_account_id = "None"
+        violation_type_subtype = "None"
+      return ['transfer_rejected', {'transfer_status': status, 'violation_type': violation_type, 'violation_account_id': violation_account_id, 'violation_type_subtype': violation_type_subtype}]
+    else:
+      return ['transfer_unknown', {'transfer_status': status}]
+
+  extract_denomination_balance: |
+    if 'denominations' in context:
+      denomination = context['denominations']
+    else: denomination = context['permitted_denominations_source'][0]
+    if 'balances' in context:
+      balance = context['balances']
+    else: balance = "balance temporarily unavailable"
+    if not balance or not denomination:
+      denomination = context['permitted_denominations_source'][0]
+      balance = "balance temporarily unavailable"
+
+    trigger = ''
+    current_state = context['current_state']
+    if current_state == 'extract_source_denomination_balance':
+      trigger = 'source_denomination_balance_extracted'
+    elif current_state == 'extract_destination_denomination_balance':
+      trigger = 'destination_denomination_balance_extracted'
+    elif current_state == 'extract_final_source_denomination_balance':
+      trigger = 'final_source_denomination_balance_extracted'
+    elif current_state == 'extract_final_destination_denomination_balance':
+      trigger = 'final_destination_denomination_balance_extracted'
+
+    return [trigger, {'extracted_denomination': denomination, 'extracted_balance': balance}]
+
+  determine_transfer_denomination: |
+    source_denomination = context['source_denomination']
+    destination_denominations = json.loads(context['permitted_denominations_destination'])
+    formatted_denominations = json.dumps(list(destination_denominations)).replace("[", "").replace("]", "").replace("\"", "")
+
+    if not source_denomination in destination_denominations:
+      return ['no_denomination_options', {'transfer_denomination': "None (destination account does not permit transfers in " + source_denomination + ")", 'permitted_denominations_destination_pretty': formatted_denominations}]
+    else:
+      return ['transfer_denomination_options_processed', {'transfer_denomination': source_denomination}]

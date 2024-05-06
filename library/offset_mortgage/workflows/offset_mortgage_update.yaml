@@ -1,0 +1,655 @@
+# Copyright @ 2021 Thought Machine Group Limited. All rights reserved.
+---
+name: Offset Mortgage Update
+instance_title: Offset Mortgage Update
+description: A workflow to update an Offset Mortgage.
+schema_version: 3.2.0
+definition_version: 1.1.0
+starting_state: confirm_product_id
+end_states:
+  - state: update_offset_mortgage_successful
+    result: SUCCESSFUL
+  - state: update_offset_mortgage_failed
+    result: FAILED
+
+states:
+  confirm_product_id:
+    display_name: Confirm product id
+    description: Confirm product id by checking context or defaulting to 'mortgage','easy_access_saver' and 'current_account'
+    expected_context_keys:
+      - user_id
+    type: transform
+    transform_ref: confirm_product_id
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - user_id
+          - mortgage_product_id
+          - eas_product_id
+          - ca_product_id
+    transitions:
+      - to: retrieve_customer_accounts
+        trigger: product_id_confirmed
+
+  retrieve_customer_accounts:
+    display_name: Retrieve customer accounts
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/accounts
+        method: GET
+        arguments:
+          stakeholder_id: ${user_id}
+          page_size: 1000
+          page_token: ${next_page_token:}
+          account_statuses: [ACCOUNT_STATUS_OPEN]
+        response_fields:
+          - key_name: retrieved_accounts
+            response_json_path: accounts
+          - key_name: next_page_token_accounts
+            response_json_path: next_page_token
+            extract_singleton_element: true
+        response_event: account_list_retrieved
+    transitions:
+      - to: build_on_plan_acccounts_process_list
+        trigger: account_list_retrieved
+        actions:
+          save_to_global_state:
+            context_keys:
+              - retrieved_accounts
+              - next_page_token_accounts
+
+  build_on_plan_acccounts_process_list:
+    display_name: Build a mapping of the accounts and whether they are on plan
+    type: transform
+    transform_ref: build_on_plan_acccounts_process_list
+    transitions:
+      - to: get_account_to_check_for_plan
+        trigger: on_plan_acccounts_process_list_built
+        actions:
+          save_to_global_state:
+            context_keys:
+              - on_plan_accounts_process_list
+              - customer_accounts
+      - to: retrieve_customer_accounts
+        trigger: check_next_page_accounts
+        actions:
+          save_to_global_state:
+            context_keys:
+              - customer_accounts
+
+  get_account_to_check_for_plan:
+    display_name: Get account to check for existing plan
+    description: Get an account id to check for whether it is on plan
+    type: transform
+    transform_ref: extract_account_id
+    transitions:
+      - to: retrieve_account_plan_assocs_for_account_id
+        trigger: account_id_extracted
+        actions:
+          save_to_global_state:
+            context_keys:
+              - account_id_to_check
+              - on_plan_accounts_process_list
+      - to: retrieve_mortgage_denomination
+        trigger: no_accounts_remaining
+
+  retrieve_account_plan_assocs_for_account_id:
+    display_name: Retrieve account plan associations for account ID
+    description: Retrieve plan associations for account ID
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/account-plan-assocs
+        method: GET
+        arguments:
+          account_ids:
+            - ${account_id_to_check}
+          page_size: 50
+          page_token: ${acc_plan_assocs_next_page_token:}
+        response_fields:
+          - key_name: plan_assocs_for_account_id
+            response_json_path: account_plan_assocs
+            extract_singleton_element: true
+          - key_name: acc_plan_assocs_next_page_token
+            response_json_path: next_page_token
+            extract_singleton_element: true
+        response_event: plan_assocs_for_account_id_retrieved
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - plan_assocs_for_account_id
+          - acc_plan_assocs_next_page_token
+    transitions:
+      - to: check_for_existing_plan
+        description: Check if a plan exists for this account
+        trigger: plan_assocs_for_account_id_retrieved
+
+  check_for_existing_plan:
+    display_name: Check for existing plan
+    description: Check for existing plan
+    type: transform
+    transform_ref: check_for_plans
+    transitions:
+      - to: get_account_to_check_for_plan
+        trigger: no_existing_plan_found
+        actions:
+          save_to_global_state:
+            context_keys:
+              - accounts_on_plan_mapping
+      - to: retrieve_account_plan_assocs_for_account_id
+        trigger: check_next_page
+        actions:
+          save_to_global_state:
+            context_keys:
+              - accounts_on_plan_mapping
+
+  retrieve_mortgage_denomination:
+    display_name: Retrieve mortgage denomination
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/product-versions
+        method: GET
+        arguments:
+          product_id: "${mortgage_product_id}"
+          page_size: 30
+          page_token: ${next_page_token:}
+          view: PRODUCT_VERSION_VIEW_INCLUDE_PARAMETERS
+        response_event: mortgage_denomination_retrieved
+        response_fields:
+          - key_name: mortgage_denomination
+            response_json_path: product_versions[?(@.is_current == true)].params[?(@.name == 'denomination')].value
+          - key_name: next_page_token
+            response_json_path: next_page_token
+            extract_singleton_element: true
+    transitions:
+      - to: retrieve_mortgage_accounts
+        trigger: mortgage_denomination_retrieved
+        actions:
+          save_to_global_state:
+            context_keys:
+              - mortgage_denomination
+
+  retrieve_mortgage_accounts:
+    display_name: Retrieve mortgage accounts
+    type: transform
+    transform_ref: retrieve_mortgage_accounts
+    transitions:
+      - to: select_existing_mortgage
+        trigger: valid_offset_mortgage_accounts_found
+        actions:
+          save_to_global_state:
+            context_keys:
+              - non_offset_mortgage_accounts
+      - to: update_offset_mortgage_failed
+        trigger: no_valid_offset_mortgage_accounts_found
+
+  select_existing_mortgage:
+    display_name: Select the mortgage for offsetting
+    state_ui:
+      ui_actions:
+        - action_id: select_account
+          event: mortgage_account_selected
+          display_name: Select Mortgage account for offsetting
+          ui_inputs:
+            - key: mortgage_account_id
+              display_name: Account
+              string_input: {}
+              json_definition:
+                account_selector:
+                  customer_id: ${user_id}
+                  account_statuses_to_include:
+                    - ACCOUNT_STATUS_OPEN
+                  exclude_account_ids: json_object(${non_offset_mortgage_accounts})
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - mortgage_account_id
+    transitions:
+      - to: select_or_create_accounts_for_offset
+        trigger: mortgage_account_selected
+
+  select_or_create_accounts_for_offset:
+    display_name: Select create new or existing Easy Access Saver / Current Account
+    state_ui:
+      ui_actions:
+        - action_id: Create new EAS Account
+          event: create_new_eas_selected
+          display_name: Create new EAS Account
+        - action_id: Create new Current Account
+          event: create_new_current_selected
+          display_name: Create new Current Account
+        - action_id: Select existing EAS/Current Account
+          event: select_existing_eas_or_ca
+          display_name: Select existing EAS/Current Account
+    transitions:
+      - to: new_eas_account
+        trigger: create_new_eas_selected
+      - to: new_current_account
+        trigger: create_new_current_selected
+      - to: retrieve_valid_accounts_to_link
+        trigger: select_existing_eas_or_ca
+
+  new_eas_account:
+    display_name: Open new Easy Access Saver
+    description: Open new Easy Access Saver for customer
+    entry_actions:
+      instantiate_workflow:
+        definition_id: CASA_APPLICATION
+        definition_version: 1.0.2
+        child_context:
+          user_id: ${user_id}
+          product_id: "${eas_product_id}"
+    transitions:
+      - to: add_new_account_to_offset_list
+        trigger: eas_account_opened_successfully
+        auto_trigger_conditions:
+          children_end_states:
+            - account_opened_successfully
+      - to: update_offset_mortgage_failed
+        trigger: eas_account_not_opened
+        auto_trigger_conditions:
+          children_end_states:
+            - account_opening_failed
+        actions:
+          save_to_global_state:
+            new_key_value_pairs:
+              error_message: "Could not open new EAS for customer."
+
+  new_current_account:
+    display_name: Open new Current Account
+    description: Open new Current Account for customer
+    entry_actions:
+      instantiate_workflow:
+        definition_id: CASA_APPLICATION
+        definition_version: 1.0.2
+        child_context:
+          user_id: ${user_id}
+          product_id: "${ca_product_id}"
+    transitions:
+      - to: add_new_account_to_offset_list
+        trigger: current_account_opened_successfully
+        auto_trigger_conditions:
+          children_end_states:
+            - account_opened_successfully
+      - to: update_offset_mortgage_failed
+        trigger: current_account_not_opened
+        auto_trigger_conditions:
+          children_end_states:
+            - account_opening_failed
+        actions:
+          save_to_global_state:
+            new_key_value_pairs:
+              error_message: "Could not open new Current Account for customer."
+
+  add_new_account_to_offset_list:
+    display_name: updating list of Easy Access Saver / Current Account for offset
+    type: transform
+    transform_ref: update_offset_list_for_new_account
+    transitions:
+      - to: add_more_accounts_to_offset_list
+        trigger: offset_list_updated_new_account
+        actions:
+          save_to_global_state:
+            context_keys:
+              - offset_account_list
+
+  retrieve_valid_accounts_to_link:
+    display_name: Retrieve Easy Access Saver / Current Account
+    type: transform
+    transform_ref: retrieve_valid_accounts_to_link
+    transitions:
+      - to: select_valid_account_to_link
+        trigger: valid_accounts_found
+        actions:
+          save_to_global_state:
+            context_keys:
+              - non_eas_current_accounts
+      - to: update_offset_mortgage_failed
+        trigger: no_valid_accounts_found
+
+  select_valid_account_to_link:
+    display_name: Select the Easy Access Saver / Current Account to offset the mortgage
+    state_ui:
+      ui_actions:
+        - action_id: select_account
+          event: eas_or_ca_selected
+          display_name: Select a valid account to link to the Offset Mortgage.
+          ui_inputs:
+            - key: eas_or_ca_id
+              display_name: Account
+              string_input: {}
+              json_definition:
+                account_selector:
+                  customer_id: ${user_id}
+                  account_statuses_to_include:
+                    - ACCOUNT_STATUS_OPEN
+                  exclude_account_ids: json_object(${non_eas_current_accounts})
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - eas_or_ca_id
+    transitions:
+      - to: add_account_to_offset_list
+        trigger: eas_or_ca_selected
+
+  add_account_to_offset_list:
+    display_name: Updating list of Easy Access Saver / Current Account for offset
+    type: transform
+    transform_ref: update_offset_list
+    transitions:
+      - to: add_more_accounts_to_offset_list
+        trigger: offset_list_updated
+        actions:
+          save_to_global_state:
+            context_keys:
+              - offset_account_list
+
+  add_more_accounts_to_offset_list:
+    display_name: Add another Easy Access Saver / Current Account for offset
+    state_ui:
+      ui_actions:
+        - action_id: adding more account
+          event: selected_additional_eas_or_ca
+          display_name: Yes, Add more accounts
+        - action_id: enough account
+          event: proceed_to_next
+          display_name: No, proceed to next
+    transitions:
+      - to: select_or_create_accounts_for_offset
+        trigger: selected_additional_eas_or_ca
+      - to: retrieve_plan_id
+        trigger: proceed_to_next
+
+  retrieve_plan_id:
+    display_name: get the plan id of the selected mortgage
+    type: transform
+    transform_ref: retrieve_plan_id
+    transitions:
+      - to: remove_account_from_offset_list
+        trigger: plan_id_retrieved
+        actions:
+          save_to_global_state:
+            context_keys:
+              - plan_id
+
+  remove_account_from_offset_list:
+    display_name: Get Easy Access Saver / Current Account to link to plan
+    type: transform
+    transform_ref: remove_account_from_offset_list
+    transitions:
+      - to: add_eas_account_to_plan
+        trigger: account_removed_from_offset_list
+        actions:
+          save_to_global_state:
+            context_keys:
+              - offset_account_list
+              - eas_current_account_for_plan
+
+  add_eas_account_to_plan:
+    display_name: Add Easy Access Saver / Current Account to plan
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/plan-updates
+        method: POST
+        arguments:
+          request_id: generate_uuid()
+          plan_update:
+            plan_id: ${plan_id}
+            associate_account_update:
+              account_id: ${eas_current_account_for_plan}
+        response_fields:
+          - key_name: plan_update_id_eas
+            response_json_path: id
+            extract_singleton_element: true
+        response_event: plan_updated_eas
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - plan_update_id_eas
+    transitions:
+      - to: check_if_offset_list_is_empty
+        description: Plan updated
+        trigger: plan_updated_eas
+
+  check_if_offset_list_is_empty:
+    display_name: Check if there is account in offset list
+    type: transform
+    transform_ref: check_if_offset_list_is_empty
+    transitions:
+      - to: remove_account_from_offset_list
+        trigger: accounts_in_offset_list
+        actions:
+          save_to_global_state:
+            context_keys:
+              - offset_account_list
+              - plan_update_id_eas_ca_list
+      - to: update_offset_mortgage_successful
+        trigger: offset_list_is_empty
+        actions:
+          save_to_global_state:
+            context_keys:
+              - offset_account_list
+              - plan_update_id_eas_ca_list
+
+  update_offset_mortgage_successful:
+    display_name: Offset Mortgage account updated successfully
+
+  update_offset_mortgage_failed:
+    display_name: Offset Mortgage account updating failed
+    expected_context_keys:
+      - error_message
+    entry_actions:
+      save_to_global_state:
+        context_keys:
+          - error_message
+      add_or_replace_global_ui_panels:
+        - panel_id: update_offset_mortgage_failed
+          display_name: Failed to update Offset Mortgage
+          json_definition:
+            key_value_table:
+              items:
+                Error: "${error_message}"
+
+transforms:
+  confirm_product_id: |
+    context['mortgage_product_id'] = context.get('mortgage_product_id', 'mortgage')
+    context['eas_product_id'] = context.get('eas_product_id', 'easy_access_saver')
+    context['ca_product_id'] = context.get('ca_product_id', 'current_account')
+    return ['product_id_confirmed', context]
+
+  build_on_plan_acccounts_process_list: |
+    customer_accounts = json.loads(context.get('customer_accounts', '[]'))
+    customer_accounts.extend(json.loads(context.get('retrieved_accounts'))[0])
+
+    next_page_token_accounts = context.get('next_page_token_accounts')
+    if next_page_token_accounts:
+      return ['check_next_page_accounts', {'customer_accounts': json.dumps(customer_accounts)}]
+
+    on_plan_accounts_process_list = []
+
+    for account in customer_accounts:
+      on_plan_accounts_process_list.append(account.get('id'))
+
+    return [
+      'on_plan_acccounts_process_list_built',
+      {
+        'on_plan_accounts_process_list': json.dumps(on_plan_accounts_process_list),
+        'customer_accounts': json.dumps(customer_accounts),
+      }
+    ]
+
+  extract_account_id: |
+    new_context = {}
+
+    accounts = json.loads(context.get('on_plan_accounts_process_list'))
+    if len(accounts) == 0:
+      return ['no_accounts_remaining', new_context]
+
+    account_id_to_check = accounts.pop(0)
+
+    new_context['on_plan_accounts_process_list'] = json.dumps(accounts)
+    new_context['account_id_to_check'] = account_id_to_check
+
+    return ['account_id_extracted', new_context]
+
+  check_for_plans: |
+    account_id_to_check = context['account_id_to_check']
+
+    accounts_on_plan_mapping = json.loads(context.get('accounts_on_plan_mapping', '{}'))
+    accounts_on_plan_mapping[account_id_to_check] = False
+
+    plan_assocs = json.loads(context['plan_assocs_for_account_id'])
+    next_page_token = context.get('acc_plan_assocs_next_page_token')
+
+    for association in plan_assocs:
+      if association['status'] == "ACCOUNT_PLAN_ASSOC_STATUS_ACTIVE":
+        accounts_on_plan_mapping[account_id_to_check] = association['plan_id']
+        break
+
+    new_context = {
+      'accounts_on_plan_mapping': json.dumps(accounts_on_plan_mapping)
+    }
+
+    if next_page_token:
+      new_context['acc_plan_assocs_next_page_token'] = next_page_token
+      return ['check_next_page', new_context]
+    else:
+      return ['no_existing_plan_found', new_context]
+
+  retrieve_mortgage_accounts: |
+    mortgage_accounts_exist = False
+
+    accounts_on_plan_mapping = json.loads(context['accounts_on_plan_mapping'])
+
+    non_offset_mortgage_accounts = []
+    if context.get('non_offset_mortgage_accounts'):
+      non_offset_mortgage_accounts = json.loads(context.get('non_offset_mortgage_accounts'))
+
+    customer_accounts = json.loads(context.get('customer_accounts'))
+    for account in customer_accounts:
+      if (
+        account.get('product_id') == context.get('mortgage_product_id')
+        and accounts_on_plan_mapping.get(account.get('id'))
+      ):
+        mortgage_accounts_exist = True
+      else:
+        non_offset_mortgage_accounts.append(account.get('id'))
+
+    if not mortgage_accounts_exist:
+      return [
+        'no_valid_offset_mortgage_accounts_found',
+        {'error_message': 'No suitable Offset Mortgage accounts found.'}
+      ]
+
+    return [
+      'valid_offset_mortgage_accounts_found',
+      {
+        'non_offset_mortgage_accounts': json.dumps(non_offset_mortgage_accounts),
+      }
+    ]
+
+  update_offset_list_for_new_account: |
+    if 'offset_account_list' not in context:
+      offset_account_list = []
+    else:
+      offset_account_list = json.loads(context.get('offset_account_list'))
+
+    children_statuses = json.loads(context['children_statuses'])
+    child_global_context = json.loads(children_statuses[children_statuses.keys()[0]])['global_state']
+    child_account_id = child_global_context['account_id']
+
+    if child_account_id:
+       offset_account_list.append(child_account_id)
+
+    context['offset_account_list'] = json.dumps(offset_account_list)
+    return ['offset_list_updated_new_account', context]
+
+  retrieve_valid_accounts_to_link: |
+    customer_accounts = json.loads(context.get('customer_accounts'))
+    mortgage_denomination = json.loads(context.get('mortgage_denomination'))[0]
+    if 'accounts_on_plan_mapping' not in context:
+      accounts_on_plan_mapping = []
+    else:
+      accounts_on_plan_mapping = json.loads(context['accounts_on_plan_mapping'])
+
+    if 'offset_account_list' not in context:
+      offset_account_list = []
+    else:
+      offset_account_list = json.loads(context.get('offset_account_list'))
+
+    valid_products_exists = False
+    non_eas_current_accounts = []
+
+    for account in customer_accounts:
+      if account.get('product_id') in [context.get('eas_product_id'), context.get('ca_product_id')]:
+        if (
+          not accounts_on_plan_mapping.get(account.get('id'))
+          and mortgage_denomination in account.get('permitted_denominations')
+          and account['id'] not in offset_account_list
+        ):
+          valid_products_exists = True
+
+        else:
+          non_eas_current_accounts.append(account['id'])
+      else:
+        non_eas_current_accounts.append(account['id'])
+
+    if not valid_products_exists:
+      return [
+        'no_valid_accounts_found',
+        {'error_message': 'No suitable Easy Access Saver or Current accounts found to offset against.'}
+      ]
+
+    return [
+      'valid_accounts_found',
+      {
+        'non_eas_current_accounts': json.dumps(non_eas_current_accounts)
+      }
+    ]
+
+  update_offset_list: |
+    eas_or_ca_id = context.get('eas_or_ca_id')
+
+    if 'offset_account_list' not in context:
+      offset_account_list = []
+    else:
+      offset_account_list = json.loads(context.get('offset_account_list'))
+
+    offset_account_list.append(eas_or_ca_id)
+
+    context['offset_account_list'] = json.dumps(offset_account_list)
+    return ['offset_list_updated', context]
+
+  remove_account_from_offset_list: |
+    offset_accounts = json.loads(context.get('offset_account_list'))
+    eas_current_account_for_plan = offset_accounts.pop(0)
+
+    context['offset_account_list'] = json.dumps(offset_accounts)
+    context['eas_current_account_for_plan'] = eas_current_account_for_plan
+    return ['account_removed_from_offset_list', context]
+
+  check_if_offset_list_is_empty: |
+    offset_account_list = json.loads(context.get('offset_account_list'))
+    plan_update_id_eas = context.get('plan_update_id_eas')
+
+    if 'plan_update_id_eas_ca_list' not in context:
+      plan_update_id_eas_ca_list = []
+    else:
+      plan_update_id_eas_ca_list = json.loads(context.get('plan_update_id_eas_ca_list'))
+
+    plan_update_id_eas_ca_list.append(plan_update_id_eas)
+
+    context['plan_update_id_eas_ca_list'] = json.dumps(plan_update_id_eas_ca_list)
+    context['offset_account_list'] = json.dumps(offset_account_list)
+
+    if offset_account_list:
+      return ['accounts_in_offset_list', context]
+    else:
+      return ['offset_list_is_empty', context]
+
+  retrieve_plan_id: |
+    mortgage_account_id = context['mortgage_account_id']
+    accounts_on_plan_mapping = json.loads(context['accounts_on_plan_mapping'])
+    plan_id = accounts_on_plan_mapping[mortgage_account_id]
+    return [
+      'plan_id_retrieved', {'plan_id': plan_id}
+    ]

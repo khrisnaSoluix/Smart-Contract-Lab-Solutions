@@ -1,0 +1,11 @@
+# Copyright @ 2022 Thought Machine Group Limited. All rights reserved.
+---
+type: FLAG_DEFINITION
+id: CUSTOMER_WAIVE_TAX
+payload: |
+  flag_definition:
+    id: CUSTOMER_WAIVE_TAX
+    name: CUSTOMER_WAIVE_TAX
+    description: Tax will be waived off if flag is set
+    required_flag_level: FLAG_LEVEL_CUSTOMER
+    flag_visibility: FLAG_VISIBILITY_OPERATOR

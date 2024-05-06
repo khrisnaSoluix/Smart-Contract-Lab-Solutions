@@ -1,0 +1,1004 @@
+{
+	"info": {
+		"_postman_id": "b5cd1169-6c8b-4358-9ecb-7d86769e2483",
+		"name": "Gundala_S - RTJH Demo",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "7525340"
+	},
+	"item": [
+		{
+			"name": "Simulation",
+			"item": [
+				{
+					"name": "RTJH - Demo Simulation",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var moment = require('moment');",
+									"var streamData = pm.response.text().split(\"\\n\");",
+									"var jsonData = streamData.map(stringItem => stringItem != \"\" ? JSON.parse(stringItem) : null);",
+									"",
+									"while (jsonData.length >= 0 && jsonData[jsonData.length - 1] == null) {",
+									"    jsonData.pop();",
+									"}",
+									"",
+									"var daily_postings = [];",
+									"var addresses = [];",
+									"var accounts = [];",
+									"",
+									"jsonData.forEach(element => {",
+									"",
+									"    for (var account in element.result.balances) {",
+									"        var acc_index = accounts.findIndex(val => {",
+									"            return val.account_id == account;",
+									"        });",
+									"",
+									"        if (acc_index < 0) {",
+									"            acc_index = accounts.push({",
+									"                \"account_id\": account,",
+									"                \"balances\": [],",
+									"                \"exceptions\": []",
+									"            }) - 1;",
+									"        }",
+									"",
+									"        var index = accounts[acc_index].balances.length;",
+									"        accounts[acc_index].balances[index] = {};",
+									"        accounts[acc_index].balances[index].key = acc_index * 10000 + index;",
+									"        accounts[acc_index].balances[index].exception = false;",
+									"        accounts[acc_index].balances[index].events = [];",
+									"",
+									"        element.result.balances[account].balances.forEach(balance => {",
+									"            accounts[acc_index].balances[index][balance.account_address] = parseFloat(balance.amount);",
+									"            if (!addresses.includes(balance.account_address)) {",
+									"                addresses[addresses.length] = balance.account_address;",
+									"            }",
+									"        });",
+									"",
+									"        accounts[acc_index].balances[index].instructions = [];",
+									"        element.result.posting_instruction_batches.forEach(pib => {",
+									"            pib.posting_instructions.forEach(pi => {",
+									"                var i = accounts[acc_index].balances[index].instructions.length;",
+									"                var j = accounts[acc_index].balances[index].events.length;",
+									"                accounts[acc_index].balances[index].instructions[i] = {};",
+									"                accounts[acc_index].balances[index].instructions[i].description = pi.client_transaction_id;",
+									"                accounts[acc_index].balances[index].instructions[i].commited = pi.committed_postings;",
+									"",
+									"                var event = pi.instruction_details.event;",
+									"                if (event == undefined) {",
+									"                    event = \"INTERNAL_POSTING\";",
+									"                    var event_type = pi.instruction_details.event_type;",
+									"                    if (event_type != undefined) {",
+									"                        event = event_type;",
+									"                    }",
+									"                    if (event == \"INTERNAL_POSTING\") {",
+									"                        var batch_details_event = pib.batch_details.event;",
+									"                        if (batch_details_event != undefined) {",
+									"                            event = batch_details_event;",
+									"                        }",
+									"                    }",
+									"                }",
+									"                event += ' '",
+									"                if(event == \"INTERNAL_POSTING CASH_ADVANCE\"){",
+									"                    event = \"INTERNAL_POSTING\"",
+									"                }",
+									"                var event_index = accounts[acc_index].balances[index].events.findIndex(val => {",
+									"                    return val == event;",
+									"                });",
+									"                if (event_index < 0)",
+									"                    accounts[acc_index].balances[index].events[j] = event;                ",
+									"                utc_date = pib.value_timestamp.substring(0, 19);",
+									"                accounts[acc_index].balances[index].date = utc_date;",
+									"            });",
+									"        });",
+									"",
+									"    };",
+									"",
+									"    if (element.result.logs.length > 0) {",
+									"        if (element.result.logs[0].startsWith(\"rejected posting instruction batch\")) {",
+									"            if (element.result.logs.length > 1) {",
+									"                if (element.result.logs[1].startsWith(\"account \\\"\")) {",
+									"                    var end_index = element.result.logs[1].indexOf('\"', 9);",
+									"                    if (end_index > 0) {",
+									"                        var acc_id = element.result.logs[1].substring(9, end_index);",
+									"                        var acc_index = accounts.findIndex(val => {",
+									"                            return val.account_id == acc_id;",
+									"                        });",
+									"                        if (acc_index < 0) {",
+									"                            acc_index = accounts.push({",
+									"                                \"account_id\": acc_id,",
+									"                                \"balances\": [],",
+									"                                \"exceptions\": []",
+									"                            }) - 1;",
+									"                        }",
+									"                        var index = accounts[acc_index].balances.length;",
+									"                        accounts[acc_index].balances[index] = {};",
+									"                        accounts[acc_index].balances[index].key = 9999999;",
+									"                        accounts[acc_index].balances[index].exception = true;",
+									"                        utc_date =  element.result.timestamp.substring(0, 19);",
+									"                        accounts[acc_index].balances[index].date = utc_date;",
+									"                        accounts[acc_index].balances[index].exception_msg = element.result.logs[0] + \"\\n\" + element.result.logs[1];",
+									"                    }",
+									"                }",
+									"            }",
+									"        }",
+									"    };",
+									"",
+									"});",
+									"accounts.sort((a, b) => {",
+									"    return (a.account_id > b.account_id) ? -1 : 1;",
+									"});",
+									"",
+									"// const index = addresses.indexOf('INTERNAL_CONTRA');",
+									"// if (index > -1) {",
+									"//   addresses.splice(index, 1);",
+									"// }",
+									"",
+									"var default_account_address = [\"DEFAULT\"]",
+									"// addresses = [\"PRINCIPAL\", \"INTEREST_DUE\", \"PRINCIPAL_DUE\", \"OVERPAYMENT\", \"EMI_PRINCIPAL_EXCESS\", \"INTEREST_OVERDUE\",\"PRINCIPAL_OVERDUE\", \"PENALTIES\", \"EMI\", \"ACCRUED_INTEREST\"]",
+									"",
+									"const vizData = {",
+									"    balances: JSON.stringify(daily_postings),",
+									"    buckets: JSON.stringify(addresses),",
+									"    accounts: JSON.stringify(accounts),",
+									"    default_account_address: JSON.stringify(default_account_address),",
+									"};",
+									"// ------------",
+									"// - Template -",
+									"// ------------",
+									"// Configure the template",
+									"var template = `",
+									"   <script src=\"https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js\" >",
+									"           ",
+									"    </script>",
+									"    <style type=\"text/css\">",
+									"            .tftable {font-size:14px;color:#333333;width:100%;border-width: 0px;border-color: #d6e0f0;border-collapse: collapse;}",
+									"            .tftable th {font-size:12px;color:#ffffff;background-color:#69a0be;border-width: 1px;padding: 8px;border-style: solid;border-color: #261d9d;text-align:center; width: 1px; white-space: nowrap;}",
+									"            .tftable th.centered {background-color:#1068b1;color:#ffffff;text-align:center;font-size:14px;}",
+									"            .tftable th.account_table_title {font-size:18px;color:#ffffff;background-color:#1068b1;border-width: 0px;padding: 8px;border-style: none;border-color: #d6e6f0;text-align:left; width: 1px; white-space: nowrap;border-radius:10px 10px 10px 10px;}",
+									"            .tftable tr {background-color:#d6e7f0;border-style:none;}",
+									"            .tftable td {font-size:14px;border-width: 1px;padding: 8px;border-style: solid;border-color: #d6e9f0; text-align:center; width: 1px; white-space: nowrap;}",
+									"            .tftable tr:hover {background-color:#d6e9f0;}",
+									"            .tftable .hidden_row { display: none;} ",
+									"            .tftable .inner th {font-size:14px;background-color:#3573a5;border-width: 1px;padding: 4px;border-style: solid;border-color: #d6e4f0;text-align:center; width: 100%; white-space: nowrap;}",
+									"            .tftable .inner td {font-size:12px;border-width: 1px;padding: 4px;border-style: solid;border-color: #d6e5f0; text-align:center; width: 1px; white-space: nowrap;}",
+									"            .tftable .inner td.descr  {text-align:left !important; }",
+									"            .tftable tr.odd {background-color:#ffffff;}",
+									"            .tftable tr.even {background-color:#ffffff;}",
+									"            .tftable .inner tr.odd {background-color:#c2d8ed;}",
+									"            .tftable .inner tr.even {background-color:#c2e5ed;}",
+									"            .tftable td.exception {color: #1b02ff; white-space: pre-line;text-align:center;font-size:12px}",
+									"            .tftable td.event {white-space: pre-line;text-align:left;font-size:12px}",
+									"            .tftable th.stick {background: #6995be; color: white; position: sticky; top: 0; box-shadow: 0 2px 2px -1px rgba(0, 0, 0, 0.4);}",
+									"",
+									"        </style>",
+									"",
+									"        </style>",
+									"        <div id=\"content\"></div>",
+									"",
+									"        <script>",
+									"",
+									"            const balances = {{{balances}}};",
+									"            var addresses = {{{default_account_address}}};",
+									"            const accounts = {{{accounts}}};",
+									"            var tblHTML = \"\";",
+									"",
+									"            accounts.forEach(account => {",
+									"                if(account.account_id.includes(\"Main account\") )",
+									"                     addresses = {{{buckets}}};",
+									"                tblHTML = tblHTML + '<table class=\"tftable outer\" border=\"1\">';",
+									"                tblHTML = tblHTML + '<tr onclick=\"showHideRow(\\\\\\'' + account.account_id.replace(/ /g, '_') + '\\\\\\');\">';",
+									"                tblHTML = tblHTML + '<th class=\"account_table_title\">';",
+									"                tblHTML = tblHTML + account.account_id ;",
+									"                tblHTML = tblHTML + \"</th>\";",
+									"                tblHTML = tblHTML + \"</tr>\";",
+									"                tblHTML = tblHTML + '<tr id=\"'  + account.account_id.replace(/ /g, '_') + '\" class=\"hidden_row\"><td>';",
+									"                tblHTML = tblHTML + '<table class=\"tftable\" border=\"1\">';",
+									"                tblHTML = tblHTML + \"<tr>\";",
+									"                tblHTML = tblHTML + '<th class=\"centered\" rowspan=\"2\">DATE</th>';",
+									"                tblHTML = tblHTML + '<th class=\"centered\" rowspan=\"2\">EVENT</th>';",
+									"                tblHTML = tblHTML + '<th class=\"centered\" colspan=\"' + addresses.length + '\">BALANCE ADDRESSES</th>';",
+									"                tblHTML = tblHTML + \"</tr>\";",
+									"                tblHTML = tblHTML + \"<tr>\";",
+									"                addresses.forEach(adr => {",
+									"                    tblHTML = tblHTML + '<th class=\"stick\">' + adr + \"</th>\";",
+									"                });",
+									"                tblHTML = tblHTML + \"</tr>\";",
+									"                var is_row_even = true;",
+									"                var current_date = \"\";",
+									"                account.balances.forEach(bal => {",
+									"                    var display_date = (current_date == bal[\"date\"]) ? \"\" : bal[\"date\"];",
+									"                    if (current_date != bal[\"date\"]) {",
+									"                        if (current_date != \"\")",
+									"                            is_row_even = !is_row_even; ",
+									"                        current_date = bal[\"date\"];",
+									"                    } ",
+									"                    var tr_class = '\"odd\"';",
+									"                    if (is_row_even)",
+									"                        tr_class = '\"even\"';",
+									"                    tblHTML = tblHTML + '<tr class=' + tr_class + ' onclick=\"showHideRow(\\\\\\'R' + bal.key + '\\\\\\');\">';",
+									"                    ",
+									"                    tblHTML = tblHTML + \"<td>\" + display_date + \"</td>\";",
+									"                    ",
+									"",
+									"                    if (bal.exception) {",
+									"                        tblHTML = tblHTML + '<td class=\"exception\" colspan=\"' + (addresses.length + 1) + '\">' + bal.exception_msg + \"</td>\";",
+									"                    } else {",
+									"                        tblHTML = tblHTML + '<td class=\"event\" >';",
+									"                        if (bal.events[0].includes(\"ACCRUE_INTEREST\")){",
+									"                            tblHTML = tblHTML + bal.events[0];",
+									"                        } else {",
+									"                            tblHTML = tblHTML + \"<b> \" + bal.events[0] + \" </b>\";",
+									"                        }",
+									"                        tblHTML = tblHTML + \"</td>\";",
+									"                        addresses.forEach(adr => {",
+									"                            var value = 0.00;",
+									"                            if (adr in bal)",
+									"                                value = bal[adr];",
+									"                            tblHTML = tblHTML + \"<td>\" + value + \"</td>\";",
+									"                        });",
+									"                        tblHTML = tblHTML + \"</tr>\";",
+									"                        tblHTML = tblHTML + '<tr id=\"R' + bal.key + '\" class=\"hidden_row\">';",
+									"                        tblHTML = tblHTML + '<td colspan=4>';",
+									"                        tblHTML = tblHTML + '<table class=\"inner\">';",
+									"                        tblHTML = tblHTML + \"<tr>\";",
+									"                        tblHTML = tblHTML + \"<th>Client Transaction ID</th>\";",
+									"                        tblHTML = tblHTML + \"<th>Debit Account</th>\";",
+									"                        tblHTML = tblHTML + \"<th>Credit Account</th>\";",
+									"                        tblHTML = tblHTML + \"<th>Amount</th>\";",
+									"                        tblHTML = tblHTML + \"</tr>\";",
+									"                        var is_even = false;",
+									"                        bal.instructions.forEach(instr => {",
+									"                            var first_row = true;",
+									"                            is_even = !is_even;",
+									"                            instr.commited.forEach(post => {",
+									"                                if (is_even)",
+									"                                    tblHTML = tblHTML + '<tr class=\"even\">';",
+									"                                else",
+									"                                    tblHTML = tblHTML + '<tr class=\"odd\">';",
+									"                                tblHTML = tblHTML + '<td class=\"descr\">';",
+									"                                if (first_row) tblHTML = tblHTML + instr.description;",
+									"                                first_row = false;",
+									"                                tblHTML = tblHTML + \"</td>\";",
+									"                                tblHTML = tblHTML + \"<td>\";",
+									"                                if (!post.credit) {",
+									"                                    tblHTML = tblHTML + post.account_id + '/' + post.account_address;",
+									"                                } ",
+									"                                tblHTML = tblHTML + \"</td>\";",
+									"                                tblHTML = tblHTML + \"<td>\";",
+									"                                if (post.credit) {",
+									"                                    tblHTML = tblHTML + post.account_id + '/' + post.account_address;",
+									"                                } ",
+									"                                tblHTML = tblHTML + \"</td>\";",
+									"                                tblHTML = tblHTML + \"<td>\";",
+									"                                tblHTML = tblHTML + post.amount;",
+									"                                tblHTML = tblHTML + \"</td>\";",
+									"                                tblHTML = tblHTML + \"</tr>\";    ",
+									"                            });",
+									"                                ",
+									"                        });",
+									"                        tblHTML = tblHTML + '</table>';",
+									"                        tblHTML = tblHTML + '</td>';",
+									"                        tblHTML = tblHTML + \"</tr>\";",
+									"                    }",
+									"                });",
+									"                tblHTML = tblHTML + \"</table>\";",
+									"                tblHTML = tblHTML + \"</td></tr>\";",
+									"                tblHTML = tblHTML + \"</table>\";",
+									"                addresses = {{{default_account_address}}};",
+									"            });",
+									"            ",
+									"            console.log(tblHTML);",
+									"            document.getElementById(\"content\").innerHTML = tblHTML;",
+									"             function showHideRow(row) { ",
+									"                $(\"#\" + row).toggle(); ",
+									"            } ",
+									"        </script>`;",
+									"",
+									"// -------------------------",
+									"// - Bind data to template -",
+									"// -------------------------",
+									"// Set the visualizer template",
+									"pm.visualizer.set(template, vizData);"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-Auth-Token",
+								"value": "{{sa_token}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"start_timestamp\": \"2022-01-14T07:00:00+07:00\",\n    \"end_timestamp\": \"2022-01-21T07:00:00+07:00\",\n    \"smart_contracts\": [\n        {\n            \"code\": \"# copyright @ 2022 Soluix Group Limited. All rights reserved.\\napi = \\\"3.12.0\\\"\\nversion = \\\"1.0.0\\\"\\ndisplay_name = \\\"Rekening Tabungan Jemaah Haji (RTJH)\\\"\\nsummary = \\\"An account where customer can make a deposit for Hajj program. \\\"\\n\\\"Customer shall make initial deposit (RTJH 1st payment) from their \\\"\\n\\\"source of fund account to RTJH account which later will be debited to BPKH account\\\"\\ntside = Tside.LIABILITY\\n\\n# this can be amended to whichever other currencies as needed\\nsupported_denominations = [\\\"IDR\\\"]\\n\\n# Template Parameters\\nDENOMINATION = \\\"denomination\\\"\\nINITIAL_DEPOSIT = \\\"initial_deposit\\\"\\nTRANSACTION_TYPE_TO_CODE_MAP = \\\"transaction_type_to_code_map\\\"\\n\\n# Internal Accounts\\nBPKH_ACCOUNT = \\\"bpkh_account\\\"\\nRTJH_REFUND_ACCOUNT = \\\"rtjh_refund_account\\\"\\nSUSPEND_ACCOUNT = \\\"suspend_account\\\"\\n\\n# Posting Events\\nINITIAL_DEPOSIT_EVENT = \\\"INITIAL_DEPOSIT\\\"\\nRTJH_REFUND_EVENT = \\\"RTJH_REFUND\\\"\\nTRANSFER_BPKH_EVENT = \\\"TRANSFER_BPKH\\\"\\n\\nMoneyShape = NumberShape(kind=NumberKind.MONEY, min_value=0, step=0.01)\\n\\nparameters = [\\n    # Template Parameters\\n    Parameter(\\n        name=DENOMINATION,\\n        shape=DenominationShape,\\n        level=Level.TEMPLATE,\\n        description=\\\"The main currency in which the product operates. Contract defined \\\"\\n        \\\"limitations will also only apply to postings made in this currency.\\\",\\n        display_name=\\\"Denomination\\\",\\n        update_permission=UpdatePermission.FIXED,\\n        default_value=\\\"IDR\\\",\\n    ),\\n    # Transaction parameters\\n    Parameter(\\n        name=TRANSACTION_TYPE_TO_CODE_MAP,\\n        display_name=\\\"Map of transaction types\\\",\\n        description=\\\"Map of transaction types to transaction code (map format - encoded json).\\\"\\n        \\\"The transaction will be rejected if there is no transaction_code in the posting\\\",\\n        level=Level.TEMPLATE,\\n        shape=StringShape,\\n        default_value=json_dumps(\\n            {\\n                \\\"INITIAL_DEPOSIT_TXN\\\": \\\"6011\\\",\\n                \\\"OUTGOING_BPKH_TXN\\\": \\\"6012\\\",\\n                \\\"INCOMING_BPKH_TXN\\\": \\\"6013\\\",\\n                \\\"REFUND_TXN\\\": \\\"6014\\\",\\n            }\\n        ),\\n        # if there is no transaction code, reject the transaction\\n    ),\\n    Parameter(\\n        name=INITIAL_DEPOSIT,\\n        level=Level.TEMPLATE,\\n        description=\\\"RTJH 1st payment amount.\\\",\\n        display_name=\\\"Initial deposit amount\\\",\\n        shape=MoneyShape,\\n        default_value=Decimal(\\\"25000000\\\"),\\n    ),\\n    # Internal Accounts\\n    Parameter(\\n        name=SUSPEND_ACCOUNT,\\n        level=Level.TEMPLATE,\\n        description=\\\"Internal account is used to store the initial \\\"\\n        \\\"deposit from source of fund account.\\\",\\n        display_name=\\\"Suspend account\\\",\\n        shape=AccountIdShape,\\n        default_value=SUSPEND_ACCOUNT,\\n    ),\\n    Parameter(\\n        name=BPKH_ACCOUNT,\\n        level=Level.TEMPLATE,\\n        description=\\\"Internal account is used to store the initial \\\"\\n        \\\"deposit from RTJH account before credited to BPKH account.\\\",\\n        display_name=\\\"BPKH Account\\\",\\n        shape=AccountIdShape,\\n        default_value=BPKH_ACCOUNT,\\n    ),\\n    Parameter(\\n        name=RTJH_REFUND_ACCOUNT,\\n        level=Level.TEMPLATE,\\n        description=\\\"Internal account is used to store the refund \\\"\\n        \\\"amount from RTJH account before credited to source of fund account. \\\",\\n        display_name=\\\"RTJH Refund account\\\",\\n        shape=AccountIdShape,\\n        default_value=RTJH_REFUND_ACCOUNT,\\n    ),\\n]\\n\\ncontract_module_imports = [\\n    ContractModule(\\n        alias=\\\"utils\\\",\\n        expected_interface=[\\n            SharedFunction(name=\\\"get_parameter\\\"),\\n            SharedFunction(name=\\\"get_balance_sum\\\"),\\n        ],\\n    ),\\n]\\n\\n\\n@requires(\\n    modules=[\\\"utils\\\"],\\n    parameters=True,\\n)\\ndef post_activate_code():\\n    effective_date = vault.get_account_creation_date()\\n    denomination = vault.modules[\\\"utils\\\"].get_parameter(vault, DENOMINATION)\\n    source_of_fund_account = vault.modules[\\\"utils\\\"].get_parameter(vault, SUSPEND_ACCOUNT)\\n    bpkh_account = vault.modules[\\\"utils\\\"].get_parameter(vault, BPKH_ACCOUNT)\\n    intial_deposit = Decimal(vault.modules[\\\"utils\\\"].get_parameter(vault, INITIAL_DEPOSIT))\\n\\n    txn_type_to_code_map = vault.modules[\\\"utils\\\"].get_parameter(\\n        vault, TRANSACTION_TYPE_TO_CODE_MAP, is_json=True\\n    )\\n    posting_ins = []\\n\\n    if source_of_fund_account and intial_deposit > 0:\\n\\n        # Create posting instruction to transfer initial deposit from SoF account\\n        init_deposit_code = txn_type_to_code_map.get(\\\"INITIAL_DEPOSIT_TXN\\\")\\n        cti_initial_deposit = f\\\"{vault.get_hook_execution_id()}_{INITIAL_DEPOSIT_EVENT}\\\"\\n        posting_ins.extend(\\n            vault.make_internal_transfer_instructions(\\n                amount=intial_deposit,\\n                denomination=denomination,\\n                client_transaction_id=cti_initial_deposit,\\n                from_account_id=source_of_fund_account,\\n                from_account_address=DEFAULT_ADDRESS,\\n                to_account_id=vault.account_id,\\n                to_account_address=DEFAULT_ADDRESS,\\n                asset=DEFAULT_ASSET,\\n                instruction_details={\\n                    \\\"event\\\": INITIAL_DEPOSIT_EVENT,\\n                    \\\"description\\\": f\\\"Transfer initial deposit of \\\"\\n                    f\\\"{denomination}{intial_deposit}\\\"\\n                    \\\"from source of fund account.\\\",\\n                    \\\"transaction_code\\\": init_deposit_code,\\n                },\\n            )\\n        )\\n\\n        # Create posting instruction to move balance from RTJH to BPKH account\\n        out_bpkh_code = txn_type_to_code_map.get(\\\"OUTGOING_BPKH_TXN\\\")\\n        cti_transfer_bpkh = f\\\"{vault.get_hook_execution_id()}_{TRANSFER_BPKH_EVENT}\\\"\\n        posting_ins.extend(\\n            vault.make_internal_transfer_instructions(\\n                amount=intial_deposit,\\n                denomination=denomination,\\n                client_transaction_id=cti_transfer_bpkh,\\n                from_account_id=vault.account_id,\\n                from_account_address=DEFAULT_ADDRESS,\\n                to_account_id=bpkh_account,\\n                to_account_address=DEFAULT_ADDRESS,\\n                asset=DEFAULT_ASSET,\\n                instruction_details={\\n                    \\\"event\\\": TRANSFER_BPKH_EVENT,\\n                    \\\"description\\\": f\\\"Transfer initial deposit of \\\"\\n                    f\\\"{denomination}{intial_deposit}\\\"\\n                    \\\"from RTJH to BPKH Account.\\\",\\n                    \\\"transaction_code\\\": out_bpkh_code,\\n                },\\n            )\\n        )\\n\\n    if len(posting_ins) > 0:\\n        vault.instruct_posting_batch(\\n            posting_instructions=posting_ins,\\n            effective_date=effective_date,\\n            client_batch_id=f\\\"POST_ACTIVATION-{vault.get_hook_execution_id()}\\\",\\n        )\\n\\n\\n@requires(\\n    modules=[\\\"utils\\\"],\\n    parameters=True,\\n    balances=\\\"latest live\\\",\\n)\\ndef pre_posting_code(postings: List[PostingInstruction], effective_date: datetime):\\n\\n    denomination = vault.modules[\\\"utils\\\"].get_parameter(vault, DENOMINATION)\\n\\n    _check_posting_denomination(postings, denomination)\\n\\n    # Check available balances across denomination\\n    balances = vault.get_balance_timeseries().latest()\\n\\n    available_balance = _get_outgoing_available_balance(balances, denomination)\\n\\n    withdrawal_balance_delta = _get_outgoing_available_balance(postings.balances(), denomination)\\n\\n    _check_balance_limits(\\n        denomination,\\n        withdrawal_balance_delta,\\n        available_balance,\\n    )\\n\\n    # Check allowed transaction type\\n    _is_transaction_type_allowed(vault, postings)\\n\\n\\n@requires(\\n    modules=[\\\"utils\\\"],\\n    parameters=True,\\n    balances=\\\"latest live\\\",\\n)\\ndef close_code(effective_date: datetime):\\n\\n    denomination = vault.modules[\\\"utils\\\"].get_parameter(vault, DENOMINATION)\\n    # Check current outstanding default balance\\n    outstanding_balance = vault.modules[\\\"utils\\\"].get_balance_sum(\\n        vault,\\n        [DEFAULT_ADDRESS],\\n        effective_date,\\n    )\\n    txn_type_to_code_map = vault.modules[\\\"utils\\\"].get_parameter(\\n        vault, TRANSACTION_TYPE_TO_CODE_MAP, is_json=True\\n    )\\n    posting_ins = []\\n\\n    # Create refund posting instrution if there is outstanding balance left in account\\n    if outstanding_balance > 0:\\n        rtjh_refund_account = vault.modules[\\\"utils\\\"].get_parameter(vault, RTJH_REFUND_ACCOUNT)\\n        refund_code = txn_type_to_code_map.get(\\\"REFUND_TXN\\\")\\n\\n        cti_rtjh_refund = f\\\"{vault.get_hook_execution_id()}_{RTJH_REFUND_EVENT}\\\"\\n        posting_ins.extend(\\n            vault.make_internal_transfer_instructions(\\n                amount=outstanding_balance,\\n                denomination=denomination,\\n                client_transaction_id=cti_rtjh_refund,\\n                from_account_id=vault.account_id,\\n                from_account_address=DEFAULT_ADDRESS,\\n                to_account_id=rtjh_refund_account,\\n                to_account_address=DEFAULT_ADDRESS,\\n                asset=DEFAULT_ASSET,\\n                instruction_details={\\n                    \\\"event\\\": RTJH_REFUND_EVENT,\\n                    \\\"description\\\": f\\\"Transfer refund balance of \\\"\\n                    f\\\"{denomination}{outstanding_balance}\\\"\\n                    \\\" to RTJH Refund Account.\\\",\\n                    \\\"transaction_code\\\": refund_code,\\n                },\\n            )\\n        )\\n    if len(posting_ins) > 0:\\n        vault.instruct_posting_batch(\\n            posting_instructions=posting_ins,\\n            effective_date=effective_date,\\n            client_batch_id=f\\\"CLOSE_ACCOUNT-{vault.get_hook_execution_id()}\\\",\\n        )\\n\\n\\ndef _get_outgoing_available_balance(\\n    balances: Dict[Tuple[str, str, str, Phase], Balance], denomination: str\\n) -> Decimal:\\n    \\\"\\\"\\\"\\n    Get the available balance on account for outgoing postings. Only settled funds are considered.\\n    Phase.PENDING_OUT net amount will be negative for outbound authorisations.\\n\\n    :param balances: defaultdict of balance dimensions to balance object\\n    :return: Decimal, available outgoing balance\\n    \\\"\\\"\\\"\\n    return (\\n        balances[(DEFAULT_ADDRESS, DEFAULT_ASSET, denomination, Phase.COMMITTED)].net\\n        + balances[(DEFAULT_ADDRESS, DEFAULT_ASSET, denomination, Phase.PENDING_OUT)].net\\n    )\\n\\n\\ndef _check_posting_denomination(postings: List[PostingInstruction], accepted_denomination: str):\\n    for posting in postings:\\n        if posting.denomination != accepted_denomination:\\n            raise Rejected(\\n                f\\\"Postings received in unauthorised denomination {posting.denomination}.\\\"\\n                f\\\" Authorised denomination is {accepted_denomination}\\\",\\n                reason_code=RejectedReason.WRONG_DENOMINATION,\\n            )\\n\\n\\ndef _check_balance_limits(\\n    denomination: str,\\n    withdrawal_balance_delta: Decimal,\\n    available_balance: Decimal,\\n) -> None:\\n    if 0 > withdrawal_balance_delta and 0 > withdrawal_balance_delta + available_balance:\\n        raise Rejected(\\n            f\\\"Postings total {denomination} {withdrawal_balance_delta}, which exceeds the\\\"\\n            f\\\" available balance of {denomination} {available_balance}.\\\",\\n            reason_code=RejectedReason.INSUFFICIENT_FUNDS,\\n        )\\n\\n\\ndef _is_transaction_type_allowed(vault, postings: List[PostingInstruction]):\\n    \\\"\\\"\\\"\\n    Check transaction code allowed by\\n    smart contract parameter in posting's instruction details\\n    If no transaction code is assign in posting it will reject\\n    the posting\\n\\n    :param vault: Vault object\\n    :param postings:  postings to process\\n    :return: none - raises a Rejected exception if any posting has no definition of\\n             transaction type in allowed parameter\\n    \\\"\\\"\\\"\\n    txn_type_to_code_map = vault.modules[\\\"utils\\\"].get_parameter(\\n        vault, TRANSACTION_TYPE_TO_CODE_MAP, is_json=True\\n    )\\n    txn_code_to_type_map = dict([(value, key) for key, value in txn_type_to_code_map.items()])\\n    for posting in postings:\\n        # Get transaction code of posting\\n        txn_code = posting.instruction_details.get(\\\"transaction_code\\\")\\n\\n        # Reject posting if no transaction code is assign in instruction details\\n        if txn_code is None:\\n            raise Rejected(\\n                \\\"Transaction code is not available in the posting.\\\",\\n                reason_code=RejectedReason.AGAINST_TNC,\\n            )\\n\\n        # Get transaction type and reject is no definition in allowed parameter\\n        transaction_type = txn_code_to_type_map.get(txn_code)\\n        if transaction_type is None:\\n            raise Rejected(\\n                f\\\"Transaction code {txn_code} is not allowed for this product.\\\",\\n                reason_code=RejectedReason.AGAINST_TNC,\\n            )\\n\",\n            \"smart_contract_param_vals\": {\n                \"denomination\": \"IDR\",\n                \"initial_deposit\": \"25000000\",\n                \"bpkh_account\": \"BPKH_ACCOUNT\",\n                \"transaction_type_to_code_map\": \"{\\\"INITIAL_DEPOSIT_TXN\\\": \\\"6011\\\", \\\"OUTGOING_BPKH_TXN\\\": \\\"6012\\\", \\\"INCOMING_BPKH_TXN\\\": \\\"6013\\\", \\\"REFUND_TXN\\\": \\\"6014\\\"}\",\n                \"rtjh_refund_account\": \"RTJH_REFUND_ACCOUNT\",\n                \"suspend_account\": \"SUSPEND_ACCOUNT\"\n            },\n            \"smart_contract_version_id\": \"0\"\n        },\n        {\n            \"code\": \"# Copyright @ 2021 Thought Machine Group Limited. All rights reserved.\\n\\\"\\\"\\\"\\nTo be called by simulation tests\\nSimulates an instance of a bank's internal account with tside=LIABILITY.\\n\\\"\\\"\\\"\\n\\ndisplay_name = \\\"Testing Internal Liability Account\\\"\\napi = \\\"3.0.0\\\"\\nversion = \\\"1.0.0\\\"\\ntside = Tside.LIABILITY\\n\",\n            \"smart_contract_param_vals\": {},\n            \"smart_contract_version_id\": \"1956526812539056947\"\n        },\n        {\n            \"code\": \"# Copyright @ 2021 Thought Machine Group Limited. All rights reserved.\\n\\\"\\\"\\\"\\nTo be called by simulation tests\\nSimulates an instance of a bank's internal account with tside=LIABILITY.\\n\\\"\\\"\\\"\\n\\ndisplay_name = \\\"Testing Internal Liability Account\\\"\\napi = \\\"3.0.0\\\"\\nversion = \\\"1.0.0\\\"\\ntside = Tside.LIABILITY\\n\",\n            \"smart_contract_param_vals\": {},\n            \"smart_contract_version_id\": \"5512765121856415378\"\n        },\n        {\n            \"code\": \"# Copyright @ 2021 Thought Machine Group Limited. All rights reserved.\\n\\\"\\\"\\\"\\nTo be called by simulation tests\\nSimulates an instance of a bank's internal account with tside=LIABILITY.\\n\\\"\\\"\\\"\\n\\ndisplay_name = \\\"Testing Internal Liability Account\\\"\\napi = \\\"3.0.0\\\"\\nversion = \\\"1.0.0\\\"\\ntside = Tside.LIABILITY\\n\",\n            \"smart_contract_param_vals\": {},\n            \"smart_contract_version_id\": \"8023814769164534601\"\n        }\n    ],\n    \"supervisor_contracts\": [],\n    \"contract_modules\": [\n        {\n            \"code\": \"# Copyright @ 2021 Thought Machine Group Limited. All rights reserved.\\n\\\"\\\"\\\"\\nUtils module\\n\\\"\\\"\\\"\\n\\n\\napi = \\\"3.9.0\\\"\\ndisplay_name = \\\"Utils module\\\"\\ndescription = \\\"A series of common functions that are frequently used by multiple smart contracts\\\"\\n\\n# yearly_to_daily_rate\\nVALID_DAYS_IN_YEAR = [\\\"360\\\", \\\"365\\\", \\\"366\\\", \\\"actual\\\"]\\nDEFAULT_DAYS_IN_YEAR = \\\"actual\\\"\\n\\n# misc\\nROUNDING_TYPES = Union[\\n    ROUND_CEILING,\\n    ROUND_DOWN,\\n    ROUND_FLOOR,\\n    ROUND_HALF_DOWN,\\n    ROUND_HALF_EVEN,\\n    ROUND_HALF_UP,\\n    ROUND_05UP,\\n]\\n\\n\\ndef get_parameter(\\n    vault,\\n    name: str,\\n    at: datetime = None,\\n    is_json: bool = False,\\n    is_boolean: bool = False,\\n    union: bool = False,\\n    optional: bool = False,\\n    upper_case_dict_values: bool = False,\\n    upper_case_list_values: bool = False,\\n) -> Any:\\n    \\\"\\\"\\\"\\n    Get the parameter value for a given parameter\\n    :param vault:\\n    :param name: name of the parameter to retrieve\\n    :param at: datetime, time at which to retrieve the parameter value. If not\\n    specified the latest value is retrieved\\n    :param is_json: if true json_loads is called on the retrieved parameter value\\n    :param is_boolean: if true str_to_bool is called on the retrieved parameter value\\n    :param union: if True parameter will be treated as a UnionItem\\n    :param optional: if true we treat the parameter as optional\\n    :param upper_case_dict_values: if is_json is True and we are expecting the\\n    parameter to take shape Dict[str:Dict[str,str]], we will convert the Dict[str,str] values to\\n    upper case\\n    :param upper_case_list_values: if is_json is True and we are expecting the\\n    parameter to take shape Dict[str:List[str]], we will convert the List[str] values to upper case\\n    then we will return the dict values in upper case, whether these values are str/list/dict\\n    :return:\\n    \\\"\\\"\\\"\\n    if at:\\n        parameter = vault.get_parameter_timeseries(name=name).at(timestamp=at)\\n    else:\\n        parameter = vault.get_parameter_timeseries(name=name).latest()\\n\\n    if optional:\\n        parameter = parameter.value if parameter.is_set() else None\\n\\n    if union and parameter is not None:\\n        parameter = parameter.key\\n\\n    if is_boolean and parameter is not None:\\n        return str_to_bool(parameter)\\n\\n    if is_json and parameter is not None:\\n        try:\\n            parameter = json_loads(parameter)\\n        except:  # noqa: E722, B001\\n            raise InvalidContractParameter(\\n                f\\\"Exception while JSON loading parameter {name}\\\\nValue {parameter}\\\"\\n            )\\n\\n        # We convert dictionary values to upper case based on the date type shape.\\n        # The converted values often represent transaction references, which we always\\n        # want to parse in upper case.\\n        # The dictionary keys often represent transaction types, which we want to\\n        # keep in the original case.\\n        if upper_case_dict_values:\\n            parameter = {\\n                key: {str(i).upper(): str(j).upper() for i, j in value.items()}\\n                for key, value in parameter.items()\\n            }\\n        elif upper_case_list_values:\\n            parameter = {key: [str(i).upper() for i in value] for key, value in parameter.items()}\\n\\n    return parameter\\n\\n\\ndef str_to_bool(string: str) -> bool:\\n    \\\"\\\"\\\"\\n    Convert a string true to bool True, default value of False.\\n    :param string:\\n    :return:\\n    \\\"\\\"\\\"\\n    return str(string).lower() == \\\"true\\\"\\n\\n\\ndef yearly_to_daily_rate(yearly_rate: Decimal, year: int, days_in_year: str = \\\"actual\\\") -> Decimal:\\n    \\\"\\\"\\\"\\n    Convert yearly rate to daily rate.\\n    \\\"\\\"\\\"\\n    days_in_year = days_in_year if days_in_year in VALID_DAYS_IN_YEAR else DEFAULT_DAYS_IN_YEAR\\n    if days_in_year == \\\"actual\\\":\\n        days_in_year = Decimal(\\\"366\\\") if is_leap_year(year) else Decimal(\\\"365\\\")\\n    else:\\n        days_in_year = Decimal(days_in_year)\\n\\n    return yearly_rate / days_in_year\\n\\n\\ndef is_leap_year(year: int) -> bool:\\n    \\\"\\\"\\\"\\n    Determine if given year is a leap year (i.e. has 366 days in the year)\\n    \\\"\\\"\\\"\\n    if year % 400 == 0:\\n        return True\\n    elif year % 100 == 0:\\n        return False\\n    elif year % 4 == 0:\\n        return True\\n    else:\\n        return False\\n\\n\\ndef round_decimal(\\n    amount: Decimal,\\n    decimal_places: int,\\n    rounding: ROUNDING_TYPES = ROUND_HALF_UP,\\n) -> Decimal:\\n    \\\"\\\"\\\"\\n    Round an amount to specified number of decimal places\\n    :param amount: Decimal, amount to round\\n    :param decimal_places: int, number of places to round to\\n    :param rounding: the type of rounding strategy to use\\n    :return: Decimal, rounded amount\\n    \\\"\\\"\\\"\\n    return amount.quantize(Decimal((0, (1,), -decimal_places)), rounding=rounding)\\n\\n\\ndef rounded_days_between(start_date: datetime, end_date: datetime) -> int:\\n    \\\"\\\"\\\"\\n    Calculates the rounded up number of days between two dates, positive or negative.\\n\\n    :param start_date: datetime, date from which to start counting days\\n    :param end_date: datetime, date until which to count\\n    :return: int, number of days\\n    \\\"\\\"\\\"\\n    # timedelta is actually dateutil.relativedelta, apply to arbitrary date to get real timedelta\\n    delta = timedelta(end_date, start_date) + start_date - start_date\\n    one_day = timedelta(days=1) + start_date - start_date\\n    days = delta.total_seconds() / one_day.total_seconds()\\n    rounding = \\\"ROUND_CEILING\\\" if days > 0 else \\\"ROUND_FLOOR\\\"\\n    return int(Decimal(days).quantize(Decimal(\\\"1\\\"), rounding=rounding))\\n\\n\\ndef is_flag_in_list_applied(\\n    vault, parameter_name: str, application_timestamp: datetime = None\\n) -> bool:\\n    \\\"\\\"\\\"\\n    Determine if a flag is set and active for a customer from a given list of flag names\\n    :param vault:\\n    :param parameter_name: str, name of the parameter to retrieve\\n    :param application_timestamp: datetime, optional time at which to check if any flags\\n    were applied. If not specified latest is used.\\n    :return: bool, True if any of the flags in the parameterised list are applied at the\\n    timestamp\\n    \\\"\\\"\\\"\\n    list_of_flag_names = get_parameter(vault, name=parameter_name, is_json=True)\\n\\n    return any(\\n        vault.get_flag_timeseries(flag=flag_name).at(timestamp=application_timestamp)\\n        if application_timestamp\\n        else vault.get_flag_timeseries(flag=flag_name).latest()\\n        for flag_name in list_of_flag_names\\n    )\\n\\n\\ndef create_schedule_dict_from_datetime(schedule_datetime: datetime) -> Dict[str, str]:\\n    \\\"\\\"\\\"\\n    Creates a dict representing a schedule from datetime as function input\\n    \\\"\\\"\\\"\\n    return {\\n        \\\"year\\\": str(schedule_datetime.year),\\n        \\\"month\\\": str(schedule_datetime.month),\\n        \\\"day\\\": str(schedule_datetime.day),\\n        \\\"hour\\\": str(schedule_datetime.hour),\\n        \\\"minute\\\": str(schedule_datetime.minute),\\n        \\\"second\\\": str(schedule_datetime.second),\\n    }\\n\\n\\ndef has_parameter_value_changed(\\n    parameter_name: str,\\n    old_parameters: Dict[str, str],\\n    updated_parameters: Dict[str, str],\\n) -> bool:\\n    \\\"\\\"\\\"\\n    Determines if a parameter has changed. To be used within post-parameter change hook.\\n\\n    :param parameter_name: str, name of the parameter\\n    :param old_parameters: dict, map of parameter name -> old parameter value\\n    :param updated_parameters: dict, map of parameter name -> new parameter value\\n    :return: bool, True if parameter value has changed, False otherwise\\n    \\\"\\\"\\\"\\n\\n    return (\\n        parameter_name in updated_parameters\\n        and old_parameters[parameter_name] != updated_parameters[parameter_name]\\n    )\\n\\n\\ndef are_optional_parameters_set(vault, parameters: List[str]) -> bool:\\n    \\\"\\\"\\\"\\n    Determines whether the list of optional parameter names are set\\n\\n    :param vault:\\n    :param parameters: List of vault parameter names\\n\\n    :return: bool, True if all parameters are set, False otherwise\\n    \\\"\\\"\\\"\\n    return all(\\n        get_parameter(vault, parameter, optional=True) is not None for parameter in parameters\\n    )\\n\\n\\ndef get_balance_sum(\\n    vault,\\n    addresses: List[str],\\n    timestamp: datetime = None,\\n    denomination: str = None,\\n    phase: Phase = Phase.COMMITTED,\\n    balances: BalanceDefaultDict = None,\\n) -> Decimal:\\n    \\\"\\\"\\\"\\n    Sum balances for list of given addresses.\\n    :param vault: balances, parameters\\n    :param addresses: list of addresses\\n    :param timestamp: optional datetime at which balances to be summed\\n    :param denomination: the denomination of the balance\\n    :param phase: phase of the balance\\n    :return: sum of the balances\\n    \\\"\\\"\\\"\\n    balances = balances or (\\n        vault.get_balance_timeseries().latest()\\n        if timestamp is None\\n        else vault.get_balance_timeseries().at(timestamp=timestamp)\\n    )\\n\\n    if denomination is None:\\n        denomination = get_parameter(vault, \\\"denomination\\\")\\n\\n    return Decimal(\\n        sum(balances[(address, DEFAULT_ASSET, denomination, phase)].net for address in addresses)\\n    )\\n\\n\\ndef get_transaction_type(\\n    instruction_details: Dict[str, str],\\n    txn_code_to_type_map: Dict[str, str],\\n    default_txn_type: str,\\n) -> str:\\n    \\\"\\\"\\\"\\n    Gets the transaction type from Posting instruction metadata.\\n    :param instruction_details: mapping containing instruction-level metadata for the Posting\\n    :param txn_code_to_type_map: map of transaction code to transaction type\\n    :param default_txn_type: transaction type to default to if code not found in the map\\n    :return: the transaction type of the Posting instruction\\n    \\\"\\\"\\\"\\n    txn_code = instruction_details.get(\\\"transaction_code\\\")\\n    return txn_code_to_type_map.get(txn_code, default_txn_type)\\n\\n\\ndef get_previous_schedule_execution_date(\\n    vault, event_type: str, account_start_date: datetime = None\\n) -> datetime:\\n    \\\"\\\"\\\"\\n    Gets the last execution time of an event (if it exists) else returns the start date\\n    of the account\\n    :param event_type: a string of the schedule event type\\n    :param account_start_date: the start date of the account\\n    :return: the last execution time of a schedule else the account start date\\n    \\\"\\\"\\\"\\n\\n    last_schedule_event_date = vault.get_last_execution_time(event_type=event_type)\\n    return last_schedule_event_date if last_schedule_event_date is not None else account_start_date\\n\",\n            \"contract_module_version_id\": \"ee027cc4-d06d-4f5a-bc5c-6f947e156d59\"\n        }\n    ],\n    \"instructions\": [\n        {\n            \"timestamp\": \"2022-01-14T07:00:00+07:00\",\n            \"create_account\": {\n                \"id\": \"SUSPEND_ACCOUNT\",\n                \"product_version_id\": \"1956526812539056947\",\n                \"permitted_denominations\": [],\n                \"status\": \"ACCOUNT_STATUS_UNKNOWN\",\n                \"stakeholder_ids\": [],\n                \"instance_param_vals\": {},\n                \"derived_instance_param_vals\": {},\n                \"details\": {}\n            }\n        },\n        {\n            \"timestamp\": \"2022-01-14T07:00:00+07:00\",\n            \"create_account\": {\n                \"id\": \"BPKH_ACCOUNT\",\n                \"product_version_id\": \"5512765121856415378\",\n                \"permitted_denominations\": [],\n                \"status\": \"ACCOUNT_STATUS_UNKNOWN\",\n                \"stakeholder_ids\": [],\n                \"instance_param_vals\": {},\n                \"derived_instance_param_vals\": {},\n                \"details\": {}\n            }\n        },\n        {\n            \"timestamp\": \"2022-01-14T07:00:00+07:00\",\n            \"create_account\": {\n                \"id\": \"RTJH_REFUND_ACCOUNT\",\n                \"product_version_id\": \"8023814769164534601\",\n                \"permitted_denominations\": [],\n                \"status\": \"ACCOUNT_STATUS_UNKNOWN\",\n                \"stakeholder_ids\": [],\n                \"instance_param_vals\": {},\n                \"derived_instance_param_vals\": {},\n                \"details\": {}\n            }\n        },\n        {\n            \"timestamp\": \"2022-01-14T07:00:00+07:00\",\n            \"create_smart_contract_module_versions_link\": {\n                \"id\": \"sim_link_modules_utils_with_contract_0\",\n                \"smart_contract_version_id\": \"0\",\n                \"alias_to_contract_module_version_id\": {\n                    \"utils\": \"ee027cc4-d06d-4f5a-bc5c-6f947e156d59\"\n                }\n            }\n        },\n        {\n            \"timestamp\": \"2022-01-15T07:00:00+07:00\",\n            \"create_account\": {\n                \"id\": \"RTJH_ACCOUNT\",\n                \"product_version_id\": \"0\",\n                \"permitted_denominations\": [],\n                \"status\": \"ACCOUNT_STATUS_UNKNOWN\",\n                \"stakeholder_ids\": [],\n                \"instance_param_vals\": {},\n                \"derived_instance_param_vals\": {},\n                \"details\": {}\n            }\n        },\n        {\n            \"timestamp\": \"2022-01-20T09:10:00+07:00\",\n            \"create_posting_instruction_batch\": {\n                \"client_id\": \"AsyncCreatePostingInstructionBatch\",\n                \"client_batch_id\": \"63cc7819-3d33-4c2c-9465-26df99cc6d87\",\n                \"posting_instructions\": [\n                    {\n                        \"client_transaction_id\": \"48998a07-9db6-43c7-a8a7-e99e1a8b3370\",\n                        \"instruction_details\": {\n                            \"transaction_code\": \"6013\"\n                        },\n                        \"override\": {},\n                        \"inbound_hard_settlement\": {\n                            \"amount\": \"25000000\",\n                            \"denomination\": \"IDR\",\n                            \"target_account\": {\n                                \"account_id\": \"RTJH_ACCOUNT\"\n                            },\n                            \"internal_account_id\": \"BPKH_ACCOUNT\",\n                            \"advice\": false\n                        }\n                    }\n                ],\n                \"batch_details\": {\n                    \"event\": \"RTJH_REFUND_POSTING\"\n                },\n                \"value_timestamp\": \"2022-01-15T02:10:00+00:00\"\n            }\n        },\n        {\n            \"timestamp\": \"2022-01-20T09:35:00+07:00\",\n            \"update_account\": {\n                \"id\": \"RTJH_ACCOUNT\",\n                \"status\": \"ACCOUNT_STATUS_PENDING_CLOSURE\"\n            }\n        },\n        {\n            \"timestamp\": \"2022-01-20T09:45:00+07:00\",\n            \"update_account\": {\n                \"id\": \"RTJH_ACCOUNT\",\n                \"status\": \"ACCOUNT_STATUS_CLOSED\"\n            }\n        }\n    ],\n    \"outputs\": []\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{core_api_base}}/v1/contracts:simulate",
+							"host": [
+								"{{core_api_base}}"
+							],
+							"path": [
+								"v1",
+								"contracts:simulate"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "E2E",
+			"item": [
+				{
+					"name": "Internal accounts",
+					"item": [
+						{
+							"name": "Create test internal product",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"var jsonData = pm.response.json();",
+											"",
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											""
+										],
+										"type": "text/javascript"
+									}
+								},
+								{
+									"listen": "prerequest",
+									"script": {
+										"exec": [
+											""
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "X-Auth-Token",
+										"type": "text",
+										"value": "{{access_token}}"
+									},
+									{
+										"key": "Content-Type",
+										"name": "Content-Type",
+										"type": "text",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"request_id\": \"{{$guid}}\",\n    \"product_version\": {\n        \"display_name\": \"\",\n        \"description\": \"Test internal product for gundala\",\n        \"summary\": \"Test internal product for gundala\",\n        \"code\": \"\\\"\\\"\\\" Test internal product for gundala. \\\"\\\"\\\"\\n\\ndisplay_name = 'GL Account'\\napi = '3.0.0'\\nversion = '0.0.1'\",\n        \"product_id\": \"test_internal_account_gundala\"\n    },\n    \"migration_strategy\": \"PRODUCT_VERSION_MIGRATION_STRATEGY_NEW_PRODUCT\",\n    \"is_internal\": true\n}"
+								},
+								"url": {
+									"raw": "{{core_api_base}}/v1/product-versions",
+									"host": [
+										"{{core_api_base}}"
+									],
+									"path": [
+										"v1",
+										"product-versions"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Create GL suspense_account",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"var jsonData = JSON.parse(responseBody);",
+											"postman.setEnvironmentVariable(\"suspense_account\", jsonData.id);"
+										],
+										"type": "text/javascript"
+									}
+								},
+								{
+									"listen": "prerequest",
+									"script": {
+										"exec": [
+											""
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "X-Auth-Token",
+										"type": "text",
+										"value": "{{access_token}}"
+									},
+									{
+										"key": "Content-Type",
+										"name": "Content-Type",
+										"type": "text",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"internal_account\": {\n        \"id\": \"suspense_account\",\n        \"product_id\": \"test_internal_account_gundala\",\n        \"accounting\": {\n            \"tside\": \"TSIDE_LIABILITY\"\n        }\n    },\n    \"request_id\": \"{{$guid}}\"\n}"
+								},
+								"url": {
+									"raw": "{{core_api_base}}/v1/internal-accounts",
+									"host": [
+										"{{core_api_base}}"
+									],
+									"path": [
+										"v1",
+										"internal-accounts"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Create GL bpkh_account",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"var jsonData = JSON.parse(responseBody);",
+											"postman.setEnvironmentVariable(\"bpkh_account\", jsonData.id);"
+										],
+										"type": "text/javascript"
+									}
+								},
+								{
+									"listen": "prerequest",
+									"script": {
+										"exec": [
+											""
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "X-Auth-Token",
+										"type": "text",
+										"value": "{{access_token}}"
+									},
+									{
+										"key": "Content-Type",
+										"name": "Content-Type",
+										"type": "text",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"internal_account\": {\n        \"id\": \"bpkh_account\",\n        \"product_id\": \"test_internal_account_gundala\",\n        \"accounting\": {\n            \"tside\": \"TSIDE_LIABILITY\"\n        }\n    },\n    \"request_id\": \"{{$guid}}\"\n}"
+								},
+								"url": {
+									"raw": "{{core_api_base}}/v1/internal-accounts",
+									"host": [
+										"{{core_api_base}}"
+									],
+									"path": [
+										"v1",
+										"internal-accounts"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Create GL rtjh_refund_account",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"var jsonData = JSON.parse(responseBody);",
+											"postman.setEnvironmentVariable(\"rtjh_refund_account\", jsonData.id);"
+										],
+										"type": "text/javascript"
+									}
+								},
+								{
+									"listen": "prerequest",
+									"script": {
+										"exec": [
+											""
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "X-Auth-Token",
+										"type": "text",
+										"value": "{{access_token}}"
+									},
+									{
+										"key": "Content-Type",
+										"name": "Content-Type",
+										"type": "text",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"internal_account\": {\n        \"id\": \"rtjh_refund_account\",\n        \"product_id\": \"test_internal_account_gundala\",\n        \"accounting\": {\n            \"tside\": \"TSIDE_LIABILITY\"\n        }\n    },\n    \"request_id\": \"{{$guid}}\"\n}"
+								},
+								"url": {
+									"raw": "{{core_api_base}}/v1/internal-accounts",
+									"host": [
+										"{{core_api_base}}"
+									],
+									"path": [
+										"v1",
+										"internal-accounts"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Create GL teller_test_gundala",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"var jsonData = JSON.parse(responseBody);",
+											"postman.setEnvironmentVariable(\"teller_test_gundala\", jsonData.id);"
+										],
+										"type": "text/javascript"
+									}
+								},
+								{
+									"listen": "prerequest",
+									"script": {
+										"exec": [
+											""
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "X-Auth-Token",
+										"type": "text",
+										"value": "{{access_token}}"
+									},
+									{
+										"key": "Content-Type",
+										"name": "Content-Type",
+										"type": "text",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"internal_account\": {\n        \"id\": \"teller_test_gundala\",\n        \"product_id\": \"test_internal_account_gundala\",\n        \"accounting\": {\n            \"tside\": \"TSIDE_LIABILITY\"\n        }\n    },\n    \"request_id\": \"{{$guid}}\"\n}"
+								},
+								"url": {
+									"raw": "{{core_api_base}}/v1/internal-accounts",
+									"host": [
+										"{{core_api_base}}"
+									],
+									"path": [
+										"v1",
+										"internal-accounts"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Customer setup",
+					"item": [
+						{
+							"name": "Create customer",
+							"event": [
+								{
+									"listen": "prerequest",
+									"script": {
+										"exec": [
+											"pm.variables.set(\"phone_number\", \"+62\"+ Math.floor(100000000 + Math.random() * 900000000));",
+											"",
+											"pm.variables.set(\"external_id\", \"S\" + Math.floor(100000000 + Math.random() * 900000000));",
+											"",
+											"var customer_count = parseInt(postman.getEnvironmentVariable(\"customer_count\"));",
+											"",
+											"if (customer_count) {",
+											"    customer_count = customer_count + 1}",
+											"else{customer_count=1}",
+											"",
+											"postman.setEnvironmentVariable(\"customer_count\", customer_count);",
+											"var first_name =  \"Hattrick-Test-Customer-\" + customer_count",
+											"postman.setEnvironmentVariable(\"first_name\", first_name);",
+											""
+										],
+										"type": "text/javascript"
+									}
+								},
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"var jsonData = JSON.parse(responseBody);",
+											"postman.setEnvironmentVariable(\"customer_id\", jsonData.id);",
+											"postman.setEnvironmentVariable(\"identifier\", jsonData.identifiers[0].identifier);"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json",
+										"type": "text"
+									},
+									{
+										"key": "X-Auth-Token",
+										"value": "{{access_token}}",
+										"type": "text"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"request_id\": \"{{$guid}}\",\n    \"customer\": {\n        \"id\":\"\",\n        \"status\": \"CUSTOMER_STATUS_ACTIVE\",\n        \"identifiers\": [\n            {\n                \"identifier_type\": \"IDENTIFIER_TYPE_PHONE\",\n                \"identifier\": \"+62898912347\"\n            }\n        ],\n        \"customer_details\": {\n            \"first_name\": \"Test RTJH 1\",\n            \"last_name\": \"\",\n            \"mobile_phone_number\": \"+62898912345\",\n            \"external_customer_id\": \"{{external_id}}\"\n        }\n    }\n}"
+								},
+								"url": {
+									"raw": "{{core_api_base}}/v1/customers",
+									"host": [
+										"{{core_api_base}}"
+									],
+									"path": [
+										"v1",
+										"customers"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Account Creation",
+					"item": [
+						{
+							"name": "Create RTJH Account",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"var jsonData = JSON.parse(responseBody);",
+											"postman.setEnvironmentVariable(\"account_id\", jsonData.id);"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "X-Auth-Token",
+										"type": "text",
+										"value": "{{access_token}}"
+									},
+									{
+										"key": "Content-Type",
+										"name": "Content-Type",
+										"type": "text",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"request_id\": \"{{$guid}}\",\n    \"account\": {\n        \"id\": \"\",\n        \"product_version_id\": \"{{rtjh_version_id}}\",\n        \"stakeholder_ids\": [\n            \"{{customer_id}}\"\n        ],\n        \"permitted_denominations\": [\n            \"IDR\"\n        ],\n        \"instance_param_vals\": {\n        },\n        \"details\": {\n            \"test_info\" : \"Test RTJH 1\"\n        },\n        \"status\": \"ACCOUNT_STATUS_OPEN\"\n    }\n}"
+								},
+								"url": {
+									"raw": "{{core_api_base}}/v1/accounts",
+									"host": [
+										"{{core_api_base}}"
+									],
+									"path": [
+										"v1",
+										"accounts"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get RTJH Account",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"var jsonData = JSON.parse(responseBody);",
+											"postman.setEnvironmentVariable(\"account_id\", jsonData.id);"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"protocolProfileBehavior": {
+								"disableBodyPruning": true
+							},
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "X-Auth-Token",
+										"type": "text",
+										"value": "{{access_token}}"
+									},
+									{
+										"key": "Content-Type",
+										"name": "Content-Type",
+										"type": "text",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": ""
+								},
+								"url": {
+									"raw": "{{core_api_base}}/v1/accounts/{{account_id}}?fields_to_include=INCLUDE_FIELD_DERIVED_INSTANCE_PARAM_VALS",
+									"host": [
+										"{{core_api_base}}"
+									],
+									"path": [
+										"v1",
+										"accounts",
+										"{{account_id}}"
+									],
+									"query": [
+										{
+											"key": "fields_to_include",
+											"value": "INCLUDE_FIELD_DERIVED_INSTANCE_PARAM_VALS"
+										}
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Account Closing",
+					"item": [
+						{
+							"name": "Pending Closure RTJH Account",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"var jsonData = JSON.parse(responseBody);",
+											"postman.setEnvironmentVariable(\"account_id_ex\", jsonData.id);"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "X-Auth-Token",
+										"type": "text",
+										"value": "{{access_token}}"
+									},
+									{
+										"key": "Content-Type",
+										"name": "Content-Type",
+										"type": "text",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"request_id\": \"{{$guid}}\",\n    \"account\": {\n        \"status\": \"ACCOUNT_STATUS_PENDING_CLOSURE\"\n    },\n    \"update_mask\": {\n        \"paths\": [\n            \"status\"\n        ]\n    }\n}"
+								},
+								"url": {
+									"raw": "{{core_api_base}}/v1/accounts/{{account_id}}",
+									"host": [
+										"{{core_api_base}}"
+									],
+									"path": [
+										"v1",
+										"accounts",
+										"{{account_id}}"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Close RTJH Account",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"var jsonData = JSON.parse(responseBody);",
+											"postman.setEnvironmentVariable(\"account_id_ex\", jsonData.id);"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "X-Auth-Token",
+										"type": "text",
+										"value": "{{access_token}}"
+									},
+									{
+										"key": "Content-Type",
+										"name": "Content-Type",
+										"type": "text",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"request_id\": \"{{$guid}}\",\n    \"account\": {\n        \"status\": \"ACCOUNT_STATUS_CLOSED\"\n    },\n    \"update_mask\": {\n        \"paths\": [\n            \"status\"\n        ]\n    }\n}"
+								},
+								"url": {
+									"raw": "{{core_api_base}}/v1/accounts/{{account_id}}",
+									"host": [
+										"{{core_api_base}}"
+									],
+									"path": [
+										"v1",
+										"accounts",
+										"{{account_id}}"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Transaction",
+					"item": [
+						{
+							"name": "Make Incoming BKPH transaction (Refund)",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"var jsonData = JSON.parse(responseBody);",
+											"postman.setEnvironmentVariable(\"deposit_posting_async_operation_id\", jsonData.id);"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "X-Auth-Token",
+										"type": "text",
+										"value": "{{access_token}}"
+									},
+									{
+										"key": "Content-Type",
+										"type": "text",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"request_id\": \"{{$guid}}\",\n    \"posting_instruction_batch\": {\n        \"client_id\": \"AsyncCreatePostingInstructionBatch\",\n        \"client_batch_id\": \"{{$guid}}\",\n        \"posting_instructions\": [\n            {\n                \"client_transaction_id\": \"{{$guid}}\",\n                \"instruction_details\": {\n                    \"transaction_code\": \"6013\"\n                },\n                \"override\": {},\n                \"inbound_hard_settlement\": {\n                    \"amount\": \"5000000\",\n                    \"denomination\": \"IDR\",\n                    \"target_account\": {\n                        \"account_id\": \"{{account_id}}\"\n                    },\n                    \"internal_account_id\": \"{{bpkh_account}}\",\n                    \"advice\": null\n                }\n            }\n        ],\n        \"batch_details\": {}\n    }\n}"
+								},
+								"url": {
+									"raw": "{{core_api_base}}/v1/posting-instruction-batches:asyncCreate",
+									"host": [
+										"{{core_api_base}}"
+									],
+									"path": [
+										"v1",
+										"posting-instruction-batches:asyncCreate"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Get async operation for PIB",
+							"request": {
+								"auth": {
+									"type": "noauth"
+								},
+								"method": "GET",
+								"header": [
+									{
+										"key": "X-Auth-Token",
+										"type": "text",
+										"value": "{{access_token}}"
+									}
+								],
+								"url": {
+									"raw": "{{core_api_base}}/v1/posting-instruction-batches/async-operations:batchGet?=&ids={{deposit_posting_async_operation_id}}",
+									"host": [
+										"{{core_api_base}}"
+									],
+									"path": [
+										"v1",
+										"posting-instruction-batches",
+										"async-operations:batchGet"
+									],
+									"query": [
+										{
+											"key": "",
+											"value": ""
+										},
+										{
+											"key": "ids",
+											"value": "{{deposit_posting_async_operation_id}}"
+										}
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				}
+			]
+		}
+	]
+}

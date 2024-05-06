@@ -1,0 +1,37 @@
+{
+    "event_id": "123456",
+    "account_id": "1",
+    "balances": [
+      {
+        "id": "1",
+        "account_id": "1",
+        "account_address": "DEFAULT",
+        "phase": "POSTING_PHASE_COMMITTED",
+        "asset": "COMMERCIAL_BANK_MONEY",
+        "denomination": "GBP",
+        "value_time": "1970-01-01T00:00:00Z",
+        "amount": "60",
+        "total_debit": "0",
+        "total_credit": "0"
+      },
+      {
+        "id": "2",
+        "account_id": "1",
+        "account_address": "OTHER",
+        "phase": "POSTING_PHASE_COMMITTED",
+        "asset": "COMMERCIAL_BANK_MONEY",
+        "denomination": "GBP",
+        "value_time": "1970-01-01T00:00:00Z",
+        "amount": "20",
+        "total_debit": "0",
+        "total_credit": "0"
+      }
+    ],
+    "timestamp": "2021-07-22T16:03:00.562664183Z",
+    "vault_version": {
+      "major": 1,
+      "minor": 2,
+      "patch": 3,
+      "label": "1"
+    }
+  }

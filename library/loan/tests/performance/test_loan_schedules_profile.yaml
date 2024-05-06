@@ -1,0 +1,111 @@
+dataloader_setup:
+  contract_name: "loan"
+  dependency_groups:
+    - instances: 1
+      customer:
+        id_base: 800
+      flags: []
+      accounts:
+        - account_id_base: loan_
+          account_opening_timestamp: "2020-05-30 09:00:00 UTC"
+          instance_param_vals: &instance_param_vals
+            total_term: "12"
+            fixed_interest_loan: "True"
+            fixed_interest_rate: "0.034544"
+            upfront_fee: "0"
+            amortise_upfront_fee: "True"
+            principal: "1000"
+            repayment_day: "2"
+            # Guaranteed to be created by the framework
+            deposit_account: "e2e_L_DUMMY_CONTRA"
+            variable_rate_adjustment: "0.00"
+            loan_start_date: "2020-05-30"
+            repayment_holiday_impact_preference: "increase_emi"
+            capitalise_late_repayment_fee: "False"
+            interest_accrual_rest_type: "daily"
+simulation_setup:
+  start: "2020-05-30 09:00:00 UTC"
+  end: "2020-07-01 09:00:00 UTC"
+  expected_number_of_postings: 32
+  tside: "ASSET"
+  migrate_balance_ts: True
+  postings_to_skip:
+    - name: "Loan disbursement from post activate code"
+      client_batch_id_regex: "^BATCH_.*_INITIAL_LOAN_DISBURSMENT$"
+      from:
+        delta:
+          days: -1
+      to:
+        delta:
+          days: 1
+  events:
+    - type: create_account_instruction
+      timestamp: start
+      account_id: "Main account"
+      product_id: "2"
+      instance_param_vals: *instance_param_vals
+expected_outcome:
+  balances:
+    - address: "PRINCIPAL_DUE"
+      asset: "COMMERCIAL_BANK_MONEY"
+      denomination: "GBP"
+      phase: "POSTING_PHASE_COMMITTED"
+      net: "0"
+      net_credits: "82.06"
+      net_debits: "82.06"
+    - address: "EMI"
+      asset: "COMMERCIAL_BANK_MONEY"
+      denomination: "GBP"
+      phase: "POSTING_PHASE_COMMITTED"
+      net: "84.9"
+      net_credits: "0"
+      net_debits: "84.9"
+    - address: "INTEREST_DUE"
+      asset: "COMMERCIAL_BANK_MONEY"
+      denomination: "GBP"
+      phase: "POSTING_PHASE_COMMITTED"
+      net: "0"
+      net_credits: "3.12"
+      net_debits: "3.12"
+    - address: "PRINCIPAL"
+      asset: "COMMERCIAL_BANK_MONEY"
+      denomination: "GBP"
+      phase: "POSTING_PHASE_COMMITTED"
+      net: "917.94"
+      net_credits: "82.06"
+      net_debits: "1000"
+    - address: "PRINCIPAL_OVERDUE"
+      asset: "COMMERCIAL_BANK_MONEY"
+      denomination: "GBP"
+      phase: "POSTING_PHASE_COMMITTED"
+      net: "82.06"
+      net_credits: "0"
+      net_debits: "82.06"
+    - address: "ACCRUED_EXPECTED_INTEREST"
+      asset: "COMMERCIAL_BANK_MONEY"
+      denomination: "GBP"
+      phase: "POSTING_PHASE_COMMITTED"
+      net: "0"
+      net_credits: "3.12312"
+      net_debits: "3.12312"
+    - address: "PENALTIES"
+      asset: "COMMERCIAL_BANK_MONEY"
+      denomination: "GBP"
+      phase: "POSTING_PHASE_COMMITTED"
+      net: "15"
+      net_credits: "0"
+      net_debits: "15"
+    - address: "INTEREST_OVERDUE"
+      asset: "COMMERCIAL_BANK_MONEY"
+      denomination: "GBP"
+      phase: "POSTING_PHASE_COMMITTED"
+      net: "3.12"
+      net_credits: "0"
+      net_debits: "3.12"
+  workflows:
+    - workflow_definition_id: "LOAN_MARK_DELINQUENT"
+      number_of_instantiations: 1
+    - workflow_definition_id: "LOAN_REPAYMENT_NOTIFICATION"
+      number_of_instantiations: 1
+    - workflow_definition_id: "LOAN_OVERDUE_REPAYMENT_NOTIFICATION"
+      number_of_instantiations: 1

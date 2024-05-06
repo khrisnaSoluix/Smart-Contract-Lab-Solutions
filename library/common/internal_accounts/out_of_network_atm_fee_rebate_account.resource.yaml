@@ -1,0 +1,11 @@
+# Copyright @ 2021 Thought Machine Group Limited. All rights reserved.
+---
+type: INTERNAL_ACCOUNT
+id: OUT_OF_NETWORK_ATM_FEE_REBATE_ACCOUNT
+vault_id: OUT_OF_NETWORK_ATM_FE_REBATE
+payload: |
+  internal_account:
+      id: OUT_OF_NETWORK_ATM_FEE_REBATE
+      product_id: '&{out_of_network_atm_fee_rebate_account_contract:product_id}'
+      accounting:
+        tside: TSIDE_ASSET

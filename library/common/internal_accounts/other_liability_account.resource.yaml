@@ -1,0 +1,11 @@
+# Copyright @ 2021 Thought Machine Group Limited. All rights reserved.
+---
+type: INTERNAL_ACCOUNT
+id: OTHER_LIABILITY_ACCOUNT
+vault_id: OTHER_LIABILITY
+payload: |
+  internal_account:
+      id: OTHER_LIABILITY
+      product_id: '&{other_liability_account_contract:product_id}'
+      accounting:
+        tside: TSIDE_LIABILITY

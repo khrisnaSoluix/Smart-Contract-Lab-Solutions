@@ -1,0 +1,59 @@
+# Copyright @ 2021 Thought Machine Group Limited. All rights reserved.
+---
+resources:
+  - type: WORKFLOW_DEFINITION_VERSION
+    id: US_CHECKING_ACCOUNT_APPLICATION
+    activate: true
+    payload: |
+      workflow_definition_version:
+          workflow_definition_id: US_CHECKING_ACCOUNT_APPLICATION
+          specification: '@{us_checking_account_application.yaml}'
+  - type: WORKFLOW_DEFINITION_VERSION
+    id: US_SAVINGS_ACCOUNT_APPLICATION
+    activate: true
+    payload: |
+      workflow_definition_version:
+          workflow_definition_id: US_SAVINGS_ACCOUNT_APPLICATION
+          specification: '@{us_savings_account_application.yaml}'
+  - type: WORKFLOW_DEFINITION_VERSION
+    id: US_SAVINGS_ACCOUNT_INTEREST_APPLICATION_DAY_CHANGE
+    activate: true
+    payload: |
+      workflow_definition_version:
+          workflow_definition_id: US_SAVINGS_ACCOUNT_INTEREST_APPLICATION_DAY_CHANGE
+          specification: '@{us_savings_account_interest_application_day_change.yaml}'
+  - type: WORKFLOW_DEFINITION_VERSION
+    id: US_PRODUCTS_CLOSURE
+    activate: true
+    payload: |
+      workflow_definition_version:
+          workflow_definition_id: US_PRODUCTS_CLOSURE
+          specification: '@{us_products_closure.yaml}'
+  - type: WORKFLOW_DEFINITION_VERSION
+    id: US_PRODUCTS_MANAGE_OVERDRAFT_COVERAGE
+    activate: true
+    payload: |
+      workflow_definition_version:
+          workflow_definition_id: US_PRODUCTS_MANAGE_OVERDRAFT_COVERAGE
+          specification: '@{us_products_manage_overdraft_coverage.yaml}'
+  - type: WORKFLOW_DEFINITION_VERSION
+    id: US_SUPERVISOR_ACCOUNT_ASSOCIATION
+    activate: true
+    payload: |
+      workflow_definition_version:
+          workflow_definition_id: US_SUPERVISOR_ACCOUNT_ASSOCIATION
+          specification: '@{us_supervisor_account_association.yaml}'
+  - type: WORKFLOW_DEFINITION_VERSION
+    id: US_SUPERVISOR_SAVINGS_ACCOUNT_DISASSOCIATION
+    activate: true
+    payload: |
+      workflow_definition_version:
+          workflow_definition_id: US_SUPERVISOR_SAVINGS_ACCOUNT_DISASSOCIATION
+          specification: '@{us_supervisor_savings_account_disassociation.yaml}'
+  - type: WORKFLOW_DEFINITION_VERSION
+    id: US_SUPERVISOR_CHECKING_AND_SAVINGS_ACCOUNT_APPLICATION
+    activate: true
+    payload: |
+      workflow_definition_version:
+          workflow_definition_id: US_SUPERVISOR_CHECKING_AND_SAVINGS_ACCOUNT_APPLICATION
+          specification: '@{us_supervisor_checking_and_savings_account_application.yaml}'

@@ -1,0 +1,222 @@
+# Copyright @ 2021 Thought Machine Group Limited. All rights reserved.
+---
+name: US Products Manage Overdraft Coverage
+instance_title: US Products Manage Overdraft Coverage
+description: Enable or disable checking account standard overdraft transaction coverage
+schema_version: 3.2.0
+definition_version: 1.1.0
+
+starting_state: retrieve_account_info
+end_states:
+  - state: manage_flag_success
+    result: SUCCESSFUL
+  - state: manage_flag_failure
+    result: FAILED
+
+states:
+  retrieve_account_info:
+    display_name: Retrieve account info
+    expected_context_keys:
+      - account_id
+      - user_id
+    entry_actions:
+      save_to_global_state:
+        context_keys:
+          - account_id
+          - user_id
+        new_key_value_pairs:
+          flag_def_id: '&{STANDARD_OVERDRAFT_TRANSACTION_COVERAGE}'
+      vault_callback:
+        path: core-api/v1/accounts/{id}
+        method: GET
+        arguments:
+          id: ${account_id}
+        response_fields:
+          - key_name: product_id
+            response_json_path: product_id
+            extract_singleton_element: true
+          - key_name: status
+            response_json_path: status
+            extract_singleton_element: true
+        response_event: account_info_retrieved
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - product_id
+          - status
+    transitions:
+      - to: check_account_state
+        trigger: account_info_retrieved
+
+  check_account_state:
+    display_name: Check account has valid state and type
+    type: transform
+    transform_ref: validate_account_state
+    transitions:
+      - to: retrieve_flag
+        trigger: account_valid
+      - to: manage_flag_failure
+        trigger: account_invalid
+        actions:
+          save_to_global_state:
+            context_keys:
+              - rejection_reason
+
+  retrieve_flag:
+    display_name: Retrieve account flag
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/flags
+        method: GET
+        arguments:
+          account_ids:
+            -  ${account_id}
+          flag_definition_id: ${flag_def_id}
+          include_inactive: false
+          page_size: 100
+        response_fields:
+          - key_name: account_flags
+            response_json_path: flags
+            extract_singleton_element: true
+        response_event: flags_retrieved
+    transitions:
+      - to: check_flag
+        trigger: flags_retrieved
+
+  check_flag:
+    display_name: Check account flag status
+    type: transform
+    transform_ref: check_flag_state
+    transitions:
+      - to: confirm_enable_flag
+        trigger: flag_inactive
+      - to: confirm_disable_flag
+        trigger: flag_active
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - flag_id
+
+  confirm_enable_flag:
+    display_name: Confirm enable standard overdraft transaction coverage
+    state_ui:
+      ui_panels:
+        - panel_id: current_overdraft_coverage_status
+          display_name: Current standard overdraft transaction coverage status
+          json_definition:
+            text:
+              value: >
+                DISABLED
+      ui_actions:
+        - action_id: enable_overdraft_coverage
+          event: overdraft_coverage_enabled
+          display_name: Enable standard overdraft transaction coverage
+    transitions:
+      - to: create_flag
+        trigger: overdraft_coverage_enabled
+
+  confirm_disable_flag:
+    display_name: Confirm disable standard overdraft transaction coverage
+    state_ui:
+      ui_panels:
+        - panel_id: current_overdraft_coverage_status
+          display_name: Current standard overdraft transaction coverage status
+          json_definition:
+            text:
+              value: >
+                ENABLED
+      ui_actions:
+        - action_id: disable_overdraft_coverage
+          event: overdraft_coverage_disabled
+          display_name: Disable standard overdraft transaction coverage
+    transitions:
+      - to: update_flag_inactive
+        trigger: overdraft_coverage_disabled
+
+  create_flag:
+    display_name: Create standard overdraft transaction coverage flag
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/flags
+        method: POST
+        arguments:
+          flag:
+            flag_definition_id: ${flag_def_id}
+            account_id: ${account_id}
+            description: Setting overdraft transaction coverage
+          request_id: generate_uuid()
+        response_event: overdraft_transaction_coverage_flag_created
+    transitions:
+      - to: manage_flag_success
+        trigger: overdraft_transaction_coverage_flag_created
+
+  update_flag_inactive:
+    display_name: Deactivate standard overdraft transaction coverage flag
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/flags/{flag.id}
+        method: PUT
+        arguments:
+          request_id: generate_uuid()
+          flag:
+            id: ${flag_id}
+            is_active: false
+          update_mask: isActive
+        response_fields:
+          - key_name: flag_update_timestamp
+            response_json_path: expiry_timestamp
+            extract_singleton_element: true
+        response_event: flag_updated
+    transitions:
+      - to: check_flag_update
+        trigger: flag_updated
+
+  check_flag_update:
+    display_name: Check account flag update status
+    type: transform
+    transform_ref: check_flag_update
+    transitions:
+      - to: manage_flag_success
+        trigger: update_success
+      - to: manage_flag_failure
+        trigger: update_failure
+
+  manage_flag_success:
+    display_name: Manage overdraft coverage completed successfully
+
+  manage_flag_failure:
+    display_name: Manage overdraft coverage failed
+    state_ui:
+      ui_panels:
+        - panel_id: failure_reason
+          display_name: Failure reason
+          json_definition:
+            text:
+              value: ${rejection_reason}
+              is_error: true
+
+transforms:
+  validate_account_state: |
+    if not 'us_checking_account' in context.get('product_id'):
+      return ['account_invalid', {'rejection_reason': 'Account is not a US checking account'}]
+    elif context.get('status') != 'ACCOUNT_STATUS_OPEN':
+      return ['account_invalid', {'rejection_reason': 'Account is not open'}]
+    else:
+      return ['account_valid', {}]
+
+  check_flag_state: |
+    account_flags = json.loads(context['account_flags'])
+    if not account_flags:
+      return ['flag_inactive', {}]
+    else:
+      for flag in account_flags:
+        if flag.get('is_active') == True:
+          return ['flag_active', {'flag_id': flag.get('id')}]
+      return ['flag_inactive', {}]
+
+  check_flag_update: |
+    update_timestamp = context['flag_update_timestamp']
+    if not update_timestamp:
+      return ['update_failure', {'rejection_reason': 'Flag update failed'}]
+    else:
+      return ['update_success', {}]

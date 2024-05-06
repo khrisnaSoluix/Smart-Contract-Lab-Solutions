@@ -1,0 +1,10 @@
+---
+type: FLAG_DEFINITION
+id: ACCOUNT_CLOSURE_REQUESTED
+payload: |
+  flag_definition: 
+    id: ACCOUNT_CLOSURE_REQUESTED
+    name: ACCOUNT_CLOSURE_REQUESTED
+    description: Customer/ bank requested account closure
+    required_flag_level: FLAG_LEVEL_ACCOUNT
+    flag_visibility: FLAG_VISIBILITY_OPERATOR

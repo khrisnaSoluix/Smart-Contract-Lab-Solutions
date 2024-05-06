@@ -1,0 +1,182 @@
+dataloader_setup:
+  contract_name: "credit_card"
+  dependency_groups:
+    - customer:
+        id_base: 900
+      flags: []
+      accounts:
+        - account_id_base: credit_card_
+          account_opening_timestamp:
+            delta:
+              days: -5
+          instance_param_vals: &instance_param_vals
+            overlimit: "500"
+            overlimit_opt_in: "True"
+            credit_limit: "2000"
+            payment_due_period: "24"
+            late_repayment_fee: "100"
+            annual_fee: "100"
+            overlimit_fee: "100"
+            transaction_type_fees: "{\"cash_advance\": {\"over_deposit_only\": \"False\", \"percentage_fee\": \"0.05\", \"flat_fee\": \"5\"}}"
+            transaction_type_limits: '{"cash_advance": {"flat": "200"}, "transfer": {"flat": "1000"}}'
+            transaction_references: '{"balance_transfer": []}'
+            transaction_annual_percentage_rate: '{"balance_transfer": {}}'
+            transaction_base_interest_rates: '{"balance_transfer": {}}'
+            interest_free_expiry: "{}"
+            transaction_interest_free_expiry: "{}"
+simulation_setup:
+  start:
+    delta:
+      days: -5
+  end:
+    delta:
+      days: 0
+  expected_number_of_postings: 12
+  tside: 'ASSET'
+  events:
+    # generic setup events
+    - type: create_account_instruction
+      timestamp: start
+      account_id: "1"
+      product_id: "1"
+      instance_param_vals: {}
+    - type: create_account_instruction
+      timestamp: start
+      account_id: "Main account"
+      product_id: "2"
+      instance_param_vals: *instance_param_vals
+    - type: create_inbound_hard_settlement_instruction
+      amount: "100"
+      event_datetime:
+        delta:
+          days: 1
+      denomination: "GBP"
+      client_transaction_id: "3"
+      client_batch_id: "pay off annual fee"
+    - type: create_outbound_hard_settlement_instruction
+      amount: "1000"
+      event_datetime:
+        delta:
+          days: 2
+      denomination: "GBP"
+      client_transaction_id: "15"
+      client_batch_id: "purchase"
+    - type: create_inbound_hard_settlement_instruction
+      amount: "1000"
+      event_datetime:
+        delta:
+          days: 3
+      denomination: "GBP"
+      client_transaction_id: "20"
+      client_batch_id: "repayment"
+    - type: create_outbound_hard_settlement_instruction
+      amount: "1000"
+      event_datetime:
+        delta:
+          days: 4
+      denomination: "GBP"
+      client_transaction_id: "25"
+      client_batch_id: "purchase"
+postings_setup:
+  stage_range:
+    start: 50
+    stop: 101
+    step: 25
+    duration: 300
+    timeout: 600
+  pib_template:
+    - client_id: "AsyncCreatePostingInstructionBatch"
+      client_batch_id: "123__tps3_33"
+      posting_instructions:
+        - client_transaction_id: "123456__tps3_33"
+          inbound_hard_settlement:
+            amount: "1100"
+            denomination: "GBP"
+            target_account:
+              account_id: "Main account"
+            advice: False
+          pics: []
+          instruction_details:
+            description: "Full repayment of outstanding balance"
+          override:
+            restrictions:
+          transaction_code:
+      batch_details:
+        description: "test"
+      dry_run: False
+    - client_id: "AsyncCreatePostingInstructionBatch"
+      client_batch_id: "123__tps3_33"
+      posting_instructions:
+        - client_transaction_id: "123456__tps3_33"
+          outbound_hard_settlement:
+            amount: "1400"
+            denomination: "GBP"
+            target_account:
+              account_id: "Main account"
+            advice: False
+          pics: []
+          instruction_details:
+            description: "Spend all available balance"
+          override:
+            restrictions:
+          transaction_code:
+      batch_details:
+        description: "test"
+      dry_run: False
+    - client_id: "AsyncCreatePostingInstructionBatch"
+      client_batch_id: "123__tps3_33"
+      posting_instructions:
+        - client_transaction_id: "123456__tps3_33"
+          inbound_hard_settlement:
+            amount: "200"
+            denomination: "GBP"
+            target_account:
+              account_id: "Main account"
+            advice: False
+          pics: []
+          instruction_details:
+            description: "Partial repayment of outstanding balance"
+          override:
+            restrictions:
+          transaction_code:
+      batch_details:
+        description: "test"
+      dry_run: False
+    - client_id: "AsyncCreatePostingInstructionBatch"
+      client_batch_id: "123__tps3_33"
+      posting_instructions:
+        - client_transaction_id: "123456__tps3_33"
+          outbound_hard_settlement:
+            amount: "1401"
+            denomination: "GBP"
+            target_account:
+              account_id: "Main account"
+            advice: False
+          pics: []
+          instruction_details:
+            description: "Spend more than the available credit limit (should get rejected)"
+          override:
+            restrictions:
+          transaction_code:
+      batch_details:
+        description: "test"
+      dry_run: False
+    - client_id: "AsyncCreatePostingInstructionBatch"
+      client_batch_id: "123__tps3_33"
+      posting_instructions:
+        - client_transaction_id: "123456__tps3_33"
+          inbound_hard_settlement:
+            amount: "2000"
+            denomination: "GBP"
+            target_account:
+              account_id: "Main account"
+            advice: False
+          pics: []
+          instruction_details:
+            description: "Repayment of more than the outstanding balance"
+          override:
+            restrictions:
+          transaction_code:
+      batch_details:
+        description: "test"
+      dry_run: False

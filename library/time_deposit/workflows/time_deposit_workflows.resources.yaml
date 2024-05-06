@@ -1,0 +1,59 @@
+# Copyright @ 2021 Thought Machine Group Limited. All rights reserved.
+---
+resources:
+  - type: WORKFLOW_DEFINITION_VERSION
+    id: TIME_DEPOSIT_ACCOUNT_INFORMATION_UPDATE
+    activate: true
+    payload: |
+      workflow_definition_version:
+          workflow_definition_id: TIME_DEPOSIT_ACCOUNT_INFORMATION_UPDATE
+          specification: '@{time_deposit_account_information_update.yaml}'
+  - type: WORKFLOW_DEFINITION_VERSION
+    id: TIME_DEPOSIT_APPLICATION
+    activate: true
+    payload: |
+      workflow_definition_version:
+          workflow_definition_id: TIME_DEPOSIT_APPLICATION
+          specification: '@{time_deposit_application.yaml}'
+  - type: WORKFLOW_DEFINITION_VERSION
+    id: TIME_DEPOSIT_APPLIED_INTEREST_TRANSFER
+    activate: true
+    payload: |
+      workflow_definition_version:
+          workflow_definition_id: TIME_DEPOSIT_APPLIED_INTEREST_TRANSFER
+          specification: '@{time_deposit_applied_interest_transfer.yaml}'
+  - type: WORKFLOW_DEFINITION_VERSION
+    id: TIME_DEPOSIT_CLOSURE
+    activate: true
+    payload: |
+      workflow_definition_version:
+          workflow_definition_id: TIME_DEPOSIT_CLOSURE
+          specification: '@{time_deposit_closure.yaml}'
+  - type: WORKFLOW_DEFINITION_VERSION
+    id: TIME_DEPOSIT_INTEREST_PREFERENCE_CHANGE
+    activate: true
+    payload: |
+      workflow_definition_version:
+          workflow_definition_id: TIME_DEPOSIT_INTEREST_PREFERENCE_CHANGE
+          specification: '@{time_deposit_interest_preference_change.yaml}'
+  - type: WORKFLOW_DEFINITION_VERSION
+    id: TIME_DEPOSIT_MATURITY
+    activate: true
+    payload: |
+      workflow_definition_version:
+          workflow_definition_id: TIME_DEPOSIT_MATURITY
+          specification: '@{time_deposit_maturity.yaml}'
+  - type: WORKFLOW_DEFINITION_VERSION
+    id: TIME_DEPOSIT_ROLLOVER
+    activate: true
+    payload: |
+      workflow_definition_version:
+          workflow_definition_id: TIME_DEPOSIT_ROLLOVER
+          specification: '@{time_deposit_rollover.yaml}'
+  - type: WORKFLOW_DEFINITION_VERSION
+    id: TIME_DEPOSIT_WITHDRAWAL
+    activate: true
+    payload: |
+      workflow_definition_version:
+          workflow_definition_id: TIME_DEPOSIT_WITHDRAWAL
+          specification: '@{time_deposit_withdrawal.yaml}'

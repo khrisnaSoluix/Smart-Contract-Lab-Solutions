@@ -1,0 +1,10 @@
+---
+type: FLAG_DEFINITION
+id: US_CHECKING_ACCOUNT_TIER_MIDDLE
+payload: |
+  flag_definition: 
+    id: US_CHECKING_ACCOUNT_TIER_MIDDLE
+    name: US_CHECKING_ACCOUNT_TIER_MIDDLE
+    description: Account tier is Middle
+    required_flag_level: FLAG_LEVEL_ACCOUNT
+    flag_visibility: FLAG_VISIBILITY_OPERATOR

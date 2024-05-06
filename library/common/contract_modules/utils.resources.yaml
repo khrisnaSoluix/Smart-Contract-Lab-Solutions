@@ -1,0 +1,17 @@
+# Resource files ending with resources.yaml contain a list of resources
+---
+resources:
+  - type: CONTRACT_MODULE
+    id: utils
+    payload: |
+      contract_module:
+          display_name: Utils module
+          description: A series of common functions that are frequently used by multiple smart contracts
+  - type: CONTRACT_MODULE_VERSION
+    id: utils_version
+    payload: |
+      contract_module_version:
+            contract_module_id: '&{utils}'
+            description: A series of common functions that are frequently used by multiple smart contracts
+            display_name: Utils module
+            code: '@{utils.py}'

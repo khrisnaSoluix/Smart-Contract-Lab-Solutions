@@ -1,0 +1,18 @@
+# Copyright @ 2021 Thought Machine Group Limited. All rights reserved.
+---
+resources:
+  - id: US_CHECKING_ACCOUNT_APPLICATION
+    instantiation_resources:
+      - Customer
+  - id: US_SAVINGS_ACCOUNT_APPLICATION
+    instantiation_resources:
+      - Customer
+  - id: US_SAVINGS_ACCOUNT_INTEREST_APPLICATION_DAY_CHANGE
+    instantiation_resources:
+      - Customer account
+  - id: US_PRODUCTS_CLOSURE
+    instantiation_resources:
+      - Customer account
+  - id: US_PRODUCTS_MANAGE_OVERDRAFT_COVERAGE
+    instantiation_resources:
+      - Customer account

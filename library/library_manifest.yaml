@@ -1,0 +1,324 @@
+# Copyright @ 2021 Thought Machine Group Limited. All rights reserved.
+---
+pack_version: 1.0.0
+pack_name: Generic Product Library
+resource_ids:
+# --------- BNPL ---------
+  - bnpl
+  # --------- ACCOUNT SCHEDULE TAGS
+  - BUY_NOW_PAY_LATER_DUE_AMOUNT_CALCULATION_AST
+  - BUY_NOW_PAY_LATER_NOTIFY_DUE_AMOUNT_AST
+  - BUY_NOW_PAY_LATER_CHECK_OVERDUE_AST
+  - BUY_NOW_PAY_LATER_CHECK_LATE_REPAYMENT_AST
+  - BUY_NOW_PAY_LATER_CHECK_DELINQUENCY_AST
+  # --------- INTERNAL ACCOUNT SMART CONTRACTS
+  - late_repayment_fee_income_account_contract
+  # --------- INTERNAL ACCOUNTS
+  - LATE_REPAYMENT_FEE_INCOME_ACCOUNT
+  # --------- FLAG DEFINITIONS
+  # Common
+  - ACCOUNT_DELINQUENT
+# --------- COMMON ---------
+  # --------- FLAG DEFINITIONS
+  # --------- INTERNAL ACCOUNT SMART CONTRACTS
+  - pnl_account_contract
+  # --------- INTERNAL ACCOUNTS
+  - PNL_ACCOUNT
+# --------- CREDIT_CARD ---------
+  # --------- SMART CONTRACTS
+  - credit_card
+  # --------- WORKFLOW DEFINITIONS
+  - CREDIT_CARD_APPLICATION
+  - CREDIT_CARD_BALANCE_TRANSFER
+  - CREDIT_CARD_EXPIRE_INTEREST_FREE_PERIODS
+  # --------- FLAG DEFINITIONS
+  - ACCOUNT_CLOSURE_REQUESTED
+  - MANUAL_WRITE_OFF
+  - OVER_150_DPD
+  - OVER_90_DPD
+  - REPAYMENT_HOLIDAY
+  # --------- ACCOUNT SCHEDULE TAGS
+  - CREDIT_CARD_ACCRUE_INTEREST_AST
+  - CREDIT_CARD_ANNUAL_FEE_AST
+  - CREDIT_CARD_PAYMENT_DUE_AST
+  - CREDIT_CARD_STATEMENT_CUT_OFF_AST
+  # --------- INTERNAL ACCOUNT SMART CONTRACTS
+  - annual_maintenance_fee_income_account_contract
+  - fee_income_account_contract
+  - fees_interest_account_contract
+  - interest_income_account_contract
+  - interest_writeoff_account_contract
+  - principal_writeoff_account_contract
+  # --------- INTERNAL ACCOUNTS
+  - ANNUAL_MAINTENANCE_FEE_INCOME_ACCOUNT
+  - FEE_INCOME_ACCOUNT
+  - FEES_INTEREST_ACCOUNT
+  - INTEREST_INCOME_ACCOUNT
+  - INTEREST_WRITEOFF_ACCOUNT
+  - PRINCIPAL_WRITEOFF_ACCOUNT
+# --------- CURRENT_ACCOUNT ---------
+  # --------- SMART CONTRACTS
+  - current_account
+  # --------- FLAG DEFINITIONS
+  # Common
+  - ACCOUNT_DORMANT
+  - LOWER_TIER
+  - MIDDLE_TIER
+  - UPPER_TIER
+  # --------- ACCOUNT SCHEDULE TAGS
+  - CURRENT_ACCOUNT_ACCRUE_INTEREST_AST
+  - CURRENT_ACCOUNT_APPLY_ANNUAL_FEE_AST
+  - CURRENT_ACCOUNT_APPLY_INACTIVITY_FEE_AST
+  - CURRENT_ACCOUNT_APPLY_INTEREST_AST
+  - CURRENT_ACCOUNT_APPLY_MINIMUM_BALANCE_FEE_AST
+  - CURRENT_ACCOUNT_APPLY_MONTHLY_FEE_AST
+  - CURRENT_ACCOUNT_APPLY_UNARRANGED_OVERDRAFT_FEE_AST
+  # --------- INTERNAL ACCOUNT SMART CONTRACTS
+  - accrued_interest_receivable_account_contract
+  - interest_paid_account_contract
+  - overdraft_interest_receivable_account_contract
+  - unarranged_overdraft_fee_receivable_account_contract
+  - accrued_interest_payable_account_contract
+  - excess_fee_income_account_contract
+  - inactivity_fee_income_account_contract
+  - interest_received_account_contract
+  - minimum_balance_fee_income_account_contract
+  - monthly_maintenance_fee_income_account_contract
+  - overdraft_interest_received_account_contract
+  - unarranged_overdraft_fee_income_account_contract
+  # --------- INTERNAL ACCOUNTS
+  - ACCRUED_INTEREST_RECEIVABLE_ACCOUNT
+  - INTEREST_PAID_ACCOUNT
+  - OVERDRAFT_INTEREST_RECEIVABLE_ACCOUNT
+  - UNARRANGED_OVERDRAFT_FEE_RECEIVABLE_ACCOUNT
+  - ACCRUED_INTEREST_PAYABLE_ACCOUNT
+  - EXCESS_FEE_INCOME_ACCOUNT
+  - INACTIVITY_FEE_INCOME_ACCOUNT
+  - INTEREST_RECEIVED_ACCOUNT
+  - MINIMUM_BALANCE_FEE_INCOME_ACCOUNT
+  - MONTHLY_MAINTENANCE_FEE_INCOME_ACCOUNT
+  - OVERDRAFT_INTEREST_RECEIVED_ACCOUNT
+  - UNARRANGED_OVERDRAFT_FEE_INCOME_ACCOUNT
+# --------- HOME_LOAN_REDRAW ---------
+  - home_loan_redraw
+  # --------- ACCOUNT SCHEDULE TAGS
+  - HOME_LOAN_REDRAW_ACCRUE_INTEREST_AST
+  - HOME_LOAN_REDRAW_DUE_AMOUNT_CALCULATION_AST
+  # --------- INTERNAL ACCOUNT SMART CONTRACTS
+  - accrued_interest_received_account_contract
+  # --------- INTERNAL ACCOUNTS
+  - ACCRUED_INTEREST_RECEIVED_ACCOUNT
+# --------- LINE_OF_CREDIT ---------
+  # --------- SMART CONTRACTS
+  - line_of_credit
+  - drawdown_loan
+  # --------- SUPERVISOR SMART CONTRACTS
+  - line_of_credit_supervisor_contract
+  # --------- SUPERVISOR SMART CONTRACT VERSIONS
+  - line_of_credit_supervisor_contract_version
+  # --------- WORKFLOW DEFINITIONS
+  - LINE_OF_CREDIT_CREATE_DRAWDOWN
+  - LINE_OF_CREDIT_MARK_DELINQUENT
+  # --------- ACCOUNT SCHEDULE TAGS
+  - LINE_OF_CREDIT_DUE_AMOUNT_CALCULATION_AST
+  - LINE_OF_CREDIT_SUPERVISOR_ACCRUE_INTEREST_AST
+  - LINE_OF_CREDIT_SUPERVISOR_DUE_AMOUNT_CALCULATION_AST
+  - LINE_OF_CREDIT_SUPERVISOR_CHECK_OVERDUE_AST
+  - LINE_OF_CREDIT_SUPERVISOR_CHECK_DELINQUENCY_AST
+  - LINE_OF_CREDIT_SUPERVISOR_SUPERVISEE_SCHEDULE_SYNC_AST
+  # --------- INTERNAL ACCOUNT SMART CONTRACTS
+  - overpayment_fee_income_account_contract
+  - penalty_interest_income_account_contract
+  # --------- INTERNAL ACCOUNTS
+  - OVERPAYMENT_FEE_INCOME_ACCOUNT
+  - PENALTY_INTEREST_INCOME_ACCOUNT
+  # --------- FLAG DEFINITIONS
+  # Common
+# --------- LOAN ---------
+  # --------- SMART CONTRACTS
+  - loan
+  # --------- WORKFLOW DEFINITIONS
+  - LOAN_APPLICATION
+  - LOAN_MARK_DELINQUENT
+  - LOAN_REPAYMENT_HOLIDAY_APPLICATION
+  # --------- ACCOUNT SCHEDULE TAGS
+  - LOAN_ACCRUE_INTEREST_AST
+  - LOAN_BALLOON_PAYMENT_EVENT_AST
+  - LOAN_CHECK_OVERDUE_AST
+  - LOAN_CHECK_DELINQUENCY_AST
+  - LOAN_DUE_AMOUNT_CALCULATION_AST
+  # --------- INTERNAL ACCOUNT SMART CONTRACTS
+  - capitalised_interest_received_account_contract
+  - capitalised_interest_receivable_account_contract
+  - capitalised_penalties_received_account_contract
+  - early_repayment_fee_income_account_contract
+  - penalty_interest_received_account_contract
+  - upfront_fee_income_account_contract
+  # --------- INTERNAL ACCOUNTS
+  - CAPITALISED_INTEREST_RECEIVED_ACCOUNT
+  - CAPITALISED_INTEREST_RECEIVABLE_ACCOUNT
+  - CAPITALISED_PENALTIES_RECEIVED_ACCOUNT
+  - EARLY_REPAYMENT_FEE_INCOME_ACCOUNT
+  - PENALTY_INTEREST_RECEIVED_ACCOUNT
+  - UPFRONT_FEE_INCOME_ACCOUNT
+  # --------- FLAG DEFINITIONS
+  # Common
+# --------- MORTGAGE ---------
+  # --------- SMART CONTRACTS
+  - mortgage
+  # --------- WORKFLOW DEFINITIONS
+  - MORTGAGE_APPLICATION
+  - MORTGAGE_MARK_DELINQUENT
+  - MORTGAGE_REPAYMENT_HOLIDAY_APPLICATION
+  # --------- ACCOUNT SCHEDULE TAGS
+  - MORTGAGE_DUE_AMOUNT_CALCULATION_AST
+  - MORTGAGE_ACCRUE_INTEREST_AST
+  - MORTGAGE_CHECK_OVERPAYMENT_ALLOWANCE_AST
+  - MORTGAGE_CHECK_DELINQUENCY_AST
+  # --------- INTERNAL ACCOUNT SMART CONTRACTS
+  - overpayment_allowance_fee_income_account_contract
+  # --------- INTERNAL ACCOUNTS
+  - OVERPAYMENT_ALLOWANCE_FEE_INCOME_ACCOUNT
+  # --------- FLAG DEFINITIONS
+  # Common
+# --------- OFFSET_MORTGAGE ---------
+  # --------- SMART CONTRACTS
+  # remove Current Account or Savings Account if only one is used
+  - savings_account
+  # --------- SUPERVISOR SMART CONTRACTS
+  - offset_mortgage_supervisor_contract
+  # --------- SUPERVISOR SMART CONTRACT VERSIONS
+  - offset_mortgage_supervisor_contract_version
+  # --------- ACCOUNT SCHEDULE TAGS
+  - OFFSET_MORTGAGE_ACCRUE_OFFSET_INTEREST_AST
+  # --------- INTERNAL ACCOUNT SMART CONTRACTS
+  # --------- INTERNAL ACCOUNTS
+  # --------- FLAG DEFINITIONS
+  # Common
+# --------- SAVINGS_ACCOUNT ---------
+  # --------- SMART CONTRACTS
+  # --------- FLAG DEFINITIONS
+  # Common
+  # --------- ACCOUNT SCHEDULE TAGS
+  - SAVINGS_ACCOUNT_ACCRUE_INTEREST_AST
+  - SAVINGS_ACCOUNT_APPLY_INACTIVITY_FEE_AST
+  - SAVINGS_ACCOUNT_APPLY_INTEREST_AST
+  - SAVINGS_ACCOUNT_APPLY_MINIMUM_BALANCE_FEE_AST
+  # --------- INTERNAL ACCOUNT SMART CONTRACTS
+  # --------- INTERNAL ACCOUNTS
+# --------- SHARIAH_SAVINGS_ACCOUNT ---------
+  # --------- CALENDARS
+  - PUBLIC_HOLIDAYS
+  # --------- FLAG DEFINITIONS
+  # common
+  # --------- SMART CONTRACTS
+  - shariah_savings_account
+  # --------- ACCOUNT SCHEDULE TAGS
+  - SHARIAH_SAVINGS_ACCOUNT_ACCRUE_PROFIT_AST
+  - SHARIAH_SAVINGS_ACCOUNT_APPLY_ACCRUED_PROFIT_AST
+  # --------- INTERNAL ACCOUNT SMART CONTRACTS
+  - accrued_profit_payable_account_contract
+  - early_closure_fee_income_account_contract
+  - payment_type_fee_income_account_contract
+  - profit_paid_account_contract
+  # --------- INTERNAL ACCOUNTS
+  - ACCRUED_PROFIT_PAYABLE_ACCOUNT
+  - EARLY_CLOSURE_FEE_INCOME_ACCOUNT
+  - PAYMENT_TYPE_FEE_INCOME_ACCOUNT
+  - PROFIT_PAID_ACCOUNT
+# --------- TIME_DEPOSIT ---------
+  # --------- CALENDARS
+  # --------- SMART CONTRACTS
+  - new_time_deposit
+  - renewed_time_deposit
+  # --------- ACCOUNT SCHEDULE TAGS
+  - TIME_DEPOSIT_ACCRUE_INTEREST_AST
+  - TIME_DEPOSIT_ACCOUNT_MATURITY_AST
+  - TIME_DEPOSIT_APPLY_INTEREST_AST
+  - TIME_DEPOSIT_DEPOSIT_PERIOD_END_AST
+  - TIME_DEPOSIT_GRACE_PERIOD_END_AST
+  - TIME_DEPOSIT_NOTIFY_UPCOMING_MATURITY_AST
+  # --------- INTERNAL ACCOUNT SMART CONTRACTS
+  # --------- INTERNAL ACCOUNTS
+# --------- US_PRODUCTS ---------
+  # --------- SMART CONTRACTS
+  - us_checking_account
+  # --------- FLAG DEFINITIONS
+  # Common
+  - ACCOUNT_INACTIVE
+  # --------- ACCOUNT SCHEDULE TAGS
+  - CHECKING_ACCOUNT_APPLY_INACTIVITY_FEE_AST
+  - CHECKING_ACCOUNT_APPLY_INTEREST_AST
+  - CHECKING_ACCOUNT_APPLY_MINIMUM_BALANCE_FEE_AST
+  - CHECKING_ACCOUNT_ACCRUE_INTEREST_AST
+  - CHECKING_ACCOUNT_APPLY_PAPER_STATEMENT_FEE_AST
+  - CHECKING_ACCOUNT_APPLY_MONTHLY_FEE_AST
+  # --------- INTERNAL ACCOUNT SMART CONTRACTS
+  - out_of_network_atm_fee_rebate_account_contract
+  - paper_statement_fee_income_account_contract
+  # --------- INTERNAL ACCOUNTS
+  - PAPER_STATEMENT_FEE_INCOME_ACCOUNT
+  - OUT_OF_NETWORK_ATM_FEE_REBATE_ACCOUNT
+# --------- US_PRODUCTS_V3 ---------
+  # --------- SMART CONTRACTS
+  - us_checking_account_v3
+  - us_savings_account_v3
+  # --------- SUPERVISOR SMART CONTRACTS
+  - us_v3_supervisor_contract
+  # --------- SUPERVISOR SMART CONTRACT VERSIONS
+  - us_v3_supervisor_contract_version
+  # --------- WORKFLOW DEFINITIONS
+  - US_CHECKING_ACCOUNT_APPLICATION
+  - US_SAVINGS_ACCOUNT_APPLICATION
+  - US_SAVINGS_ACCOUNT_INTEREST_APPLICATION_DAY_CHANGE
+  - US_PRODUCTS_CLOSURE
+  - US_PRODUCTS_MANAGE_OVERDRAFT_COVERAGE
+  - US_SUPERVISOR_ACCOUNT_ASSOCIATION
+  - US_SUPERVISOR_SAVINGS_ACCOUNT_DISASSOCIATION
+  - US_SUPERVISOR_CHECKING_AND_SAVINGS_ACCOUNT_APPLICATION
+  # --------- FLAG DEFINITIONS
+  - STANDARD_OVERDRAFT_TRANSACTION_COVERAGE
+  - PROMOTIONAL_INTEREST_RATES
+  - PROMOTIONAL_MAINTENANCE_FEE
+  # Common
+  # --------- ACCOUNT SCHEDULE TAGS
+  - SUPERVISOR_CHECKING_APPLY_MONTHLY_FEES_AST
+  - SUPERVISOR_SAVINGS_APPLY_MONTHLY_FEES_AST
+  - US_CHECKING_ACCRUE_INTEREST_AND_DAILY_FEES_AST
+  - US_CHECKING_APPLY_ACCRUED_DEPOSIT_INTEREST_AST
+  - US_CHECKING_APPLY_MONTHLY_FEES_AST
+  - US_SAVINGS_ACCRUE_INTEREST_AST
+  - US_SAVINGS_APPLY_ACCRUED_INTEREST_AST
+  - US_SAVINGS_APPLY_MONTHLY_FEES_AST
+  # --------- INTERNAL ACCOUNT SMART CONTRACTS
+  - excess_withdrawal_fee_income_account_contract
+  - maintenance_fee_income_account_contract
+  - overdraft_fee_income_account_contract
+  - overdraft_fee_receivable_account_contract
+  # --------- INTERNAL ACCOUNTS
+  - EXCESS_WITHDRAWAL_FEE_INCOME_ACCOUNT
+  - MAINTENANCE_FEE_INCOME_ACCOUNT
+  - OVERDRAFT_FEE_INCOME_ACCOUNT
+  - OVERDRAFT_FEE_RECEIVABLE_ACCOUNT
+  # --------- CONTRACT MODULES
+  - utils
+  - interest
+  # --------- CONTRACT MODULE VERSIONS
+  - utils_version
+  - interest_version
+  # --------- SMART CONTRACT MODULE VERSIONS LINKS
+  - us_checking_account_v3_module_versions_link
+  - us_savings_account_v3_module_versions_link
+# --------- WALLET ---------
+  # --------- SMART CONTRACTS
+  - wallet
+  # --------- WORKFLOW DEFINITIONS
+  - WALLET_APPLICATION
+  - WALLET_AUTO_TOP_UP_SWITCH
+  - WALLET_CLOSURE
+  # --------- FLAG DEFINITIONS
+  - AUTO_TOP_UP_WALLET
+  # --------- ACCOUNT SCHEDULE TAGS
+  - WALLET_ZERO_OUT_DAILY_SPEND_AST
+  # --------- INTERNAL ACCOUNT SMART CONTRACTS
+  # --------- INTERNAL ACCOUNTS

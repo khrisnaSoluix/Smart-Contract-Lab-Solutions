@@ -1,0 +1,19 @@
+# Copyright @ 2021 Thought Machine Group Limited. All rights reserved.
+---
+type: SMART_CONTRACT_VERSION
+id: wallet
+payload: |
+  product_version:
+      display_name: Wallet
+      code: '@{wallet_rendered.py}'
+      product_id: wallet
+      params:
+        - name: zero_out_daily_spend_hour
+          value: '23'
+        - name: zero_out_daily_spend_minute
+          value: '59'
+        - name: zero_out_daily_spend_second
+          value: '59'
+      tags:
+        - "CURRENT"
+  migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_ADD_VERSION_APPLY_NEW_USERS

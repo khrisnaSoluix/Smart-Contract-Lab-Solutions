@@ -1,0 +1,8 @@
+{
+  "e2e": {
+    "environment_name": "my_environment"
+  },
+  "sim": {
+    "environment_name": "my_environment"
+  }
+}

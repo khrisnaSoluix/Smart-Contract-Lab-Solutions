@@ -1,0 +1,11 @@
+# Copyright @ 2022 Thought Machine Group Limited. All rights reserved.
+---
+type: INTERNAL_ACCOUNT
+id: SETTLEMENT_ACCOUNT
+vault_id: SETTLEMENT_ACCOUNT
+payload: |
+  internal_account:
+      id: SETTLEMENT_ACCOUNT
+      product_id: settlement_account_contract
+      accounting:
+        tside: TSIDE_LIABILITY

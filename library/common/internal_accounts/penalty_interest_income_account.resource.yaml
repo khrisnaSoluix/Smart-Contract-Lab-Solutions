@@ -1,0 +1,11 @@
+# Copyright @ 2021 Thought Machine Group Limited. All rights reserved.
+---
+type: INTERNAL_ACCOUNT
+id: PENALTY_INTEREST_INCOME_ACCOUNT
+vault_id: PENALTY_INTEREST_INCOME
+payload: |
+  internal_account:
+      id: PENALTY_INTEREST_INCOME_ACCOUNT
+      product_id: '&{penalty_interest_income_account_contract:product_id}'
+      accounting:
+        tside: TSIDE_LIABILITY

@@ -1,0 +1,601 @@
+# Copyright @ 2020 Thought Machine Group Limited. All rights reserved.
+---
+name: Savings Sweep Hierarchy Management
+instance_title: Savings Sweep Hierarchy Management
+description: A workflow to manage the Savings Account order for Savings Sweep
+schema_version: 3.2.0
+definition_version: 1.0.2
+
+starting_state: retrieve_account_status_and_product_id
+end_states:
+  - state: manage_savings_sweep_hierarchy_complete
+    result: SUCCESSFUL
+  - state: manage_savings_sweep_hierarchy_failure
+    result: FAILED
+
+states:
+  retrieve_account_status_and_product_id:
+    display_name: Retrieve account status and product_id
+    expected_context_keys:
+      - account_id
+      - user_id
+    entry_actions:
+      save_to_global_state:
+        context_keys:
+          - account_id
+          - user_id
+      vault_callback:
+        path: core-api/v1/accounts/{id}
+        method: GET
+        arguments:
+          id: ${account_id}
+        response_fields:
+          - key_name: product_id
+            response_json_path: product_id
+            extract_singleton_element: true
+          - key_name: status
+            response_json_path: status
+            extract_singleton_element: true
+          - key_name: instance_param_vals
+            response_json_path: instance_param_vals
+            extract_singleton_element: true
+        response_event: status_and_product_id_retrieved
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - product_id
+          - instance_param_vals
+          - status
+    transitions:
+      - to: check_is_open_checking_account
+        trigger: status_and_product_id_retrieved
+
+  check_is_open_checking_account:
+    display_name: Check account is an open checking account
+    type: transform
+    transform_ref: check_is_open_checking_account
+    transitions:
+      - to: retrieve_associations_for_account_id
+        trigger: checking_account_status_is_open
+        actions:
+          save_to_global_state:
+            context_keys:
+              - current_hierarchy
+              - new_hierarchy
+      - to: acknowledge_no_management_possible
+        trigger: account_invalid
+
+  retrieve_associations_for_account_id:
+    display_name: Get account associations
+    description: Retrieve associations on the account
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/account-plan-assocs
+        method: GET
+        arguments:
+          account_ids:
+            - ${account_id}
+          page_size: 30
+          page_token: ${next_page_token1:}
+        response_fields:
+          - key_name: plan_assocs_for_account_id
+            response_json_path: account_plan_assocs
+            extract_singleton_element: true
+          - key_name: next_page_token1
+            response_json_path: next_page_token
+            extract_singleton_element: true
+        response_event: plan_assocs_for_account_id_retrieved
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - plan_assocs_for_account_id
+          - next_page_token1
+    transitions:
+      - to: check_for_plan
+        description: Check if a plan exists for this account
+        trigger: plan_assocs_for_account_id_retrieved
+
+  check_for_plan:
+    display_name: Check for existing plan
+    description: Check for existing plan
+    type: transform
+    transform_ref: check_for_plan
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - active_checking_plan_id
+    transitions:
+      - to: retrieve_associated_accounts_on_plan
+        trigger: check_complete
+        actions:
+          save_to_global_state:
+            context_keys:
+              - plan_id
+      - to: retrieve_associations_for_account_id
+        trigger: check_next_page
+      - to: acknowledge_no_management_possible
+        trigger: checking_plans_not_valid
+
+  retrieve_associated_accounts_on_plan:
+    display_name: Retrieve associated accounts on plan
+    description: retrieve accounts associated with plan id
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/account-plan-assocs
+        method: GET
+        arguments:
+          plan_ids:
+            - ${plan_id}
+          page_size: 30
+          page_token: ${next_page_token2:}
+        response_fields:
+          - key_name: plan_assocs_for_plan_id
+            response_json_path: account_plan_assocs
+            extract_singleton_element: true
+          - key_name: next_page_token2
+            response_json_path: next_page_token
+            extract_singleton_element: true
+        response_event: account_plan_assocs_retrieved
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - plan_assocs_for_plan_id
+          - next_page_token2
+    transitions:
+      - to: get_accounts_from_account_assocs
+        trigger: account_plan_assocs_retrieved
+
+  get_accounts_from_account_assocs:
+    display_name: Check number of associated accounts on the plan
+    type: transform
+    transform_ref: get_accounts_from_account_assocs
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - on_plan_accounts
+    transitions:
+      - to: acknowledge_no_management_possible
+        trigger: no_account_associations_on_plan
+      - to: retrieve_associated_accounts_on_plan
+        trigger: retrieve_more_associations
+      - to: retrieve_customer_accounts
+        trigger: active_associations_exist_on_plan
+
+  retrieve_customer_accounts:
+    display_name: Retrieve accounts
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/accounts
+        method: GET
+        arguments:
+          page_size: 20
+          page_token: ${next_page_token:}
+          stakeholder_id: ${user_id}
+          account_statuses:
+            - ACCOUNT_STATUS_OPEN
+        response_event: customer_accounts_retrieved
+        response_fields:
+          - key_name: retrieved_accounts
+            response_json_path: accounts
+          - key_name: next_page_token
+            response_json_path: next_page_token
+            extract_singleton_element: true
+    transitions:
+      - to: build_account_list
+        description: Accounts retrieved
+        trigger: customer_accounts_retrieved
+
+  build_account_list:
+    display_name: Build account list
+    type: transform
+    transform_ref: build_account_list
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - open_accounts
+    transitions:
+      - to: retrieve_customer_accounts
+        description: Next page
+        trigger: retrieve_more_accounts
+      - to: check_for_on_plan_savings_account
+        description: All accounts retrieved
+        trigger: accounts_retrieved
+
+  check_for_on_plan_savings_account:
+    display_name: Check for on plan savings account
+    type: transform
+    transform_ref: check_for_on_plan_savings_account
+    transitions:
+      - to: select_update_hierarchy_option
+        description: Have on plan savings account
+        trigger: have_on_plan_savings_account
+        actions:
+          save_to_global_state:
+            context_keys:
+              - accounts_to_exclude
+              - on_plan_savings_accounts
+      - to: acknowledge_no_management_possible
+        description: No on plan savings account
+        trigger: no_on_plan_savings_account
+
+  select_update_hierarchy_option:
+    display_name: Select update hierarchy option
+    description: Select from available update hierarchy options
+    state_ui:
+      ui_panels:
+        - panel_id: hierarchy_information_on_options
+          display_name: Hierarchy information on available options
+          json_definition:
+            text:
+              value: >
+                Choose from the following options.
+                1) Enter a new savings sweep hierarchy.
+                Note that up to 3 savings accounts can be added to the hierarchy.
+                The order in which accounts are added is the order they are used for savings sweep.
+                2) Reset to default savings sweep with no hierarchy.
+                This is ordered by account creation date.
+                3) Disable savings sweep.
+        - panel_id: current_hierarchy_panel
+          display_name: Current savings sweep hierarchy
+          json_definition:
+            text: >
+              "${current_hierarchy}"
+        - panel_id: on_plan_savings_accounts_panel
+          display_name: On plan savings accounts
+          json_definition:
+            text: >
+              "${on_plan_savings_accounts}"
+      ui_actions:
+        - action_id: enter_new_hierarchy
+          event: enter_new_hierarchy
+          display_name: Enter a new savings sweep hierarchy
+        - action_id: reset_to_default_savings_sweep
+          event: reset_to_default_savings_sweep
+          display_name: Reset to default savings sweep with no hierarchy
+        - action_id: reset_and_disable_savings_sweep
+          event: reset_and_disable_savings_sweep
+          display_name: Disable savings sweep
+    transitions:
+      - to: add_account_to_hierarchy
+        trigger: enter_new_hierarchy
+      - to: disable_savings_sweep_reset_account_hierarchy_parameter
+        trigger: reset_and_disable_savings_sweep
+      - to: unset_account_hierarchy_parameter
+        trigger: reset_to_default_savings_sweep
+
+  add_account_to_hierarchy:
+    display_name: Add an account to the hierarchy
+    state_ui:
+      ui_panels:
+        - panel_id: current_hierarchy_panel_add
+          display_name: Current savings sweep hierarchy
+          json_definition:
+            text:
+              value: >
+                "${current_hierarchy}"
+        - panel_id: new_hierarchy_selection_so_far_add
+          display_name: New hierarchy order selected so far
+          json_definition:
+            text:
+              value: >
+                "${new_hierarchy}"
+      ui_actions:
+        - action_id: account_id
+          event: account_id_selected
+          display_name: Choose account from list
+          ui_inputs:
+            - key: account_id_to_add
+              display_name: Account id to add to hierarchy
+              string_input: {}
+              json_definition:
+                account_selector:
+                  customer_id: ${user_id}
+                  account_statuses_to_include:
+                    - ACCOUNT_STATUS_OPEN
+                  exclude_account_ids: json_object(${accounts_to_exclude})
+    transitions:
+      - to: determine_selection_options
+        trigger: account_id_selected
+        actions:
+          save_to_global_state:
+            context_keys:
+              - account_id_to_add
+
+  determine_selection_options:
+    display_name: Check selection options for adding more accounts to hierarchy
+    type: transform
+    transform_ref: determine_selection_options
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - new_hierarchy
+          - accounts_to_exclude
+    transitions:
+      - to: choose_whether_to_add_another_to_hierarchy
+        trigger: more_accounts_can_be_added
+      - to: confirm_new_hierarchy
+        trigger: no_more_accounts_to_add
+
+  choose_whether_to_add_another_to_hierarchy:
+    display_name: Choose whether to add another account to the hierarchy
+    description: Choose whether to add another account to the hierarchy
+    state_ui:
+      ui_panels:
+        - panel_id: current_hierarchy_panel_choose
+          display_name: Current savings sweep hierarchy
+          json_definition:
+            text:
+              value: >
+                "${current_hierarchy}"
+        - panel_id: new_hierarchy_selection_so_far_choose
+          display_name: New hierarchy order selected so far
+          json_definition:
+            text:
+              value: >
+                "${new_hierarchy}"
+      ui_actions:
+        - action_id: add_another_to_hierarchy
+          event: add_another_to_hierarchy
+          display_name: Add another account to the hierarchy
+        - action_id: finish_adding_to_hierarchy
+          event: finish_adding_to_hierarchy
+          display_name: Finish adding accounts to the hierarchy
+    transitions:
+      - to: add_account_to_hierarchy
+        trigger: add_another_to_hierarchy
+      - to: confirm_new_hierarchy
+        trigger: finish_adding_to_hierarchy
+
+  acknowledge_no_management_possible:
+    display_name: Acknowledge management of hierarchy is not possible
+    state_ui:
+      ui_panels:
+        - panel_id: acknowledge_no_management_possible_panel
+          display_name: Acknowledge that it is not possible to manage savings sweep hierarchy
+          json_definition:
+            text:
+              value: >
+                In order for the savings sweep hierarchy to be managed or changed, the following conditions must be met.
+                1) A Checking Account and at least one Savings Account must be added to a plan.
+                2) Accounts must be open.
+                3) Plan must be active.
+                Reason for rejection is "${rejection_reason:Rejected}".
+      ui_actions:
+        - action_id: acknowledge_no_management_possible
+          event: acknowledge_no_management_possible
+          display_name: Acknowledge that manage hierarchy is not possible
+    transitions:
+      - to: manage_savings_sweep_hierarchy_failure
+        trigger: acknowledge_no_management_possible
+
+  disable_savings_sweep_reset_account_hierarchy_parameter:
+    display_name: Reset the account hierarchy parameter and disable savings sweep
+    type: transform
+    transform: |
+      return ['disable_savings_sweep', {'new_hierarchy': '[]'}]
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - new_hierarchy
+    transitions:
+      - to: confirm_new_hierarchy
+        trigger: disable_savings_sweep
+
+  unset_account_hierarchy_parameter:
+    display_name: Unset the account hierarchy parameter and return to default savings sweep order
+    type: transform
+    transform: |
+      return ['unset_hierarchy', {'new_hierarchy': ''}]
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - new_hierarchy
+    transitions:
+      - to: confirm_new_hierarchy
+        trigger: unset_hierarchy
+
+  confirm_new_hierarchy:
+    display_name: Confirm the new hierarchy selection to be applied
+    state_ui:
+      ui_panels:
+        - panel_id: current_hierarchy_panel_confirm
+          display_name: Current savings sweep hierarchy
+          json_definition:
+            text:
+              value: >
+                "${current_hierarchy}"
+        - panel_id: new_hierarchy_selection_confirm
+          display_name: New hierarchy order selected
+          json_definition:
+            text:
+              value: >
+                "${new_hierarchy}"
+      ui_actions:
+        - action_id: confirm_and_apply
+          event: confirm_and_apply
+          display_name: Confirm and apply the new hierarchy
+        - action_id: go_back_to_options
+          event: go_back_to_options
+          display_name: Go back to option selection
+    transitions:
+      - to: update_account_hierarchy_parameter
+        description: Update the hierarchy
+        trigger: confirm_and_apply
+      - to: check_is_open_checking_account
+        description: Go back to start state to re-obtain available options
+        trigger: go_back_to_options
+
+  update_account_hierarchy_parameter:
+    display_name: Update account hierarchy instance parameter
+    description: Update account hierarchy instance parameter using the Core API
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/account-updates
+        method: POST
+        arguments:
+          request_id: generate_uuid()
+          account_update:
+            id: generate_uuid()
+            account_id: ${account_id}
+            instance_param_vals_update:
+              instance_param_vals:
+                savings_sweep_account_hierarchy: ${new_hierarchy}
+    transitions:
+      - to: manage_savings_sweep_hierarchy_complete
+        trigger: account_update_success
+        auto_trigger_conditions:
+          streaming_api_conditions:
+            topic: vault.api.v1.accounts.account.instance_param_vals.updated
+            message_content:
+              - path: update_status
+                values:
+                  - ACCOUNT_UPDATE_STATUS_COMPLETED
+                quantifier: any
+      - to: manage_savings_sweep_hierarchy_failure
+        trigger: account_update_failure
+        auto_trigger_conditions:
+          streaming_api_conditions:
+            topic: vault.api.v1.accounts.account.instance_param_vals.updated
+            message_content:
+              - path: update_status
+                values:
+                  - ACCOUNT_UPDATE_STATUS_COMPLETED
+                quantifier: none
+
+  manage_savings_sweep_hierarchy_complete:
+    display_name: Manage savings sweep hierarchy completed successfully
+    state_ui:
+      ui_panels:
+        - panel_id: manage_hierarchy_completed_panel
+          display_name: Manage Savings Sweep hierarchy completed successfully
+          json_definition:
+            text:
+              value: >
+                Management of savings sweep hierarchy has completed successfully
+
+  manage_savings_sweep_hierarchy_failure:
+    display_name: Manage savings sweep hierarchy rejected
+    state_ui:
+      ui_panels:
+        - panel_id: manage_savings_sweep_sweep_hierarchy_rejected_panel
+          display_name: Manage savings sweep hierarchy rejected
+          json_definition:
+            text:
+              value: Failed to update the savings sweep hierarchy
+
+transforms:
+  check_is_open_checking_account: |
+    instance_param_vals = json.loads(context.get('instance_param_vals'))
+    savings_sweep_account_hierarchy = instance_param_vals.get('savings_sweep_account_hierarchy', '')
+
+    if 'us_checking_account' in context.get('product_id'):
+      if context.get('status') == 'ACCOUNT_STATUS_OPEN':
+        new_context = {'new_hierarchy': '[]'}
+        new_context['current_hierarchy'] = savings_sweep_account_hierarchy
+        return ['checking_account_status_is_open', new_context]
+      else:
+        rejection_reason = 'Account status is not open'
+    else:
+      rejection_reason = 'Account product ID is not us_checking_account'
+    return ['account_invalid', {'rejection_reason': rejection_reason}]
+
+  check_for_plan: |
+    new_context = {}
+    active_checking_plan_id = context.get('active_checking_plan_id', '')
+    plan_assocs = json.loads(context['plan_assocs_for_account_id'])
+    next_page_token = context.get('next_page_token1')
+
+    for association in plan_assocs:
+      if association['status'] == "ACCOUNT_PLAN_ASSOC_STATUS_ACTIVE":
+        if active_checking_plan_id and association['plan_id'] != active_checking_plan_id:
+          return ['checking_plans_not_valid', {'rejection_reason': 'Multiple active plans for checking account not supported'}]
+        else:
+          active_checking_plan_id = association['plan_id']
+
+    new_context['active_checking_plan_id'] = active_checking_plan_id
+
+    if next_page_token:
+      new_context['next_page_token1'] = next_page_token
+      return ['check_next_page', new_context]
+
+    elif active_checking_plan_id:
+      new_context['plan_id'] = active_checking_plan_id
+      return ['check_complete', new_context]
+
+    else:
+      return ['checking_plans_not_valid', {'rejection_reason': 'No active plan for checking account'}]
+
+  get_accounts_from_account_assocs: |
+    new_context = {}
+    on_plan_accounts = json.loads(context.get('on_plan_accounts', '[]'))
+    plan_assocs = json.loads(context['plan_assocs_for_plan_id'])
+    checking_account_id = context['account_id']
+    next_page_token = context.get('next_page_token2')
+
+    for association in plan_assocs:
+      if association['status'] == "ACCOUNT_PLAN_ASSOC_STATUS_ACTIVE" and association['account_id'] != checking_account_id:
+        on_plan_accounts.append(association['account_id'])
+
+    new_context['on_plan_accounts'] = json.dumps(on_plan_accounts)
+
+    if next_page_token:
+      new_context['next_page_token2'] = next_page_token
+      return ['retrieve_more_associations', new_context]
+
+    elif on_plan_accounts:
+      return ['active_associations_exist_on_plan', new_context]
+
+    else:
+      return ['no_account_associations_on_plan', {'rejection_reason': 'No non-checking accounts on plan'}]
+
+  build_account_list: |
+    open_accounts = json.loads(context.get('open_accounts', '[]'))
+    open_accounts.extend(json.loads(context['retrieved_accounts'])[0])
+    next_page_token = context.get('next_page_token')
+    new_context = {'open_accounts': json.dumps(open_accounts)}
+
+    if next_page_token:
+      new_context['next_page_token'] = next_page_token
+      return ['retrieve_more_accounts', new_context]
+    else:
+      return ['accounts_retrieved', new_context]
+
+  check_for_on_plan_savings_account: |
+    accounts = json.loads(context['open_accounts'])
+    on_plan_accounts = json.loads(context.get('on_plan_accounts', '[]'))
+
+    on_plan_savings_accounts = []
+    other_customer_accounts = []
+    for account in accounts:
+      if(
+        account['name'] == 'US Savings Account'
+        and account['id'] in on_plan_accounts
+      ):
+        on_plan_savings_accounts.append(account['id'])
+      else:
+        other_customer_accounts.append(account['id'])
+
+    new_context = {}
+    new_context['accounts_to_exclude'] = json.dumps(other_customer_accounts)
+    new_context['on_plan_savings_accounts'] = json.dumps(on_plan_savings_accounts)
+    if len(on_plan_savings_accounts) == 0:
+      return ['no_on_plan_savings_account', {'rejection_reason': 'No on plan savings account'}]
+    else:
+      return ['have_on_plan_savings_account', new_context]
+
+  determine_selection_options: |
+    new_context = {}
+    accounts_to_exclude = json.loads(context.get('accounts_to_exclude'))
+    on_plan_savings_accounts = json.loads(context.get('on_plan_savings_accounts'))
+    account_id_to_add = context.get('account_id_to_add')
+    new_hierarchy = json.loads(context.get('new_hierarchy', '[]'))
+    new_hierarchy.append(account_id_to_add)
+    accounts_to_exclude.append(account_id_to_add)
+
+    new_context['new_hierarchy'] = json.dumps(new_hierarchy)
+    new_context['accounts_to_exclude'] = json.dumps(accounts_to_exclude)
+
+    if len(new_hierarchy) >= len(on_plan_savings_accounts) or len(new_hierarchy) >= 3:
+      return ['no_more_accounts_to_add', new_context]
+    else:
+      return ['more_accounts_can_be_added', new_context]

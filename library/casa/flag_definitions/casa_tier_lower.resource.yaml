@@ -1,0 +1,10 @@
+---
+type: FLAG_DEFINITION
+id: CASA_TIER_LOWER
+payload: |
+  flag_definition: 
+    id: CASA_TIER_LOWER
+    name: CASA_TIER_LOWER
+    description: Account tier is Lower
+    required_flag_level: FLAG_LEVEL_ACCOUNT
+    flag_visibility: FLAG_VISIBILITY_OPERATOR

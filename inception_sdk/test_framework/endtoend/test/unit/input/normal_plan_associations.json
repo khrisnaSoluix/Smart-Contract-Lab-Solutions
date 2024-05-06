@@ -1,0 +1,29 @@
+[
+    {
+        "id": "5331bbea-ffe6-ed1e-da33-6574b126239e",
+        "account_id": "22f72eed-9a16-7526-5fc3-8ff0278b8d62",
+        "plan_id": "6f957686-05e8-2488-174a-63a11a460372",
+        "create_timestamp": "2021-08-23T17:26:45.427503Z",
+        "start_timestamp": "2021-08-23T17:26:45.427503Z",
+        "end_timestamp": null,
+        "status": "ACCOUNT_PLAN_ASSOC_STATUS_ACTIVE"
+    },
+    {
+        "id": "8d519033-8317-dc76-f6e4-26d1be48684a",
+        "account_id": "1e3f7dfe-8f92-c2db-c62d-d58a6e6991f3",
+        "plan_id": "6f957686-05e8-2488-174a-63a11a460372",
+        "create_timestamp": "2021-08-23T17:26:46.715276Z",
+        "start_timestamp": "2021-08-23T17:26:46.715276Z",
+        "end_timestamp": null,
+        "status": "ACCOUNT_PLAN_ASSOC_STATUS_ACTIVE"
+    },
+    {
+        "id": "220cf172-0551-c56e-96f3-9a9962b95f70",
+        "account_id": "a93de940-6300-a146-a71d-9b5389ee89a3",
+        "plan_id": "6f957686-05e8-2488-174a-63a11a460372",
+        "create_timestamp": "2021-08-23T17:26:56.824832Z",
+        "start_timestamp": "2021-08-23T17:26:56.824832Z",
+        "end_timestamp": null,
+        "status": "ACCOUNT_PLAN_ASSOC_STATUS_ACTIVE"
+    }
+]

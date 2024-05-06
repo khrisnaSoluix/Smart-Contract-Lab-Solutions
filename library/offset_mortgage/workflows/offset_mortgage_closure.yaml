@@ -1,0 +1,430 @@
+# Copyright @ 2021 Thought Machine Group Limited. All rights reserved.
+---
+name: Offset Mortgage Closure
+instance_title: Offset Mortgage Closure
+description: A workflow to close an offset mortgage
+schema_version: 3.2.0
+definition_version: 1.0.0
+starting_state: confirm_product_id
+end_states:
+  - state: close_offset_mortgage_successful
+    result: SUCCESSFUL
+  - state: close_offset_mortgage_failed
+    result: FAILED
+
+states:
+  confirm_product_id:
+    display_name: Confirm product id
+    description: Confirm product id by checking context or defaulting to 'mortgage'
+    expected_context_keys:
+      - user_id
+    type: transform
+    transform_ref: confirm_product_id
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - user_id
+          - mortgage_product_id
+    transitions:
+      - to: retrieve_customer_accounts
+        trigger: product_id_confirmed
+
+  retrieve_customer_accounts:
+    display_name: Retrieve customer accounts
+    entry_actions:
+      save_to_global_state:
+        context_keys:
+          - user_id
+      vault_callback:
+        path: core-api/v1/accounts
+        method: GET
+        arguments:
+          stakeholder_id: ${user_id}
+          page_size: 1000
+          page_token: ${page_token:}
+        response_fields:
+          - key_name: customer_accounts
+            response_json_path: accounts[?(@.status == 'ACCOUNT_STATUS_OPEN')]
+        response_event: account_list_retrieved
+    transitions:
+      - to: build_on_plan_acccounts_process_list
+        trigger: account_list_retrieved
+        actions:
+          save_to_global_state:
+            context_keys:
+              - customer_accounts
+
+  build_on_plan_acccounts_process_list:
+    display_name: Build a mapping of the accounts and whether they are on plan
+    type: transform
+    transform_ref: build_on_plan_acccounts_process_list
+    transitions:
+      - to: get_account_to_check_for_plan
+        trigger: on_plan_acccounts_process_list_built
+        actions:
+          save_to_global_state:
+            context_keys:
+              - on_plan_accounts_process_list
+
+  get_account_to_check_for_plan:
+    display_name: Get account to check for existing plan
+    description: Get an account id to check for whether it is on plan
+    type: transform
+    transform_ref: extract_account_id
+    transitions:
+      - to: retrieve_account_plan_assocs_for_account_id
+        trigger: account_id_extracted
+        actions:
+          save_to_global_state:
+            context_keys:
+              - account_id_to_check
+              - on_plan_accounts_process_list
+      - to: retrieve_mortgage_accounts
+        trigger: no_accounts_remaining
+
+  retrieve_account_plan_assocs_for_account_id:
+    display_name: Retrieve account plan associations for account ID
+    description: Retrieve plan associations for account ID
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/account-plan-assocs
+        method: GET
+        arguments:
+          account_ids:
+            - ${account_id_to_check}
+          page_size: 50
+          page_token: ${next_page_token_plans:}
+        response_fields:
+          - key_name: plan_assocs_for_account_id
+            response_json_path: account_plan_assocs
+            extract_singleton_element: true
+          - key_name: next_page_token_plans
+            response_json_path: next_page_token
+            extract_singleton_element: true
+        response_event: plan_assocs_for_account_id_retrieved
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - plan_assocs_for_account_id
+          - next_page_token_plans
+    transitions:
+      - to: check_for_existing_plan
+        description: Check if a plan exists for this account
+        trigger: plan_assocs_for_account_id_retrieved
+
+  check_for_existing_plan:
+    display_name: Check for existing plan
+    description: Check for existing plan
+    type: transform
+    transform_ref: check_for_plans
+    transitions:
+      - to: get_account_to_check_for_plan
+        trigger: no_existing_plan_found
+        actions:
+          save_to_global_state:
+            context_keys:
+              - accounts_on_plan_mapping
+      - to: retrieve_account_plan_assocs_for_account_id
+        trigger: check_next_page
+        actions:
+          save_to_global_state:
+            context_keys:
+              - accounts_on_plan_mapping
+
+  retrieve_mortgage_accounts:
+    display_name: Retrieve mortgage accounts
+    type: transform
+    transform_ref: retrieve_mortgage_accounts
+    transitions:
+      - to: select_mortgage
+        trigger: valid_mortgage_accounts_found
+        actions:
+          save_to_global_state:
+            context_keys:
+              - non_mortgage_accounts
+      - to: close_offset_mortgage_failed
+        trigger: no_valid_mortgage_accounts_found
+
+  select_mortgage:
+    display_name: Select the Mortgage account to disable offset functionality
+    state_ui:
+      ui_actions:
+        - action_id: select_account
+          event: mortgage_account_selected
+          display_name: Select the Mortgage account to disable offset functionality
+          ui_inputs:
+            - key: mortgage_account_id
+              display_name: Account
+              string_input: {}
+              json_definition:
+                account_selector:
+                  customer_id: ${user_id}
+                  account_statuses_to_include:
+                    - ACCOUNT_STATUS_OPEN
+                  exclude_account_ids: json_object(${non_mortgage_accounts})
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - mortgage_account_id
+    transitions:
+      - to: get_plan_id
+        trigger: mortgage_account_selected
+
+  get_plan_id:
+    display_name: Retrieve mortgage account plan ID
+    type: transform
+    transform_ref: retrieve_mortgage_account_plan_id
+    transitions:
+      - to: retrieve_associated_accounts_for_plan_id
+        trigger: plan_id_found
+        actions:
+          save_to_global_state:
+            context_keys:
+              - plan_id
+
+  retrieve_associated_accounts_for_plan_id:
+    display_name: Retrieve associated accounts for plan ID
+    description: Retrieve associated accounts for plan ID
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/account-plan-assocs
+        method: GET
+        arguments:
+          plan_ids:
+            - ${plan_id}
+          page_size: 50
+        response_fields:
+          - key_name: account_assocs_for_plan_id
+            response_json_path: account_plan_assocs
+            extract_singleton_element: true
+        response_event: account_assocs_for_plan_id_retrieved
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - account_assocs_for_plan_id
+    transitions:
+      - to: extract_accounts_for_disassociation
+        trigger: account_assocs_for_plan_id_retrieved
+
+  extract_accounts_for_disassociation:
+    display_name: Extract accounts for disassocation
+    description: Extract accounts for disassocation
+    type: transform
+    transform_ref: extract_accounts_for_disassociation
+    transitions:
+      - to: extract_account_id_for_disassociation
+        trigger: accounts_to_disassociate_retrieved
+        actions:
+          save_to_global_state:
+            context_keys:
+              - accounts_to_disassociate
+
+  extract_account_id_for_disassociation:
+    display_name: Extract account IDs for disassocation
+    description: Extract account IDs for disassocation
+    type: transform
+    transform_ref: extract_account_id_for_disassociation
+    transitions:
+      - to: disassociate_account_from_plan
+        trigger: disassociate_account_id_extracted
+        actions:
+          save_to_global_state:
+            context_keys:
+              - account_plan_assoc_id
+              - accounts_to_disassociate
+      - to: close_plan
+        trigger: no_disassociate_accounts_remaining
+
+  disassociate_account_from_plan:
+    display_name: Disassociate account from plan
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/plan-updates
+        method: POST
+        arguments:
+          request_id: generate_uuid()
+          plan_update:
+            plan_id: ${plan_id}
+            disassociate_account_update:
+              account_plan_assoc_id: ${account_plan_assoc_id}
+        response_fields:
+          - key_name: plan_update_id_mortgage
+            response_json_path: id
+            extract_singleton_element: true
+        response_event: account_updated
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - plan_update_id_mortgage
+    transitions:
+      - to: extract_account_id_for_disassociation
+        description: account updated
+        trigger: account_updated
+
+  close_plan:
+    display_name: Close plan
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/plan-updates
+        method: POST
+        arguments:
+          request_id: generate_uuid()
+          plan_update:
+            plan_id: ${plan_id}
+            closure_update: {}
+        response_fields:
+          - key_name: plan_closure_update_id
+            response_json_path: id
+            extract_singleton_element: true
+        response_event: plan_closed
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - plan_closure_update_id
+    transitions:
+      - to: close_offset_mortgage_successful
+        trigger: plan_closed
+
+  close_offset_mortgage_successful:
+    display_name: Offset Mortgage account closed successfully
+
+  close_offset_mortgage_failed:
+    display_name: Offset Mortgage account closure failed
+    expected_context_keys:
+      - error_message
+    entry_actions:
+      save_to_global_state:
+        context_keys:
+          - error_message
+      add_or_replace_global_ui_panels:
+        - panel_id: offset_mortgage_closing_failed
+          display_name: Failed opening offset mortgage
+          json_definition:
+            key_value_table:
+              items:
+                Error: "${error_message}"
+
+transforms:
+  confirm_product_id: |
+    context['mortgage_product_id'] = context.get('mortgage_product_id', 'mortgage')
+    context['eas_product_id'] = context.get('eas_product_id', 'easy_access_saver')
+    return ['product_id_confirmed', context]
+
+  build_on_plan_acccounts_process_list: |
+    on_plan_accounts_process_list = []
+
+    customer_accounts = json.loads(context.get('customer_accounts'))
+    for account in customer_accounts:
+      on_plan_accounts_process_list.append(account.get('id'))
+
+    return [
+      'on_plan_acccounts_process_list_built',
+      {
+        'on_plan_accounts_process_list': json.dumps(on_plan_accounts_process_list),
+      }
+    ]
+
+  extract_account_id: |
+    new_context = {}
+
+    accounts = json.loads(context.get('on_plan_accounts_process_list'))
+    if len(accounts) == 0:
+      return ['no_accounts_remaining', new_context]
+
+    account_id_to_check = accounts.pop(0)
+
+    new_context['on_plan_accounts_process_list'] = json.dumps(accounts)
+    new_context['account_id_to_check'] = account_id_to_check
+
+    return ['account_id_extracted', new_context]
+
+  check_for_plans: |
+    account_id_to_check = context['account_id_to_check']
+
+    accounts_on_plan_mapping = json.loads(context.get('accounts_on_plan_mapping', '{}'))
+    accounts_on_plan_mapping[account_id_to_check] = None
+
+    plan_assocs = json.loads(context['plan_assocs_for_account_id'])
+    next_page_token = context.get('next_page_token_plans')
+
+    for association in plan_assocs:
+      if association['status'] == "ACCOUNT_PLAN_ASSOC_STATUS_ACTIVE":
+        accounts_on_plan_mapping[account_id_to_check] = association['plan_id']
+        break
+
+    new_context = {
+      'accounts_on_plan_mapping': json.dumps(accounts_on_plan_mapping)
+    }
+
+    if next_page_token:
+      new_context['next_page_token_plans'] = next_page_token
+      return ['check_next_page', new_context]
+    else:
+      return ['no_existing_plan_found', new_context]
+
+  retrieve_mortgage_accounts: |
+    mortgage_accounts_exist = False
+
+    accounts_on_plan_mapping = json.loads(context.get('accounts_on_plan_mapping'))
+    non_mortgage_accounts = json.loads(context.get('non_mortgage_accounts','[]'))
+    customer_accounts = json.loads(context.get('customer_accounts'))
+
+    for account in customer_accounts:
+      if (
+        account.get('product_id') == context.get('mortgage_product_id')
+        and accounts_on_plan_mapping.get(account.get('id'))
+      ):
+        mortgage_accounts_exist = True
+      else:
+        non_mortgage_accounts.append(account.get('id'))
+
+    if not mortgage_accounts_exist:
+      return [
+        'no_valid_mortgage_accounts_found',
+        {'error_message': 'No suitable mortgage accounts found.'}
+      ]
+
+    return [
+      'valid_mortgage_accounts_found',
+      {
+        'non_mortgage_accounts': json.dumps(non_mortgage_accounts),
+      }
+    ]
+
+  retrieve_mortgage_account_plan_id: |
+    mortgage_account_id = context.get('mortgage_account_id')
+    accounts_on_plan_mapping = json.loads(context['accounts_on_plan_mapping'])
+
+    return [
+      'plan_id_found',
+      {
+        'plan_id': accounts_on_plan_mapping.get(mortgage_account_id)
+      }
+    ]
+
+  extract_accounts_for_disassociation: |
+    accounts_to_disassociate = []
+
+    plan_assocs = json.loads(context['account_assocs_for_plan_id'])
+    for association in plan_assocs:
+      accounts_to_disassociate.append(association['id'])
+
+    new_context = {
+      'accounts_to_disassociate': json.dumps(accounts_to_disassociate)
+    }
+
+    return ['accounts_to_disassociate_retrieved', new_context]
+
+  extract_account_id_for_disassociation: |
+    new_context = {}
+
+    accounts = json.loads(context.get('accounts_to_disassociate'))
+    if len(accounts) == 0:
+      return ['no_disassociate_accounts_remaining', new_context]
+
+    account_plan_assoc_id = accounts.pop(0)
+
+    new_context['accounts_to_disassociate'] = json.dumps(accounts)
+    new_context['account_plan_assoc_id'] = account_plan_assoc_id
+
+    return ['disassociate_account_id_extracted', new_context]

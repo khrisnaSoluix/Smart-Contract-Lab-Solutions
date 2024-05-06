@@ -1,0 +1,12 @@
+---
+type: ACCOUNT_SCHEDULE_TAG
+id: SUPERVISOR_SAVINGS_APPLY_MONTHLY_FEES_AST
+payload: |
+  account_schedule_tag:
+    id: SUPERVISOR_SAVINGS_APPLY_MONTHLY_FEES_AST
+    description: SUPERVISOR_SAVINGS_APPLY_MONTHLY_FEES_AST
+    sends_scheduled_operation_reports: true
+    schedule_status_override: ACCOUNT_SCHEDULE_TAG_SCHEDULE_STATUS_OVERRIDE_TO_ENABLED
+    schedule_status_override_start_timestamp: "1970-01-01T00:00:00Z"
+    schedule_status_override_end_timestamp: "9999-12-31T23:59:59Z"
+    test_pause_at_timestamp: null

@@ -1,0 +1,45 @@
+# Copyright @ 2023 Thought Machine Group Limited. All rights reserved.
+---
+pack_version: 1.0.0
+pack_name: GPL Line of Credit
+resource_ids:
+  # --------- SMART CONTRACTS
+  - line_of_credit
+  - drawdown_loan
+
+  # --------- SUPERVISOR SMART CONTRACTS
+  - line_of_credit_supervisor_contract
+
+  # --------- SUPERVISOR SMART CONTRACT VERSIONS
+  - line_of_credit_supervisor_contract_version
+
+  # --------- WORKFLOW DEFINITIONS
+  - LINE_OF_CREDIT_CREATE_DRAWDOWN
+  - LINE_OF_CREDIT_MARK_DELINQUENT
+
+  # --------- ACCOUNT SCHEDULE TAGS
+  - LINE_OF_CREDIT_DUE_AMOUNT_CALCULATION_AST
+  - LINE_OF_CREDIT_SUPERVISOR_ACCRUE_INTEREST_AST
+  - LINE_OF_CREDIT_SUPERVISOR_DUE_AMOUNT_CALCULATION_AST
+  - LINE_OF_CREDIT_SUPERVISOR_CHECK_OVERDUE_AST
+  - LINE_OF_CREDIT_SUPERVISOR_CHECK_DELINQUENCY_AST
+  - LINE_OF_CREDIT_SUPERVISOR_SUPERVISEE_SCHEDULE_SYNC_AST
+
+  # --------- INTERNAL ACCOUNT SMART CONTRACTS
+  - late_repayment_fee_income_account_contract
+  - accrued_interest_receivable_account_contract
+  - interest_received_account_contract
+  - overpayment_fee_income_account_contract
+  - penalty_interest_income_account_contract
+
+  # --------- INTERNAL ACCOUNTS
+  - LATE_REPAYMENT_FEE_INCOME_ACCOUNT
+  - ACCRUED_INTEREST_RECEIVABLE_ACCOUNT
+  - INTEREST_RECEIVED_ACCOUNT
+  - OVERPAYMENT_FEE_INCOME_ACCOUNT
+  - PENALTY_INTEREST_INCOME_ACCOUNT
+
+  # --------- FLAG DEFINITIONS
+  # Common
+  - ACCOUNT_DELINQUENT
+  - REPAYMENT_HOLIDAY

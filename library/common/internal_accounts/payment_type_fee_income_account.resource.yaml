@@ -1,0 +1,9 @@
+type: INTERNAL_ACCOUNT
+id: PAYMENT_TYPE_FEE_INCOME_ACCOUNT
+vault_id: PAYMENT_TYPE_FEE_INCOME
+payload: |
+  internal_account:
+      id: PAYMENT_TYPE_FEE_INCOME
+      product_id: '&{payment_type_fee_income_account_contract:product_id}'
+      accounting:
+        tside: TSIDE_LIABILITY

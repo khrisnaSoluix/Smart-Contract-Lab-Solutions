@@ -1,0 +1,11 @@
+# Copyright @ 2021 Thought Machine Group Limited. All rights reserved.
+---
+type: INTERNAL_ACCOUNT
+id: DUMMY_CONTRA_ACCOUNT
+vault_id: DUMMY_CONTRA
+payload: |
+  internal_account:
+      id: DUMMY_CONTRA_ACCOUNT
+      product_id: '&{dummy_contra_account_contract:product_id}'
+      accounting:
+        tside: TSIDE_LIABILITY

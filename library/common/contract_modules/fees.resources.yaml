@@ -1,0 +1,17 @@
+# Resource files ending with resources.yaml contain a list of resources
+---
+resources:
+  - type: CONTRACT_MODULE
+    id: fees
+    payload: |
+      contract_module:
+          display_name: Fees module
+          description: Functions required for handling maintenance and transactional fees within smart contracts
+  - type: CONTRACT_MODULE_VERSION
+    id: fees_version
+    payload: |
+      contract_module_version:
+            contract_module_id: '&{fees}'
+            description: Functions required for handling maintenance and transactional fees within smart contracts
+            display_name: Fees module
+            code: '@{fees.py}'

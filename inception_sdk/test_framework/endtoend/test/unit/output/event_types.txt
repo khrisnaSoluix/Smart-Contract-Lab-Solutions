@@ -1,0 +1,15 @@
+event_types = [
+    SmartContractEventType(
+        name="event_type_1", scheduler_tag_ids=["PAUSED_DUMMY_event_type_1_tag_1"]
+    ),
+    SmartContractEventType(name="event_type_2", scheduler_tag_ids=["E2E_PAUSED_TAG"]),
+    SupervisorContractEventType(name="event_type_3", scheduler_tag_ids=["E2E_PAUSED_TAG"]),
+    SupervisorContractEventType(
+        name="event_type_4", scheduler_tag_ids=["PAUSED_DUMMY_event_type_4_tag_1"]
+    ),
+    SupervisorContractEventType(
+        name="event_type_5",
+        overrides_event_types=[("a", "event_type_5"), ("b", "event_type_5")],
+        scheduler_tag_ids=["E2E_PAUSED_TAG"],
+    ),
+]

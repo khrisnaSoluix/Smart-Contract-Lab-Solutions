@@ -1,0 +1,271 @@
+# Copyright @ 2021 Thought Machine Group Limited. All rights reserved.
+---
+name: Time Deposit Closure
+instance_title: Time Deposit Closure
+description: A workflow to close Time Deposit account.
+schema_version: 3.2.0
+definition_version: 1.1.0
+starting_state: retrieve_initial_account_product
+end_states:
+  - state: account_closed_successfully
+    result: SUCCESSFUL
+  - state: account_closure_failure
+    result: FAILED
+
+states:
+  retrieve_initial_account_product:
+    display_name: Retrieve account product
+    description: Retrieve account product
+    expected_context_keys:
+      - account_id
+    entry_actions:
+      save_to_global_state:
+        context_keys:
+          - account_id
+      vault_callback:
+        path: core-api/v1/accounts/{id}
+        method: GET
+        arguments:
+          id: ${account_id}
+        response_fields:
+          - key_name: product_id
+            response_json_path: product_id
+            extract_singleton_element: true
+          - key_name: product_version_id
+            response_json_path: product_version_id
+            extract_singleton_element: true
+        response_event: account_retrieved
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - product_id
+          - product_version_id
+    transitions:
+      - to: retrieve_time_deposit_denomination
+        description: Account retrieved
+        trigger: account_retrieved
+
+  retrieve_time_deposit_denomination:
+    display_name: Retrieve time deposit denomination
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/product-versions
+        method: GET
+        arguments:
+          product_id: ${product_id}
+          page_size: 30
+          page_token: ${next_page_token:}
+          view: PRODUCT_VERSION_VIEW_INCLUDE_PARAMETERS
+        response_event: time_deposit_denomination_retrieved
+        response_fields:
+          - key_name: time_deposit_denomination
+            response_json_path: product_versions[?(@.id == ${product_version_id})].params[?(@.name == 'denomination')].value
+          - key_name: next_page_token
+            response_json_path: next_page_token
+            extract_singleton_element: true
+    transitions:
+      - to: check_time_deposit_denomination_value
+        trigger: time_deposit_denomination_retrieved
+
+  check_time_deposit_denomination_value:
+    display_name: Check time deposit denomination value
+    expected_context_keys:
+      - time_deposit_denomination
+      - next_page_token
+    type: transform
+    transform_ref: check_denomination_value
+    transitions:
+      - to: retrieve_source_account_balances
+        trigger: time_deposit_denomination_valid
+      - to: retrieve_time_deposit_denomination
+        trigger: time_deposit_denomination_invalid
+      - to: account_closure_failure
+        trigger: no_valid_contract
+
+  retrieve_source_account_balances:
+    display_name: Retrieve balances
+    description: Retrieve account balances
+    entry_actions:
+      save_to_global_state:
+        context_keys:
+          - time_deposit_denomination
+      vault_callback:
+        path: core-api/v1/balances/live
+        method: GET
+        arguments:
+          account_ids: 
+            - ${account_id}
+          page_size: 100
+        response_event: balance_retrieved
+        response_fields:
+          - key_name: live_balance
+            response_json_path: balances
+            extract_singleton_element: true
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - live_balance
+    transitions:
+      - to: check_balances
+        description: Balance retrieved
+        trigger: balance_retrieved
+
+  check_balances:
+    display_name: Check balances
+    description:  Check balances
+    type: transform
+    transform_ref: check_balances
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - final_balance
+    transitions:
+      - to: update_account_status_to_pending_closure
+        trigger: account_zero
+      - to: account_closure_failure
+        trigger: account_positive
+      - to: pending_transaction_found
+        trigger: pending_transaction
+
+  pending_transaction_found:
+    display_name: Pending transaction found
+    expected_context_keys:
+      - rejection_reason
+    type: transform
+    transform: |
+      return 'pending_transaction_found', {'rejection_reason': context.get('rejection_reason')}
+    transitions:
+      - to: account_closure_failure
+        trigger: pending_transaction_found
+
+  update_account_status_to_pending_closure:
+    display_name: Update account status to pending closure
+    description: Update account status to pending closure
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/accounts/{account.id}
+        method: PUT
+        arguments:
+          request_id: generate_uuid()
+          account:
+            id: ${account_id}
+            status: ACCOUNT_STATUS_PENDING_CLOSURE
+          update_mask: status
+    transitions:
+      - to: update_account_status_to_closed
+        trigger: account_pending_closure
+        auto_trigger_conditions:
+          streaming_api_conditions:
+            topic: vault.core_api.v1.accounts.account_update.events
+            message_content:
+              - path: "['*'].account_update.status"
+                values:
+                  - ACCOUNT_UPDATE_STATUS_COMPLETED
+                quantifier: any
+      - to: account_closure_failure
+        trigger: account_update_failure
+        auto_trigger_conditions:
+          streaming_api_conditions:
+            topic: vault.core_api.v1.accounts.account_update.events
+            message_content:
+              - path: "['*'].account_update.status"
+                values:
+                  - ACCOUNT_UPDATE_STATUS_COMPLETED
+                  - ACCOUNT_UPDATE_STATUS_PENDING_EXECUTION
+                quantifier: none
+
+  update_account_status_to_closed:
+    display_name: Update account status to closed
+    description: Update account status to closed via synchronous API call (no need to wait for topic msg)
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/accounts/{account.id}
+        method: PUT
+        arguments:
+          request_id: generate_uuid()
+          account:
+            id: ${account_id}
+            status: ACCOUNT_STATUS_CLOSED
+          update_mask: status
+        response_event: account_closed
+    transitions:
+      - to: account_closed_successfully
+        trigger: account_closed
+        description: Account closed
+
+  account_closed_successfully:
+    display_name: Account closed successfully
+    description: Account closed successfully
+    state_ui:
+      ui_panels:
+        - panel_id: account_closed_panel
+          display_name: Account closure successful
+          json_definition:
+            text:
+              value: Account has been successfully closed. Please destroy any debit cards related to this account.
+
+  account_closure_failure:
+    display_name: Account closure rejected
+    state_ui:
+      ui_panels:
+        - panel_id: account_closure_failure_panel
+          display_name: Account closure rejected
+          json_definition:
+            text:
+              value: ${rejection_reason:Account closure rejected}
+
+transforms:
+  check_denomination_value: |
+
+    denominations = json.loads(context.get('time_deposit_denomination'))
+    if denominations:
+      time_deposit_denomination = denominations[0]
+      return ['time_deposit_denomination_valid', {'time_deposit_denomination': time_deposit_denomination}]
+
+    next_page_token = context.get('next_page_token')
+
+    if next_page_token:
+      return ['time_deposit_denomination_invalid', {'next_page_token': next_page_token}]
+    else:
+      return ['no_valid_contract', {'rejection_reason': 'Cannot retrieve denomination for current product version'}]
+
+  check_balances: |
+    live_balances = json.loads(context['live_balance'])
+    pending_phases = ['POSTING_PHASE_PENDING_OUTGOING', 'POSTING_PHASE_PENDING_INCOMING']
+    account_denomination = context['time_deposit_denomination']
+
+    for balance in live_balances:
+      if (
+        balance.get('phase') in pending_phases
+        and balance.get('account_address') == 'DEFAULT'
+        and not decimal.iszero(balance.get('amount'))
+        ):
+        rejection_reason = 'Account is ineligible for closure while there are current pending transactions on the account.'
+        return ['pending_transaction', {'rejection_reason': rejection_reason}]
+
+    final_balance_dimensions = [
+        ('DEFAULT', 'POSTING_PHASE_COMMITTED'),
+        ('ACCRUED_INCOMING', 'POSTING_PHASE_COMMITTED')
+      ]
+
+    # Find the final balances for each interesting balance dimension and merge by currency
+    final_amounts_by_denom = {}
+    for account_address, posting_phase in final_balance_dimensions:
+      for balance in live_balances:
+        amount = decimal.quantize(balance.get('amount'), '.01')
+        if (balance.get('account_address') == account_address and balance.get('phase') == posting_phase
+            and not decimal.iszero(amount)):
+          amount = decimal.quantize(balance.get('amount'), '.01')
+          denom = balance.get('denomination')
+          final_amounts_by_denom.setdefault(denom, '0')
+          final_amounts_by_denom[denom] = decimal.add(final_amounts_by_denom[denom], amount)
+
+    if len(final_amounts_by_denom) == 0:
+      return ['account_zero', {}]
+
+    if any([decimal.lessthan(amount, '0') for amount in final_amounts_by_denom.values()]):
+      return ['account_negative', {'rejection_reason': 'Account is ineligible for closure while the final balance is negative'}]
+
+    # We are only interested in the balance of the account denomination
+    amount = final_amounts_by_denom.get(account_denomination)
+    return ['account_positive', {'final_balance': str(amount)}]

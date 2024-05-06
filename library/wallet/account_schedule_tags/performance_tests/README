@@ -1,0 +1,6 @@
+Test account schedule tags are CLU-like but must be created via the e2e test framework. Because we
+need flexibility when setting the test_pause_at_timestamp, this field supports two options:
+1 - A normal value (null or a timestamp). This is CLU compatible
+2 - A 'delta' dictionary whose key-value pairs are used to initialise a relativedelta object which
+    is added to datetime.now(timezone.utc). This allows test writers to ensure the pause is set
+    appropriately for the relevant schedule

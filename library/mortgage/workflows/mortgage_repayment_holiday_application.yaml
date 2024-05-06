@@ -1,0 +1,196 @@
+# Copyright @ 2023 Thought Machine Group Limited. All rights reserved.
+---
+name: Mortgage Repayment Holiday Application
+instance_title: Mortgage Repayment Holiday Application
+description: A workflow to set a Mortgage account to be on a repayment holiday.
+schema_version: 3.2.0
+definition_version: 2.0.0
+
+starting_state: retrieve_account_parameter_details
+end_states:
+  - state: repayment_holiday_set
+    result: SUCCESSFUL
+  - state: account_already_on_holiday
+    result: SUCCESSFUL
+
+states:
+  retrieve_account_parameter_details:
+    display_name: Retrieve account parameter details
+    expected_context_keys:
+      - account_id
+    entry_actions:
+      save_to_global_state:
+        context_keys:
+          - account_id
+      vault_callback:
+        path: core-api/v1/accounts/{id}
+        method: GET
+        arguments:
+          id: ${account_id}
+        response_event: account_retrieved
+        response_fields:
+          - key_name: account_status
+            response_json_path: status
+            extract_singleton_element: true
+          - key_name: instance_param_vals
+            response_json_path: instance_param_vals
+            extract_singleton_element: true
+          - key_name: due_amount_calculation_day
+            response_json_path: instance_param_vals.due_amount_calculation_day
+            extract_singleton_element: true
+          - key_name: opening_timestamp
+            response_json_path: opening_timestamp
+            extract_singleton_element: true
+          - key_name: product_id
+            response_json_path: product_id
+            extract_singleton_element: true
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - instance_param_vals
+          - due_amount_calculation_day
+    transitions:
+      - to: capture_repayment_holiday_period
+        trigger: account_retrieved
+        description: Retrieved account details
+
+  capture_repayment_holiday_period:
+    display_name: Capture repayment holiday period
+    state_ui:
+      ui_actions:
+        - action_id: repayment_holiday_date_chosen
+          event: repayment_holiday_date_chosen
+          display_name: Capture repayment holiday period (start and end date must be on ${due_amount_calculation_day})
+          ui_inputs:
+            - key: repayment_holiday_start_date
+              display_name: Start date of repayment holiday period${invalid_date_message:}
+              string_input: {}
+              json_definition:
+                date:
+            - key: repayment_holiday_end_date
+              display_name: End date of repayment holiday period${invalid_date_message:}
+              string_input: {}
+              json_definition:
+                date:
+    transitions:
+      - to: transform_repayment_holiday_dates
+        trigger: repayment_holiday_date_chosen
+        description: Repayment holiday period
+
+  transform_repayment_holiday_dates:
+    display_name: Transform repayment holiday dates
+    type: transform
+    transform_ref: transform_repayment_holiday_date
+    transitions:
+      - to: get_account_flags
+        trigger: repayment_holiday_dates_transformed
+
+  get_account_flags:
+    display_name: Get customer flags
+    entry_actions:
+      save_to_global_state:
+        context_keys:
+          - repayment_holiday_start_date
+          - repayment_holiday_end_date
+      vault_callback:
+        path: core-api/v1/flags
+        method: GET
+        arguments:
+          account_ids:
+            - ${account_id}
+          effective_timestamp: ${repayment_holiday_start_date}
+          include_inactive: false
+          flag_visibility_level: FLAG_VISIBILITY_CONTRACT
+          page_size: 100
+        response_fields:
+          - key_name: customer_flags
+            response_json_path: flags
+            extract_singleton_element: true
+        response_event: customer_flags_retrieved
+    transitions:
+      - to: validate_repayment_holiday_date
+        trigger: customer_flags_retrieved
+
+  validate_repayment_holiday_date:
+    display_name: Validate repayment holiday dates
+    type: transform
+    transform_ref: validate_repayment_holiday_date
+    transitions:
+      - to: capture_repayment_holiday_period
+        trigger: invalid_repayment_holiday_date
+        description: Date Invalid
+      - to: account_already_on_holiday
+        trigger: repayment_holiday_active
+      - to: set_repayment_holiday_flag
+        trigger: repayment_holiday_inactive
+
+  set_repayment_holiday_flag:
+    display_name: Set repayment holiday flag
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/flags
+        method: POST
+        arguments:
+          flag:
+            flag_definition_id: "&{REPAYMENT_HOLIDAY}"
+            description: Repayment holiday
+            account_id: ${account_id}
+            effective_timestamp: ${repayment_holiday_start_date}
+            expiry_timestamp: ${repayment_holiday_end_date}
+          request_id: generate_uuid()
+        response_event: repayment_holiday_set
+    transitions:
+      - to: repayment_holiday_set
+        trigger: repayment_holiday_set
+
+  # Final states
+  repayment_holiday_set:
+    display_name: Repayment holiday is set
+
+  account_already_on_holiday:
+    display_name: Account is already on repayment holiday
+
+transforms:
+  transform_repayment_holiday_date: |
+    # the flag start & end timestamps are hardcoded to occur at '00:00:30'
+    flag_time = '00:00:30'
+    start_datetime = context.get('repayment_holiday_start_date') + 'T' + flag_time + 'Z'
+    end_datetime = context.get('repayment_holiday_end_date') + 'T' + flag_time + 'Z'
+    return [
+        'repayment_holiday_dates_transformed',
+        {
+          'repayment_holiday_start_date': start_datetime,
+          'repayment_holiday_end_date': end_datetime
+        }
+      ]
+
+  validate_repayment_holiday_date: |
+    customer_flags = json.loads(context.get('customer_flags'))
+    active_flags = [flag['flag_definition_id'] for flag in customer_flags if flag['is_active']]
+    repayment_holiday = '&{REPAYMENT_HOLIDAY}' in active_flags
+
+    if repayment_holiday:
+      return ['repayment_holiday_active', {}]
+
+    due_amount_calculation_day = context.get('due_amount_calculation_day')
+    # datetime.strptime is based on the golang implementation
+    start_datetime = datetime.strptime('2006-01-02T15:04:05Z', context.get('repayment_holiday_start_date'))
+    end_datetime = datetime.strptime('2006-01-02T15:04:05Z', context.get('repayment_holiday_end_date'))
+
+    if due_amount_calculation_day != str(datetime.day(start_datetime)) or due_amount_calculation_day != str(datetime.day(end_datetime)):
+      message = '. Repayment holiday must start and end on repayment day: ' + due_amount_calculation_day
+      return ['invalid_repayment_holiday_date', {'invalid_date_message': message}]
+    elif datetime.utcnow() > start_datetime:
+      message = '. Repayment holiday must start in the future'
+      return ['invalid_repayment_holiday_date', {'invalid_date_message': message}]
+    elif start_datetime >= end_datetime:
+      message = '. Repayment holiday end time cannot be earlier than start time'
+      return ['invalid_repayment_holiday_date', {'invalid_date_message': message}]
+    else:
+      return [
+        'repayment_holiday_inactive',
+        {
+          'repayment_holiday_start_date': datetime.strftime(start_datetime, '%Y-%m-%dT%H:%M:%SZ'),
+          'repayment_holiday_end_date': datetime.strftime(end_datetime, '%Y-%m-%dT%H:%M:%SZ')
+        }
+      ]

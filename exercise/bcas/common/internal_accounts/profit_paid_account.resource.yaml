@@ -1,0 +1,11 @@
+# Copyright @ 2022 Thought Machine Group Limited. All rights reserved.
+---
+type: INTERNAL_ACCOUNT
+id: PROFIT_PAID_ACCOUNT
+vault_id: PROFIT_PAID
+payload: |
+  internal_account:
+      id: PROFIT_PAID
+      product_id: profit_paid_account_contract
+      accounting:
+        tside: TSIDE_LIABILITY

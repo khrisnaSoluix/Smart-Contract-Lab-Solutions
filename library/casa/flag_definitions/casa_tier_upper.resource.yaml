@@ -1,0 +1,10 @@
+---
+type: FLAG_DEFINITION
+id: CASA_TIER_UPPER
+payload: |
+  flag_definition: 
+    id: CASA_TIER_UPPER
+    name: CASA_TIER_UPPER
+    description: Account tier is Upper
+    required_flag_level: FLAG_LEVEL_ACCOUNT
+    flag_visibility: FLAG_VISIBILITY_OPERATOR

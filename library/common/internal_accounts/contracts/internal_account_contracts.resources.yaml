@@ -1,0 +1,465 @@
+# Copyright @ 2021 Thought Machine Group Limited. All rights reserved.
+---
+resources:
+  - type: SMART_CONTRACT_VERSION
+    id: accrued_interest_payable_account_contract
+    payload: |
+      product_version:
+          display_name: Accrued Interest Payable Account
+          code: '@{liability_account_contract.py}'
+          product_id: accrued_interest_payable_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_ADD_VERSION_UPGRADE_INTERNAL_ACCOUNTS
+  - type: SMART_CONTRACT_VERSION
+    id: accrued_profit_payable_account_contract
+    payload: |
+      product_version:
+          display_name: Accrued Profit Payable Account
+          code: '@{liability_account_contract.py}'
+          product_id: accrued_profit_payable_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_ADD_VERSION_UPGRADE_INTERNAL_ACCOUNTS
+  - type: SMART_CONTRACT_VERSION
+    id: interest_paid_account_contract
+    payload: |
+      product_version:
+          display_name: Interest Paid Account
+          code: '@{asset_account_contract.py}'
+          product_id: interest_paid_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_ADD_VERSION_UPGRADE_INTERNAL_ACCOUNTS
+  - type: SMART_CONTRACT_VERSION
+    id: profit_paid_account_contract
+    payload: |
+      product_version:
+          display_name: Profit Paid Account
+          code: '@{asset_account_contract.py}'
+          product_id: profit_paid_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_ADD_VERSION_UPGRADE_INTERNAL_ACCOUNTS
+  - type: SMART_CONTRACT_VERSION
+    id: accrued_interest_receivable_account_contract
+    payload: |
+      product_version:
+          display_name: Accrued Interest Receivable Account
+          code: '@{asset_account_contract.py}'
+          product_id: accrued_interest_receivable_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_ADD_VERSION_UPGRADE_INTERNAL_ACCOUNTS
+  - type: SMART_CONTRACT_VERSION
+    id: interest_received_account_contract
+    payload: |
+      product_version:
+          display_name: Interest Received Account
+          code: '@{liability_account_contract.py}'
+          product_id: interest_received_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_ADD_VERSION_UPGRADE_INTERNAL_ACCOUNTS
+  - type: SMART_CONTRACT_VERSION
+    id: annual_maintenance_fee_income_account_contract
+    payload: |
+      product_version:
+          display_name: Annual Maintenance Fee Income Account
+          code: '@{liability_account_contract.py}'
+          product_id: annual_maintenance_fee_income_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_ADD_VERSION_UPGRADE_INTERNAL_ACCOUNTS
+  - type: SMART_CONTRACT_VERSION
+    id: inactivity_fee_income_account_contract
+    payload: |
+      product_version:
+          display_name: Inactivity Fee Income Account
+          code: '@{liability_account_contract.py}'
+          product_id: inactivity_fee_income_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_ADD_VERSION_UPGRADE_INTERNAL_ACCOUNTS
+  - type: SMART_CONTRACT_VERSION
+    id: maintenance_fee_income_account_contract
+    payload: |
+      product_version:
+          display_name: Maintenance Fee Income Account
+          code: '@{liability_account_contract.py}'
+          product_id: maintenance_fee_income_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_ADD_VERSION_UPGRADE_INTERNAL_ACCOUNTS
+  - type: SMART_CONTRACT_VERSION
+    id: minimum_balance_fee_income_account_contract
+    payload: |
+      product_version:
+          display_name: Minimum Balance Fee Income Account
+          code: '@{liability_account_contract.py}'
+          product_id: minimum_balance_fee_income_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_ADD_VERSION_UPGRADE_INTERNAL_ACCOUNTS
+  - type: SMART_CONTRACT_VERSION
+    id: overdraft_fee_income_account_contract
+    payload: |
+      product_version:
+          display_name: Overdraft Fee Income Account
+          code: '@{liability_account_contract.py}'
+          product_id: overdraft_fee_income_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_ADD_VERSION_UPGRADE_INTERNAL_ACCOUNTS
+  - type: SMART_CONTRACT_VERSION
+    id: overdraft_fee_receivable_account_contract
+    payload: |
+      product_version:
+          display_name: Overdraft Fee Receivable Account
+          code: '@{asset_account_contract.py}'
+          product_id: overdraft_fee_receivable_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_ADD_VERSION_UPGRADE_INTERNAL_ACCOUNTS
+  - type: SMART_CONTRACT_VERSION
+    id: excess_withdrawal_fee_income_account_contract
+    payload: |
+      product_version:
+          display_name: Excess Withdrawal Fee Income Account
+          code: '@{liability_account_contract.py}'
+          product_id: excess_withdrawal_fee_income_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_ADD_VERSION_UPGRADE_INTERNAL_ACCOUNTS
+  - type: SMART_CONTRACT_VERSION
+    id: early_closure_fee_income_account_contract
+    payload: |
+      product_version:
+          display_name: Early Closure Fee Income Account
+          code: '@{liability_account_contract.py}'
+          product_id: early_closure_fee_income_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_ADD_VERSION_UPGRADE_INTERNAL_ACCOUNTS
+  - type: SMART_CONTRACT_VERSION
+    id: early_repayment_fee_income_account_contract
+    payload: |
+      product_version:
+          display_name: Early Repayment Fee Income Account
+          code: '@{liability_account_contract.py}'
+          product_id: early_repayment_fee_income_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_ADD_VERSION_UPGRADE_INTERNAL_ACCOUNTS
+  - type: SMART_CONTRACT_VERSION
+    id: late_repayment_fee_income_account_contract
+    payload: |
+      product_version:
+          display_name: Late Repayment Fee Income Account
+          code: '@{liability_account_contract.py}'
+          product_id: late_repayment_fee_income_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_ADD_VERSION_UPGRADE_INTERNAL_ACCOUNTS
+  - type: SMART_CONTRACT_VERSION
+    id: penalty_interest_received_account_contract
+    payload: |
+      product_version:
+          display_name: Penalty Interest Received Account
+          code: '@{liability_account_contract.py}'
+          product_id: penalty_interest_received_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_ADD_VERSION_UPGRADE_INTERNAL_ACCOUNTS
+  - type: SMART_CONTRACT_VERSION
+    id: penalty_interest_receivable_account_contract
+    payload: |
+      product_version:
+          display_name: Penalty Interest Receivable Account
+          code: '@{asset_account_contract.py}'
+          product_id: penalty_interest_receivable_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_ADD_VERSION_UPGRADE_INTERNAL_ACCOUNTS
+  - type: SMART_CONTRACT_VERSION
+    id: capitalised_interest_received_account_contract
+    vault_version: 1.0.0
+    payload: |
+      product_version:
+          display_name: Capitalised Interest Received Account
+          code: '@{liability_account_contract.py}'
+          product_id: capitalised_interest_received_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_ADD_VERSION_UPGRADE_INTERNAL_ACCOUNTS
+  - type: SMART_CONTRACT_VERSION
+    id: capitalised_interest_receivable_account_contract
+    vault_version: 1.0.0
+    payload: |
+      product_version:
+          display_name: Capitalised Interest Receivable Account
+          code: '@{asset_account_contract.py}'
+          product_id: capitalised_interest_receivable_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_ADD_VERSION_UPGRADE_INTERNAL_ACCOUNTS
+  - type: SMART_CONTRACT_VERSION
+    id: capitalised_penalties_received_account_contract
+    vault_version: 1.0.0
+    payload: |
+      product_version:
+          display_name: Capitalised Penalties Received Account
+          code: '@{liability_account_contract.py}'
+          product_id: capitalised_penalties_received_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_ADD_VERSION_UPGRADE_INTERNAL_ACCOUNTS
+  - type: SMART_CONTRACT_VERSION
+    id: overpayment_allowance_fee_income_account_contract
+    payload: |
+      product_version:
+          display_name: Overpayment Allowance Fee Income Account
+          code: '@{liability_account_contract.py}'
+          product_id: overpayment_allowance_fee_income_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_ADD_VERSION_UPGRADE_INTERNAL_ACCOUNTS
+  - type: SMART_CONTRACT_VERSION
+    id: overpayment_fee_income_account_contract
+    payload: |
+      product_version:
+          display_name: Overpayment Fee Income Account
+          code: '@{liability_account_contract.py}'
+          product_id: overpayment_fee_income_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_ADD_VERSION_UPGRADE_INTERNAL_ACCOUNTS
+  - type: SMART_CONTRACT_VERSION
+    id: payment_type_fee_income_account_contract
+    payload: |
+      product_version:
+          display_name: Payment Type Fee Income Account
+          code: '@{liability_account_contract.py}'
+          product_id: payment_type_fee_income_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_ADD_VERSION_UPGRADE_INTERNAL_ACCOUNTS
+  - type: SMART_CONTRACT_VERSION
+    id: pnl_account_contract
+    payload: |
+      product_version:
+          display_name: PnL Account
+          code: '@{liability_account_contract.py}'
+          product_id: pnl_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_ADD_VERSION_UPGRADE_INTERNAL_ACCOUNTS
+  - type: SMART_CONTRACT_VERSION
+    id: fee_income_account_contract
+    payload: |
+      product_version:
+          display_name: Fee Income Account
+          code: '@{liability_account_contract.py}'
+          product_id: fee_income_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_ADD_VERSION_UPGRADE_INTERNAL_ACCOUNTS
+  - type: SMART_CONTRACT_VERSION
+    id: fee_loan_account_contract
+    payload: |
+      product_version:
+          display_name: Fee Loan Account
+          code: '@{liability_account_contract.py}'
+          product_id: fee_loan_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_ADD_VERSION_UPGRADE_INTERNAL_ACCOUNTS
+  - type: SMART_CONTRACT_VERSION
+    id: fees_interest_account_contract
+    payload: |
+      product_version:
+          display_name: Fees Interest Account
+          code: '@{liability_account_contract.py}'
+          product_id: fees_interest_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_ADD_VERSION_UPGRADE_INTERNAL_ACCOUNTS
+  - type: SMART_CONTRACT_VERSION
+    id: interest_air_account_contract
+    payload: |
+      product_version:
+          display_name: Interest AIR Account
+          code: '@{asset_account_contract.py}'
+          product_id: interest_air_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_ADD_VERSION_UPGRADE_INTERNAL_ACCOUNTS
+  - type: SMART_CONTRACT_VERSION
+    id: interest_income_account_contract
+    payload: |
+      product_version:
+          display_name: Interest Income Account
+          code: '@{liability_account_contract.py}'
+          product_id: interest_income_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_ADD_VERSION_UPGRADE_INTERNAL_ACCOUNTS
+  - type: SMART_CONTRACT_VERSION
+    id: interest_writeoff_account_contract
+    payload: |
+      product_version:
+          display_name: Interest Write-Off Account
+          code: '@{liability_account_contract.py}'
+          product_id: interest_writeoff_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_ADD_VERSION_UPGRADE_INTERNAL_ACCOUNTS
+  - type: SMART_CONTRACT_VERSION
+    id: loan_account_contract
+    payload: |
+      product_version:
+          display_name: Loan Account
+          code: '@{liability_account_contract.py}'
+          product_id: loan_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_ADD_VERSION_UPGRADE_INTERNAL_ACCOUNTS
+  - type: SMART_CONTRACT_VERSION
+    id: off_balance_sheet_contra_account_contract
+    payload: |
+      product_version:
+          display_name: Off-Balance Sheet Contra Account
+          code: '@{liability_account_contract.py}'
+          product_id: off_balance_sheet_contra_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_ADD_VERSION_UPGRADE_INTERNAL_ACCOUNTS
+  - type: SMART_CONTRACT_VERSION
+    id: other_liability_account_contract
+    payload: |
+      product_version:
+          display_name: Other Liability Account
+          code: '@{liability_account_contract.py}'
+          product_id: other_liability_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_ADD_VERSION_UPGRADE_INTERNAL_ACCOUNTS
+  - type: SMART_CONTRACT_VERSION
+    id: principal_writeoff_account_contract
+    payload: |
+      product_version:
+          display_name: Principal Write-Off Account
+          code: '@{liability_account_contract.py}'
+          product_id: principal_writeoff_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_ADD_VERSION_UPGRADE_INTERNAL_ACCOUNTS
+  - type: SMART_CONTRACT_VERSION
+    id: revocable_commitment_account_contract
+    payload: |
+      product_version:
+          display_name: Revocable Commitment Account
+          code: '@{liability_account_contract.py}'
+          product_id: revocable_commitment_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_ADD_VERSION_UPGRADE_INTERNAL_ACCOUNTS
+  - type: SMART_CONTRACT_VERSION
+    id: withdrawal_fee_income_account_contract
+    payload: |
+      product_version:
+          display_name: Withdrawal Fee Income Account
+          code: '@{liability_account_contract.py}'
+          product_id: withdrawal_fee_income_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_ADD_VERSION_UPGRADE_INTERNAL_ACCOUNTS
+  - type: SMART_CONTRACT_VERSION
+    id: upfront_fee_income_account_contract
+    payload: |
+      product_version:
+          display_name: Upfront Fee Income Account
+          code: '@{liability_account_contract.py}'
+          product_id: upfront_fee_income_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_ADD_VERSION_UPGRADE_INTERNAL_ACCOUNTS
+  - type: SMART_CONTRACT_VERSION
+    id: accrued_interest_received_account_contract
+    payload: |
+      product_version:
+          display_name: Accrued Interest Received Account
+          code: '@{liability_account_contract.py}'
+          product_id: accrued_interest_received_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_ADD_VERSION_UPGRADE_INTERNAL_ACCOUNTS
+  - type: SMART_CONTRACT_VERSION
+    id: default_internal_account_contract
+    payload: |
+      product_version:
+          display_name: Default Internal Account
+          code: '@{liability_account_contract.py}'
+          product_id: default_internal_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_ADD_VERSION_UPGRADE_INTERNAL_ACCOUNTS
+  - type: SMART_CONTRACT_VERSION
+    id: dummy_contra_account_contract
+    payload: |
+      product_version:
+          display_name: Dummy Contra Account
+          code: '@{liability_account_contract.py}'
+          product_id: dummy_contra_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_ADD_VERSION_UPGRADE_INTERNAL_ACCOUNTS
+  - type: SMART_CONTRACT_VERSION
+    id: internal_contra_account_contract
+    payload: |
+      product_version:
+          display_name: Internal Contra Account
+          code: '@{liability_account_contract.py}'
+          product_id: internal_contra_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_ADD_VERSION_UPGRADE_INTERNAL_ACCOUNTS
+  - type: SMART_CONTRACT_VERSION
+    id: penalty_interest_income_account_contract
+    payload: |
+      product_version:
+          display_name: Penalty Interest Income Account
+          code: '@{liability_account_contract.py}'
+          product_id: penalty_interest_income_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_ADD_VERSION_UPGRADE_INTERNAL_ACCOUNTS
+  - type: SMART_CONTRACT_VERSION
+    id: overdraft_interest_receivable_account_contract
+    payload: |
+      product_version:
+          display_name: Overdraft Interest Receivable Account
+          code: '@{asset_account_contract.py}'
+          product_id: overdraft_interest_receivable_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_ADD_VERSION_UPGRADE_INTERNAL_ACCOUNTS
+  - type: SMART_CONTRACT_VERSION
+    id: unarranged_overdraft_fee_receivable_account_contract
+    payload: |
+      product_version:
+          display_name: Unarranged Overdraft Fee Receivable Account
+          code: '@{asset_account_contract.py}'
+          product_id: unarranged_overdraft_fee_receivable_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_ADD_VERSION_UPGRADE_INTERNAL_ACCOUNTS
+  - type: SMART_CONTRACT_VERSION
+    id: excess_fee_income_account_contract
+    payload: |
+      product_version:
+          display_name: Excess Fee Income Account
+          code: '@{liability_account_contract.py}'
+          product_id: excess_fee_income_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_ADD_VERSION_UPGRADE_INTERNAL_ACCOUNTS
+  - type: SMART_CONTRACT_VERSION
+    id: monthly_maintenance_fee_income_account_contract
+    payload: |
+      product_version:
+          display_name: Monthly Maintenance Fee Income Account
+          code: '@{liability_account_contract.py}'
+          product_id: monthly_maintenance_fee_income_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_ADD_VERSION_UPGRADE_INTERNAL_ACCOUNTS
+  - type: SMART_CONTRACT_VERSION
+    id: overdraft_interest_received_account_contract
+    payload: |
+      product_version:
+          display_name: Overdraft Interest Received Account
+          code: '@{liability_account_contract.py}'
+          product_id: overdraft_interest_received_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_ADD_VERSION_UPGRADE_INTERNAL_ACCOUNTS
+  - type: SMART_CONTRACT_VERSION
+    id: unarranged_overdraft_fee_income_account_contract
+    payload: |
+      product_version:
+          display_name: Unarranged Overdraft Fee Income Account
+          code: '@{liability_account_contract.py}'
+          product_id: unarranged_overdraft_fee_income_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_ADD_VERSION_UPGRADE_INTERNAL_ACCOUNTS
+  - type: SMART_CONTRACT_VERSION
+    id: paper_statement_fee_income_account_contract
+    payload: |
+      product_version:
+          display_name: Paper Statement Fee Income Account
+          code: '@{liability_account_contract.py}'
+          product_id: paper_statement_fee_income_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_ADD_VERSION_UPGRADE_INTERNAL_ACCOUNTS
+  - type: SMART_CONTRACT_VERSION
+    id: out_of_network_atm_fee_rebate_account_contract
+    payload: |
+      product_version:
+          display_name: Out of Network ATM Fee Rebate Account
+          code: '@{asset_account_contract.py}'
+          product_id: out_of_network_atm_fee_rebate_account_contract
+      is_internal: True
+      migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_ADD_VERSION_UPGRADE_INTERNAL_ACCOUNTS

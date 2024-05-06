@@ -1,0 +1,31 @@
+# Copyright @ 2021 Thought Machine Group Limited. All rights reserved.
+---
+pack_version: 1.0.0
+pack_name: GPL Time Deposit
+resource_ids:
+  # --------- CALENDARS
+  - PUBLIC_HOLIDAYS
+
+  # --------- SMART CONTRACTS
+  - new_time_deposit
+  - renewed_time_deposit
+
+  # --------- ACCOUNT SCHEDULE TAGS
+  - TIME_DEPOSIT_ACCRUE_INTEREST_AST
+  - TIME_DEPOSIT_ACCOUNT_MATURITY_AST
+  - TIME_DEPOSIT_APPLY_INTEREST_AST
+  - TIME_DEPOSIT_DEPOSIT_PERIOD_END_AST
+  - TIME_DEPOSIT_GRACE_PERIOD_END_AST
+  - TIME_DEPOSIT_NOTIFY_UPCOMING_MATURITY_AST
+
+  # --------- INTERNAL ACCOUNT SMART CONTRACTS
+  - accrued_interest_payable_account_contract
+  - accrued_interest_receivable_account_contract
+  - interest_paid_account_contract
+  - interest_received_account_contract
+
+  # --------- INTERNAL ACCOUNTS
+  - ACCRUED_INTEREST_PAYABLE_ACCOUNT
+  - ACCRUED_INTEREST_RECEIVABLE_ACCOUNT
+  - INTEREST_PAID_ACCOUNT
+  - INTEREST_RECEIVED_ACCOUNT

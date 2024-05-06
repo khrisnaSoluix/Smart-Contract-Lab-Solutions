@@ -1,0 +1,11 @@
+# Copyright @ 2022 Thought Machine Group Limited. All rights reserved.
+---
+type: INTERNAL_ACCOUNT
+id: ZAKAT_RECEIVABLE_ACCOUNT
+vault_id: ZAKAT_RECEIVABLE
+payload: |
+  internal_account:
+      id: ZAKAT_RECEIVABLE
+      product_id: zakat_receivable_account_contract
+      accounting:
+        tside: TSIDE_ASSET

@@ -1,0 +1,97 @@
+dataloader_setup:
+  contract_name: "casa"
+  template_param_vals:
+    minimum_balance_fee: 10
+  dependency_groups:
+    - instances: 1
+      customer:
+        id_base: 200
+      flags: []
+      accounts:
+        - account_id_base: casa_
+          account_opening_timestamp: "2020-01-10 09:00:00 UTC"
+          instance_param_vals: &instance_param_vals
+            arranged_overdraft_limit: "1000"
+            unarranged_overdraft_limit: "2000"
+            interest_application_day: "10"
+            daily_atm_withdrawal_limit: "1000"
+# Add a few transactions to the CASA and simulate accruals over a month to get a
+# realistic sample of postings that would be present in an account.
+# Note the simulated period happens after the opening timestamp as these postings
+# must be historic compared to the effective date of the monthly/annual jobs for
+# ~ 1 month or 1 year after the account opening
+simulation_setup:
+  start: "2020-01-10 09:00:00 UTC"
+  end: "2020-02-09 09:00:00 UTC"
+  migrate_balance_ts: True
+  # 5 inbound/outbound hard settlements + 30 accruals  
+  expected_number_of_postings: 35
+  events:
+    - type: create_account_instruction
+      timestamp: start
+      account_id: "Savings pot"
+      product_id: "1"
+      instance_param_vals: {}
+    - type: create_account_instruction
+      timestamp: start
+      account_id: "Main account"
+      product_id: "2"
+      instance_param_vals: *instance_param_vals
+    - type: create_inbound_hard_settlement_instruction
+      amount: "50"
+      event_datetime: start
+      denomination: "GBP"
+      client_transaction_id: "123456"
+      client_batch_id: "123"
+    - type: create_inbound_hard_settlement_instruction
+      amount: "10"
+      event_datetime:
+        delta:
+          days: 1
+      denomination: "GBP"
+      client_transaction_id: "1"
+      client_batch_id: "123"
+    - type: create_outbound_hard_settlement_instruction
+      amount: "10"
+      event_datetime:
+        delta:
+          days: 2
+      denomination: "GBP"
+      client_transaction_id: "2"
+      client_batch_id: "123"
+    - type: create_inbound_hard_settlement_instruction
+      amount: "10"
+      event_datetime:
+        delta:
+          days: 3
+      denomination: "GBP"
+      client_transaction_id: "3"
+      client_batch_id: "123"
+    - type: create_outbound_hard_settlement_instruction
+      amount: "10"
+      event_datetime:
+        delta:
+          days: 4
+      denomination: "GBP"
+      client_transaction_id: "4"
+      client_batch_id: "123"
+expected_outcome:
+  balances:
+    # There is one less accrual in this test compared to test_casa_accrual_schedule
+    # + residual interest is rounded down when applied
+    - address: "INTERNAL_CONTRA"
+      net: "0"
+      net_credits: "0.21"
+      net_debits: "0.21"
+    - address: "ACCRUED_DEPOSIT_PAYABLE"
+      net: "0"
+      net_credits: "0.21"
+      net_debits: "0.21"
+    # This includes a £10 fee
+    - address: "DEFAULT"
+      asset: "COMMERCIAL_BANK_MONEY"
+      denomination: "GBP"
+      phase: "POSTING_PHASE_COMMITTED"
+      net: "40.21"
+      net_credits: "70.21"
+      net_debits: "30"

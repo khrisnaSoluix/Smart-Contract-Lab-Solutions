@@ -1,0 +1,488 @@
+# Copyright @ 2021 Thought Machine Group Limited. All rights reserved.
+---
+name: Us Supervisor Savings Account Disassociation
+instance_title: Us Supervisor Savings Account Disassociation
+description: A workflow to remove a US Savings Account from an existing plan
+schema_version: 3.2.0
+definition_version: 1.1.0
+starting_state: retrieve_customer_accounts
+end_states:
+  - state: account_removed_from_plan_successfully
+    result: SUCCESSFUL
+  - state: failure_to_remove_account_from_plan
+    result: FAILED
+
+states:
+  retrieve_customer_accounts:
+    display_name: Retrieve accounts
+    entry_actions:
+      save_to_global_state:
+        context_keys:
+          - user_id
+          - savings_pid
+      vault_callback:
+        path: core-api/v1/accounts
+        method: GET
+        arguments:
+          page_size: 30
+          page_token: ${next_page_token1:}
+          stakeholder_id: ${user_id}
+          account_statuses:
+            - ACCOUNT_STATUS_OPEN
+        response_event: customer_accounts_retrieved
+        response_fields:
+          - key_name: retrieved_accounts
+            response_json_path: accounts
+            extract_singleton_element: true
+          - key_name: next_page_token1
+            response_json_path: next_page_token
+            extract_singleton_element: true
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - next_page_token1
+          - retrieved_accounts
+    transitions:
+      - to: build_account_list
+        description: Accounts retrieved
+        trigger: customer_accounts_retrieved
+
+  build_account_list:
+    display_name: Build account list
+    type: transform
+    transform_ref: build_account_list
+    transitions:
+      - to: save_accounts_list
+        description: Save accounts and retrieve next page
+        trigger: retrieve_more_accounts
+      - to: check_for_accounts
+        description: All accounts retrieved
+        trigger: accounts_retrieved
+
+  save_accounts_list:
+    display_name: Save accounts list
+    entry_actions:
+      save_to_global_state:
+        context_keys:
+          - open_accounts
+          - next_page_token1
+    type: transform
+    transform: |
+      return ['context_saved', {}]
+    transitions:
+      - to: retrieve_customer_accounts
+        trigger: context_saved
+
+  check_for_accounts:
+    display_name: Check for accounts
+    entry_actions:
+      save_to_global_state:
+        context_keys:
+          - open_accounts
+    type: transform
+    transform_ref: check_for_accounts
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - customer_savings_accounts
+          - customer_other_accounts
+    transitions:
+      - to: failure_to_remove_account_from_plan
+        trigger: accounts_missing
+      - to: get_account_to_check_for_plan
+        trigger: accounts_exist
+
+  get_account_to_check_for_plan:
+    display_name: Get account to check for existing plan
+    description: Get account id for the customer account
+    type: transform
+    transform_ref: extract_account_id
+    transitions:
+      - to: retrieve_account_plan_assocs_for_account_id
+        trigger: account_id_extracted
+      - to: failure_to_remove_account_from_plan
+        description: no existing plan
+        trigger: no_more_accounts_to_check
+
+  retrieve_account_plan_assocs_for_account_id:
+    display_name: Retrieve account plan associations
+    description: Retrieve plan associations for account id
+    entry_actions:
+      save_to_global_state:
+        context_keys:
+          - open_accounts
+      vault_callback:
+        path: core-api/v1/account-plan-assocs
+        method: GET
+        arguments:
+          account_ids:
+            - ${account_id_to_check}
+          page_size: 30
+          page_token: ${next_page_token2:}
+        response_fields:
+          - key_name: plan_assocs_for_account_id
+            response_json_path: account_plan_assocs
+            extract_singleton_element: true
+          - key_name: next_page_token2
+            response_json_path: next_page_token
+            extract_singleton_element: true
+        response_event: plan_assocs_for_account_id_retrieved
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - plan_assocs_for_account_id
+          - next_page_token2
+    transitions:
+      - to: check_for_existing_plan
+        description: Check if a plan exists for this account
+        trigger: plan_assocs_for_account_id_retrieved
+
+  check_for_existing_plan:
+    display_name: Check for existing plan
+    description: Check for existing plan
+    type: transform
+    transform_ref: check_for_plans
+    transitions:
+    - to: get_account_to_check_for_plan
+      trigger: no_existing_plan_found
+    - to: retrieve_account_plan_assocs_for_account_id
+      trigger: check_next_page
+    - to: retrieve_associated_accounts_on_plan
+      trigger: existing_plan_found
+      actions:
+        save_to_global_state:
+          context_keys:
+            - plan_id
+
+  retrieve_associated_accounts_on_plan:
+    display_name: Retrieve associated accounts on plan
+    description: retrieve accounts associated with the found plan id
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/account-plan-assocs
+        method: GET
+        arguments:
+          plan_ids:
+            - ${plan_id}
+          page_size: 30
+          page_token: ${next_page_token3:}
+        response_fields:
+          - key_name: plan_assocs_for_plan_id
+            response_json_path: account_plan_assocs
+            extract_singleton_element: true
+          - key_name: next_page_token3
+            response_json_path: next_page_token
+            extract_singleton_element: true
+        response_event: account_plan_assocs_retrieved
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - plan_assocs_for_plan_id
+          - next_page_token3
+    transitions:
+      - to: check_number_of_associated_accounts
+        trigger: account_plan_assocs_retrieved
+
+  check_number_of_associated_accounts:
+    display_name: Check number of associated savings accounts on the plan
+    type: transform
+    transform_ref: get_number_of_account_assocs
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - number_of_assocs_on_plan
+          - customer_savings_accounts_not_on_plan
+          - next_page_token3
+    transitions:
+      - to: failure_to_remove_account_from_plan
+        trigger: unable_to_remove_account_from_plan
+      - to: retrieve_associated_accounts_on_plan
+        trigger: retrieve_more_associations
+      - to: create_account_selector_list
+        trigger: available_to_remove_savings_account
+
+  create_account_selector_list:
+    display_name: Generate account selector list
+    description: Generate account selector list
+    type: transform
+    transform_ref: create_selection_lists
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - accounts_to_exclude
+    transitions:
+    - to: select_account_to_remove
+      trigger: exclusion_lists_created
+
+  select_account_to_remove:
+    display_name: Select savings account to remove from plan
+    description: Select savings account to remove from plan
+    state_ui:
+      ui_actions:
+        - action_id: choose_account
+          event: account_selected
+          display_name: Choose savings account
+          ui_inputs:
+            - key: savings_account_id_to_remove
+              string_input: {}
+              display_name: Select Savings Account
+              json_definition:
+                account_selector:
+                  customer_id: ${user_id}
+                  account_statuses_to_include:
+                    - ACCOUNT_STATUS_OPEN
+                  exclude_account_ids: json_object(${accounts_to_exclude})
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - select_account_to_remove
+    transitions:
+      - to: retrieve_acc_plan_assocs_for_selected_account
+        description: Proceed
+        trigger: account_selected
+
+  retrieve_acc_plan_assocs_for_selected_account:
+    display_name: Get the account-plan association id for chosen account
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/account-plan-assocs
+        method: GET
+        arguments:
+          account_ids:
+            - ${savings_account_id_to_remove}
+          plan_ids:
+            - ${plan_id}
+          page_size: 30
+          page_token: ${next_page_token4:}
+        response_fields:
+          - key_name: account_plan_assocs_to_get_id
+            response_json_path: account_plan_assocs
+            extract_singleton_element: true
+          - key_name: next_page_token4
+            response_json_path: next_page_token
+            extract_singleton_element: true
+        response_event: account_plan_assocs_retrieved_for_selected_account
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - next_page_token4
+          - account_plan_assocs_to_get_id
+    transitions:
+      - to: extract_account_plan_assoc_id
+        trigger: account_plan_assocs_retrieved_for_selected_account
+
+  extract_account_plan_assoc_id:
+    display_name: Extract account plan association id
+    type: transform
+    transform_ref: extract_account_plan_association_id
+    transitions:
+      - to: remove_savings_account_from_plan
+        trigger: extracted_account_plan_assoc_id
+      - to: retrieve_acc_plan_assocs_for_selected_account
+        trigger: check_next_page_of_associations
+
+  remove_savings_account_from_plan:
+    display_name: Remove savings account from plan
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/plan-updates
+        method: POST
+        arguments:
+          request_id: generate_uuid()
+          plan_update:
+            plan_id: ${plan_id}
+            disassociate_account_update:
+              account_plan_assoc_id: ${account_plan_assoc_id}
+        response_fields:
+          - key_name: plan_update_id_savings
+            response_json_path: id
+            extract_singleton_element: true
+        response_event: plan_updated_savings
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - plan_update_id_savings
+    transitions:
+      - to: check_if_plan_empty
+        description: Plan updated
+        trigger: plan_updated_savings
+
+  check_if_plan_empty:
+    display_name: Check remaining associations on plan
+    type: transform
+    transform: |
+      if json.loads(context.get('number_of_assocs_on_plan')) == 1:
+        return ['plan_empty', {}]
+      return ['plan_not_empty', {}]
+    transitions:
+      - to: account_removed_from_plan_successfully
+        trigger: plan_not_empty
+      - to: close_plan
+        trigger: plan_empty
+
+  close_plan:
+    display_name: Close plan
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/plan-updates
+        method: POST
+        arguments:
+          request_id: generate_uuid()
+          plan_update:
+            plan_id: ${plan_id}
+            closure_update: {}
+        response_fields:
+          - key_name: plan_closure_update_id
+            response_json_path: id
+            extract_singleton_element: true
+        response_event: plan_closed
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - plan_closure_update_id
+    transitions:
+      - to: account_removed_from_plan_successfully
+        trigger: plan_closed
+
+  failure_to_remove_account_from_plan:
+    display_name: Failure to remove savings account from plan
+    entry_actions:
+      save_to_global_state:
+        context_keys:
+          - reject_reason
+      add_or_replace_global_ui_panels:
+        - panel_id: failure_to_add_account_to_plan
+          display_name: Cannot add savings account to plan
+          json_definition:
+            key_value_table:
+              items:
+                Error message: 'Cannot disassociate savings account from a plan: ${reject_reason}'
+
+  account_removed_from_plan_successfully:
+    display_name: Savings account removed from plan successfully
+
+transforms:
+  build_account_list: |
+    open_accounts = json.loads(context.get('open_accounts', '[]'))
+    open_accounts.extend(json.loads(context['retrieved_accounts']))
+    next_page_token = context.get('next_page_token1')
+    new_context = {'open_accounts': json.dumps(open_accounts)}
+
+    if next_page_token:
+      new_context['next_page_token1'] = next_page_token
+      return ['retrieve_more_accounts', new_context]
+    else:
+      return ['accounts_retrieved', new_context]
+
+  check_for_accounts: |
+    new_context = {}
+    accounts = json.loads(context['open_accounts'])
+    savings_pid = context.get('savings_pid') or 'us_savings_account'
+
+    if len(accounts) == 0:
+      return ['accounts_missing', {'reject_reason': 'Customer does not have any open accounts'}]
+
+    customer_savings_accounts = []
+    customer_other_accounts = []
+
+    for account in accounts:
+      if savings_pid in account['product_id']:
+        customer_savings_accounts.append(account['id'])
+
+      else:
+        customer_other_accounts.append(account['id'])
+
+    new_context['customer_savings_accounts'] = json.dumps(customer_savings_accounts)
+    new_context['customer_other_accounts'] = json.dumps(customer_other_accounts)
+
+    if len(customer_savings_accounts) == 0:
+      return ['accounts_missing', {'reject_reason': 'Customer does not have any open savings accounts'}]
+    else:
+      return ['accounts_exist', new_context]
+
+  extract_account_id: |
+    new_context = {}
+    accounts = json.loads(context.get('open_accounts'))
+
+    if len(accounts) == 0:
+      return ['no_more_accounts_to_check', {'reject_reason': 'Customer does not have an existing plan'}]
+
+    account_id_to_check = accounts.pop()['id']
+    new_context['open_accounts'] = json.dumps(accounts)
+    new_context['account_id_to_check'] = account_id_to_check
+
+    return ['account_id_extracted', new_context]
+
+  check_for_plans: |
+    new_context = {}
+    plan_assocs = json.loads(context['plan_assocs_for_account_id'])
+    next_page_token = context.get('next_page_token2')
+
+    for association in plan_assocs:
+      if association['status'] == "ACCOUNT_PLAN_ASSOC_STATUS_ACTIVE":
+        plan_id = association['plan_id']
+        new_context['plan_id'] = plan_id
+
+        return ['existing_plan_found', new_context]
+
+    if next_page_token:
+      return ['check_next_page', {'next_page_token2': next_page_token}]
+    else:
+      return ['no_existing_plan_found', {}]
+
+  get_number_of_account_assocs: |
+    new_context = {}
+    plan_assocs = json.loads(context['plan_assocs_for_plan_id'])
+    next_page_token = context.get('next_page_token3')
+    customer_savings_accounts = json.loads(context.get('customer_savings_accounts'))
+    number_of_assocs_on_plan = json.loads(context.get('number_of_assocs_on_plan', '0'))
+
+    exists_savings_on_plan = False
+
+    if 'customer_savings_accounts_not_on_plan' not in context:
+      customer_savings_accounts_not_on_plan = customer_savings_accounts
+    else:
+      customer_savings_accounts_not_on_plan = json.loads(context.get('customer_savings_accounts_not_on_plan'))
+
+    for association in plan_assocs:
+      if association['status'] == "ACCOUNT_PLAN_ASSOC_STATUS_ACTIVE":
+        number_of_assocs_on_plan +=1
+
+        if association['account_id'] in customer_savings_accounts:
+          customer_savings_accounts_not_on_plan.remove(association['account_id'])
+          exists_savings_on_plan = True
+
+    new_context['customer_savings_accounts_not_on_plan'] = json.dumps(customer_savings_accounts_not_on_plan)
+    new_context['number_of_assocs_on_plan'] = json.dumps(number_of_assocs_on_plan)
+
+    if next_page_token:
+      new_context['next_page_token3'] = next_page_token
+      return ['retrieve_more_associations', new_context]
+
+    if exists_savings_on_plan:
+      return ['available_to_remove_savings_account', new_context]
+
+    else:
+      new_context['reject_reason'] = 'Customer does not have any savings accounts that are associated to a plan'
+      return ['unable_to_remove_account_from_plan', new_context]
+
+  create_selection_lists: |
+    new_context = {}
+    accounts_to_exclude = json.loads(context.get('customer_other_accounts'))
+
+    accounts_to_exclude.extend(json.loads(context.get('customer_savings_accounts_not_on_plan')))
+
+    new_context['accounts_to_exclude'] = json.dumps(accounts_to_exclude)
+
+    return ['exclusion_lists_created', new_context]
+
+  extract_account_plan_association_id: |
+    account_plan_associations = json.loads(context['account_plan_assocs_to_get_id'])
+    next_page_token = context.get('next_page_token4')
+
+    for association in account_plan_associations:
+      if association['status'] == "ACCOUNT_PLAN_ASSOC_STATUS_ACTIVE":
+        account_plan_assoc_id = association['id']
+        return ['extracted_account_plan_assoc_id', {'account_plan_assoc_id': account_plan_assoc_id}]
+
+    return ['check_next_page_of_associations', {'next_page_token4': next_page_token}]

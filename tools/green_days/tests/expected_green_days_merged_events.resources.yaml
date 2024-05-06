@@ -1,0 +1,637 @@
+resources:
+- type: CALENDAR_EVENT
+  id: nsw_calendar_event_04_jan_2022
+  vault_id: nsw_calendar_event_04_jan_2022
+  on_conflict: SKIP
+  payload: |
+    calendar_event:
+      id: nsw_calendar_event_04_jan_2022
+      calendar_id: '&{nsw_calendar_green_days}'
+      name: 04 Jan 2022
+      is_active: true
+      start_timestamp: 2022-01-04T00:00:00+11:00
+      end_timestamp: 2022-01-08T00:00:00+11:00
+- type: CALENDAR_EVENT
+  id: nsw_calendar_event_10_jan_2022
+  vault_id: nsw_calendar_event_10_jan_2022
+  on_conflict: SKIP
+  payload: |
+    calendar_event:
+      id: nsw_calendar_event_10_jan_2022
+      calendar_id: '&{nsw_calendar_green_days}'
+      name: 10 Jan 2022
+      is_active: true
+      start_timestamp: 2022-01-10T00:00:00+11:00
+      end_timestamp: 2022-01-15T00:00:00+11:00
+- type: CALENDAR_EVENT
+  id: nsw_calendar_event_17_jan_2022
+  vault_id: nsw_calendar_event_17_jan_2022
+  on_conflict: SKIP
+  payload: |
+    calendar_event:
+      id: nsw_calendar_event_17_jan_2022
+      calendar_id: '&{nsw_calendar_green_days}'
+      name: 17 Jan 2022
+      is_active: true
+      start_timestamp: 2022-01-17T00:00:00+11:00
+      end_timestamp: 2022-01-22T00:00:00+11:00
+- type: CALENDAR_EVENT
+  id: nsw_calendar_event_24_jan_2022
+  vault_id: nsw_calendar_event_24_jan_2022
+  on_conflict: SKIP
+  payload: |
+    calendar_event:
+      id: nsw_calendar_event_24_jan_2022
+      calendar_id: '&{nsw_calendar_green_days}'
+      name: 24 Jan 2022
+      is_active: true
+      start_timestamp: 2022-01-24T00:00:00+11:00
+      end_timestamp: 2022-01-26T00:00:00+11:00
+- type: CALENDAR_EVENT
+  id: nsw_calendar_event_27_jan_2022
+  vault_id: nsw_calendar_event_27_jan_2022
+  on_conflict: SKIP
+  payload: |
+    calendar_event:
+      id: nsw_calendar_event_27_jan_2022
+      calendar_id: '&{nsw_calendar_green_days}'
+      name: 27 Jan 2022
+      is_active: true
+      start_timestamp: 2022-01-27T00:00:00+11:00
+      end_timestamp: 2022-01-29T00:00:00+11:00
+- type: CALENDAR_EVENT
+  id: nsw_calendar_event_31_jan_2022
+  vault_id: nsw_calendar_event_31_jan_2022
+  on_conflict: SKIP
+  payload: |
+    calendar_event:
+      id: nsw_calendar_event_31_jan_2022
+      calendar_id: '&{nsw_calendar_green_days}'
+      name: 31 Jan 2022
+      is_active: true
+      start_timestamp: 2022-01-31T00:00:00+11:00
+      end_timestamp: 2022-02-05T00:00:00+11:00
+- type: CALENDAR_EVENT
+  id: nsw_calendar_event_07_feb_2022
+  vault_id: nsw_calendar_event_07_feb_2022
+  on_conflict: SKIP
+  payload: |
+    calendar_event:
+      id: nsw_calendar_event_07_feb_2022
+      calendar_id: '&{nsw_calendar_green_days}'
+      name: 07 Feb 2022
+      is_active: true
+      start_timestamp: 2022-02-07T00:00:00+11:00
+      end_timestamp: 2022-02-12T00:00:00+11:00
+- type: CALENDAR_EVENT
+  id: nsw_calendar_event_14_feb_2022
+  vault_id: nsw_calendar_event_14_feb_2022
+  on_conflict: SKIP
+  payload: |
+    calendar_event:
+      id: nsw_calendar_event_14_feb_2022
+      calendar_id: '&{nsw_calendar_green_days}'
+      name: 14 Feb 2022
+      is_active: true
+      start_timestamp: 2022-02-14T00:00:00+11:00
+      end_timestamp: 2022-02-19T00:00:00+11:00
+- type: CALENDAR_EVENT
+  id: nsw_calendar_event_21_feb_2022
+  vault_id: nsw_calendar_event_21_feb_2022
+  on_conflict: SKIP
+  payload: |
+    calendar_event:
+      id: nsw_calendar_event_21_feb_2022
+      calendar_id: '&{nsw_calendar_green_days}'
+      name: 21 Feb 2022
+      is_active: true
+      start_timestamp: 2022-02-21T00:00:00+11:00
+      end_timestamp: 2022-02-26T00:00:00+11:00
+- type: CALENDAR_EVENT
+  id: nsw_calendar_event_28_feb_2022
+  vault_id: nsw_calendar_event_28_feb_2022
+  on_conflict: SKIP
+  payload: |
+    calendar_event:
+      id: nsw_calendar_event_28_feb_2022
+      calendar_id: '&{nsw_calendar_green_days}'
+      name: 28 Feb 2022
+      is_active: true
+      start_timestamp: 2022-02-28T00:00:00+11:00
+      end_timestamp: 2022-03-05T00:00:00+11:00
+- type: CALENDAR_EVENT
+  id: nsw_calendar_event_07_mar_2022
+  vault_id: nsw_calendar_event_07_mar_2022
+  on_conflict: SKIP
+  payload: |
+    calendar_event:
+      id: nsw_calendar_event_07_mar_2022
+      calendar_id: '&{nsw_calendar_green_days}'
+      name: 07 Mar 2022
+      is_active: true
+      start_timestamp: 2022-03-07T00:00:00+11:00
+      end_timestamp: 2022-03-12T00:00:00+11:00
+- type: CALENDAR_EVENT
+  id: nsw_calendar_event_14_mar_2022
+  vault_id: nsw_calendar_event_14_mar_2022
+  on_conflict: SKIP
+  payload: |
+    calendar_event:
+      id: nsw_calendar_event_14_mar_2022
+      calendar_id: '&{nsw_calendar_green_days}'
+      name: 14 Mar 2022
+      is_active: true
+      start_timestamp: 2022-03-14T00:00:00+11:00
+      end_timestamp: 2022-03-19T00:00:00+11:00
+- type: CALENDAR_EVENT
+  id: nsw_calendar_event_21_mar_2022
+  vault_id: nsw_calendar_event_21_mar_2022
+  on_conflict: SKIP
+  payload: |
+    calendar_event:
+      id: nsw_calendar_event_21_mar_2022
+      calendar_id: '&{nsw_calendar_green_days}'
+      name: 21 Mar 2022
+      is_active: true
+      start_timestamp: 2022-03-21T00:00:00+11:00
+      end_timestamp: 2022-03-26T00:00:00+11:00
+- type: CALENDAR_EVENT
+  id: nsw_calendar_event_28_mar_2022
+  vault_id: nsw_calendar_event_28_mar_2022
+  on_conflict: SKIP
+  payload: |
+    calendar_event:
+      id: nsw_calendar_event_28_mar_2022
+      calendar_id: '&{nsw_calendar_green_days}'
+      name: 28 Mar 2022
+      is_active: true
+      start_timestamp: 2022-03-28T00:00:00+11:00
+      end_timestamp: 2022-04-02T00:00:00+11:00
+- type: CALENDAR_EVENT
+  id: nsw_calendar_event_04_apr_2022
+  vault_id: nsw_calendar_event_04_apr_2022
+  on_conflict: SKIP
+  payload: |
+    calendar_event:
+      id: nsw_calendar_event_04_apr_2022
+      calendar_id: '&{nsw_calendar_green_days}'
+      name: 04 Apr 2022
+      is_active: true
+      start_timestamp: 2022-04-04T00:00:00+10:00
+      end_timestamp: 2022-04-09T00:00:00+10:00
+- type: CALENDAR_EVENT
+  id: nsw_calendar_event_11_apr_2022
+  vault_id: nsw_calendar_event_11_apr_2022
+  on_conflict: SKIP
+  payload: |
+    calendar_event:
+      id: nsw_calendar_event_11_apr_2022
+      calendar_id: '&{nsw_calendar_green_days}'
+      name: 11 Apr 2022
+      is_active: true
+      start_timestamp: 2022-04-11T00:00:00+10:00
+      end_timestamp: 2022-04-15T00:00:00+10:00
+- type: CALENDAR_EVENT
+  id: nsw_calendar_event_19_apr_2022
+  vault_id: nsw_calendar_event_19_apr_2022
+  on_conflict: SKIP
+  payload: |
+    calendar_event:
+      id: nsw_calendar_event_19_apr_2022
+      calendar_id: '&{nsw_calendar_green_days}'
+      name: 19 Apr 2022
+      is_active: true
+      start_timestamp: 2022-04-19T00:00:00+10:00
+      end_timestamp: 2022-04-23T00:00:00+10:00
+- type: CALENDAR_EVENT
+  id: nsw_calendar_event_26_apr_2022
+  vault_id: nsw_calendar_event_26_apr_2022
+  on_conflict: SKIP
+  payload: |
+    calendar_event:
+      id: nsw_calendar_event_26_apr_2022
+      calendar_id: '&{nsw_calendar_green_days}'
+      name: 26 Apr 2022
+      is_active: true
+      start_timestamp: 2022-04-26T00:00:00+10:00
+      end_timestamp: 2022-04-30T00:00:00+10:00
+- type: CALENDAR_EVENT
+  id: nsw_calendar_event_02_may_2022
+  vault_id: nsw_calendar_event_02_may_2022
+  on_conflict: SKIP
+  payload: |
+    calendar_event:
+      id: nsw_calendar_event_02_may_2022
+      calendar_id: '&{nsw_calendar_green_days}'
+      name: 02 May 2022
+      is_active: true
+      start_timestamp: 2022-05-02T00:00:00+10:00
+      end_timestamp: 2022-05-07T00:00:00+10:00
+- type: CALENDAR_EVENT
+  id: nsw_calendar_event_09_may_2022
+  vault_id: nsw_calendar_event_09_may_2022
+  on_conflict: SKIP
+  payload: |
+    calendar_event:
+      id: nsw_calendar_event_09_may_2022
+      calendar_id: '&{nsw_calendar_green_days}'
+      name: 09 May 2022
+      is_active: true
+      start_timestamp: 2022-05-09T00:00:00+10:00
+      end_timestamp: 2022-05-14T00:00:00+10:00
+- type: CALENDAR_EVENT
+  id: nsw_calendar_event_16_may_2022
+  vault_id: nsw_calendar_event_16_may_2022
+  on_conflict: SKIP
+  payload: |
+    calendar_event:
+      id: nsw_calendar_event_16_may_2022
+      calendar_id: '&{nsw_calendar_green_days}'
+      name: 16 May 2022
+      is_active: true
+      start_timestamp: 2022-05-16T00:00:00+10:00
+      end_timestamp: 2022-05-21T00:00:00+10:00
+- type: CALENDAR_EVENT
+  id: nsw_calendar_event_23_may_2022
+  vault_id: nsw_calendar_event_23_may_2022
+  on_conflict: SKIP
+  payload: |
+    calendar_event:
+      id: nsw_calendar_event_23_may_2022
+      calendar_id: '&{nsw_calendar_green_days}'
+      name: 23 May 2022
+      is_active: true
+      start_timestamp: 2022-05-23T00:00:00+10:00
+      end_timestamp: 2022-05-28T00:00:00+10:00
+- type: CALENDAR_EVENT
+  id: nsw_calendar_event_30_may_2022
+  vault_id: nsw_calendar_event_30_may_2022
+  on_conflict: SKIP
+  payload: |
+    calendar_event:
+      id: nsw_calendar_event_30_may_2022
+      calendar_id: '&{nsw_calendar_green_days}'
+      name: 30 May 2022
+      is_active: true
+      start_timestamp: 2022-05-30T00:00:00+10:00
+      end_timestamp: 2022-06-04T00:00:00+10:00
+- type: CALENDAR_EVENT
+  id: nsw_calendar_event_06_jun_2022
+  vault_id: nsw_calendar_event_06_jun_2022
+  on_conflict: SKIP
+  payload: |
+    calendar_event:
+      id: nsw_calendar_event_06_jun_2022
+      calendar_id: '&{nsw_calendar_green_days}'
+      name: 06 Jun 2022
+      is_active: true
+      start_timestamp: 2022-06-06T00:00:00+10:00
+      end_timestamp: 2022-06-11T00:00:00+10:00
+- type: CALENDAR_EVENT
+  id: nsw_calendar_event_14_jun_2022
+  vault_id: nsw_calendar_event_14_jun_2022
+  on_conflict: SKIP
+  payload: |
+    calendar_event:
+      id: nsw_calendar_event_14_jun_2022
+      calendar_id: '&{nsw_calendar_green_days}'
+      name: 14 Jun 2022
+      is_active: true
+      start_timestamp: 2022-06-14T00:00:00+10:00
+      end_timestamp: 2022-06-18T00:00:00+10:00
+- type: CALENDAR_EVENT
+  id: nsw_calendar_event_20_jun_2022
+  vault_id: nsw_calendar_event_20_jun_2022
+  on_conflict: SKIP
+  payload: |
+    calendar_event:
+      id: nsw_calendar_event_20_jun_2022
+      calendar_id: '&{nsw_calendar_green_days}'
+      name: 20 Jun 2022
+      is_active: true
+      start_timestamp: 2022-06-20T00:00:00+10:00
+      end_timestamp: 2022-06-25T00:00:00+10:00
+- type: CALENDAR_EVENT
+  id: nsw_calendar_event_27_jun_2022
+  vault_id: nsw_calendar_event_27_jun_2022
+  on_conflict: SKIP
+  payload: |
+    calendar_event:
+      id: nsw_calendar_event_27_jun_2022
+      calendar_id: '&{nsw_calendar_green_days}'
+      name: 27 Jun 2022
+      is_active: true
+      start_timestamp: 2022-06-27T00:00:00+10:00
+      end_timestamp: 2022-07-02T00:00:00+10:00
+- type: CALENDAR_EVENT
+  id: nsw_calendar_event_04_jul_2022
+  vault_id: nsw_calendar_event_04_jul_2022
+  on_conflict: SKIP
+  payload: |
+    calendar_event:
+      id: nsw_calendar_event_04_jul_2022
+      calendar_id: '&{nsw_calendar_green_days}'
+      name: 04 Jul 2022
+      is_active: true
+      start_timestamp: 2022-07-04T00:00:00+10:00
+      end_timestamp: 2022-07-09T00:00:00+10:00
+- type: CALENDAR_EVENT
+  id: nsw_calendar_event_11_jul_2022
+  vault_id: nsw_calendar_event_11_jul_2022
+  on_conflict: SKIP
+  payload: |
+    calendar_event:
+      id: nsw_calendar_event_11_jul_2022
+      calendar_id: '&{nsw_calendar_green_days}'
+      name: 11 Jul 2022
+      is_active: true
+      start_timestamp: 2022-07-11T00:00:00+10:00
+      end_timestamp: 2022-07-16T00:00:00+10:00
+- type: CALENDAR_EVENT
+  id: nsw_calendar_event_18_jul_2022
+  vault_id: nsw_calendar_event_18_jul_2022
+  on_conflict: SKIP
+  payload: |
+    calendar_event:
+      id: nsw_calendar_event_18_jul_2022
+      calendar_id: '&{nsw_calendar_green_days}'
+      name: 18 Jul 2022
+      is_active: true
+      start_timestamp: 2022-07-18T00:00:00+10:00
+      end_timestamp: 2022-07-23T00:00:00+10:00
+- type: CALENDAR_EVENT
+  id: nsw_calendar_event_25_jul_2022
+  vault_id: nsw_calendar_event_25_jul_2022
+  on_conflict: SKIP
+  payload: |
+    calendar_event:
+      id: nsw_calendar_event_25_jul_2022
+      calendar_id: '&{nsw_calendar_green_days}'
+      name: 25 Jul 2022
+      is_active: true
+      start_timestamp: 2022-07-25T00:00:00+10:00
+      end_timestamp: 2022-07-30T00:00:00+10:00
+- type: CALENDAR_EVENT
+  id: nsw_calendar_event_02_aug_2022
+  vault_id: nsw_calendar_event_02_aug_2022
+  on_conflict: SKIP
+  payload: |
+    calendar_event:
+      id: nsw_calendar_event_02_aug_2022
+      calendar_id: '&{nsw_calendar_green_days}'
+      name: 02 Aug 2022
+      is_active: true
+      start_timestamp: 2022-08-02T00:00:00+10:00
+      end_timestamp: 2022-08-06T00:00:00+10:00
+- type: CALENDAR_EVENT
+  id: nsw_calendar_event_08_aug_2022
+  vault_id: nsw_calendar_event_08_aug_2022
+  on_conflict: SKIP
+  payload: |
+    calendar_event:
+      id: nsw_calendar_event_08_aug_2022
+      calendar_id: '&{nsw_calendar_green_days}'
+      name: 08 Aug 2022
+      is_active: true
+      start_timestamp: 2022-08-08T00:00:00+10:00
+      end_timestamp: 2022-08-13T00:00:00+10:00
+- type: CALENDAR_EVENT
+  id: nsw_calendar_event_15_aug_2022
+  vault_id: nsw_calendar_event_15_aug_2022
+  on_conflict: SKIP
+  payload: |
+    calendar_event:
+      id: nsw_calendar_event_15_aug_2022
+      calendar_id: '&{nsw_calendar_green_days}'
+      name: 15 Aug 2022
+      is_active: true
+      start_timestamp: 2022-08-15T00:00:00+10:00
+      end_timestamp: 2022-08-20T00:00:00+10:00
+- type: CALENDAR_EVENT
+  id: nsw_calendar_event_22_aug_2022
+  vault_id: nsw_calendar_event_22_aug_2022
+  on_conflict: SKIP
+  payload: |
+    calendar_event:
+      id: nsw_calendar_event_22_aug_2022
+      calendar_id: '&{nsw_calendar_green_days}'
+      name: 22 Aug 2022
+      is_active: true
+      start_timestamp: 2022-08-22T00:00:00+10:00
+      end_timestamp: 2022-08-27T00:00:00+10:00
+- type: CALENDAR_EVENT
+  id: nsw_calendar_event_29_aug_2022
+  vault_id: nsw_calendar_event_29_aug_2022
+  on_conflict: SKIP
+  payload: |
+    calendar_event:
+      id: nsw_calendar_event_29_aug_2022
+      calendar_id: '&{nsw_calendar_green_days}'
+      name: 29 Aug 2022
+      is_active: true
+      start_timestamp: 2022-08-29T00:00:00+10:00
+      end_timestamp: 2022-09-03T00:00:00+10:00
+- type: CALENDAR_EVENT
+  id: nsw_calendar_event_05_sep_2022
+  vault_id: nsw_calendar_event_05_sep_2022
+  on_conflict: SKIP
+  payload: |
+    calendar_event:
+      id: nsw_calendar_event_05_sep_2022
+      calendar_id: '&{nsw_calendar_green_days}'
+      name: 05 Sep 2022
+      is_active: true
+      start_timestamp: 2022-09-05T00:00:00+10:00
+      end_timestamp: 2022-09-10T00:00:00+10:00
+- type: CALENDAR_EVENT
+  id: nsw_calendar_event_12_sep_2022
+  vault_id: nsw_calendar_event_12_sep_2022
+  on_conflict: SKIP
+  payload: |
+    calendar_event:
+      id: nsw_calendar_event_12_sep_2022
+      calendar_id: '&{nsw_calendar_green_days}'
+      name: 12 Sep 2022
+      is_active: true
+      start_timestamp: 2022-09-12T00:00:00+10:00
+      end_timestamp: 2022-09-17T00:00:00+10:00
+- type: CALENDAR_EVENT
+  id: nsw_calendar_event_19_sep_2022
+  vault_id: nsw_calendar_event_19_sep_2022
+  on_conflict: SKIP
+  payload: |
+    calendar_event:
+      id: nsw_calendar_event_19_sep_2022
+      calendar_id: '&{nsw_calendar_green_days}'
+      name: 19 Sep 2022
+      is_active: true
+      start_timestamp: 2022-09-19T00:00:00+10:00
+      end_timestamp: 2022-09-24T00:00:00+10:00
+- type: CALENDAR_EVENT
+  id: nsw_calendar_event_26_sep_2022
+  vault_id: nsw_calendar_event_26_sep_2022
+  on_conflict: SKIP
+  payload: |
+    calendar_event:
+      id: nsw_calendar_event_26_sep_2022
+      calendar_id: '&{nsw_calendar_green_days}'
+      name: 26 Sep 2022
+      is_active: true
+      start_timestamp: 2022-09-26T00:00:00+10:00
+      end_timestamp: 2022-10-01T00:00:00+10:00
+- type: CALENDAR_EVENT
+  id: nsw_calendar_event_04_oct_2022
+  vault_id: nsw_calendar_event_04_oct_2022
+  on_conflict: SKIP
+  payload: |
+    calendar_event:
+      id: nsw_calendar_event_04_oct_2022
+      calendar_id: '&{nsw_calendar_green_days}'
+      name: 04 Oct 2022
+      is_active: true
+      start_timestamp: 2022-10-04T00:00:00+11:00
+      end_timestamp: 2022-10-08T00:00:00+11:00
+- type: CALENDAR_EVENT
+  id: nsw_calendar_event_10_oct_2022
+  vault_id: nsw_calendar_event_10_oct_2022
+  on_conflict: SKIP
+  payload: |
+    calendar_event:
+      id: nsw_calendar_event_10_oct_2022
+      calendar_id: '&{nsw_calendar_green_days}'
+      name: 10 Oct 2022
+      is_active: true
+      start_timestamp: 2022-10-10T00:00:00+11:00
+      end_timestamp: 2022-10-15T00:00:00+11:00
+- type: CALENDAR_EVENT
+  id: nsw_calendar_event_17_oct_2022
+  vault_id: nsw_calendar_event_17_oct_2022
+  on_conflict: SKIP
+  payload: |
+    calendar_event:
+      id: nsw_calendar_event_17_oct_2022
+      calendar_id: '&{nsw_calendar_green_days}'
+      name: 17 Oct 2022
+      is_active: true
+      start_timestamp: 2022-10-17T00:00:00+11:00
+      end_timestamp: 2022-10-22T00:00:00+11:00
+- type: CALENDAR_EVENT
+  id: nsw_calendar_event_24_oct_2022
+  vault_id: nsw_calendar_event_24_oct_2022
+  on_conflict: SKIP
+  payload: |
+    calendar_event:
+      id: nsw_calendar_event_24_oct_2022
+      calendar_id: '&{nsw_calendar_green_days}'
+      name: 24 Oct 2022
+      is_active: true
+      start_timestamp: 2022-10-24T00:00:00+11:00
+      end_timestamp: 2022-10-29T00:00:00+11:00
+- type: CALENDAR_EVENT
+  id: nsw_calendar_event_31_oct_2022
+  vault_id: nsw_calendar_event_31_oct_2022
+  on_conflict: SKIP
+  payload: |
+    calendar_event:
+      id: nsw_calendar_event_31_oct_2022
+      calendar_id: '&{nsw_calendar_green_days}'
+      name: 31 Oct 2022
+      is_active: true
+      start_timestamp: 2022-10-31T00:00:00+11:00
+      end_timestamp: 2022-11-05T00:00:00+11:00
+- type: CALENDAR_EVENT
+  id: nsw_calendar_event_07_nov_2022
+  vault_id: nsw_calendar_event_07_nov_2022
+  on_conflict: SKIP
+  payload: |
+    calendar_event:
+      id: nsw_calendar_event_07_nov_2022
+      calendar_id: '&{nsw_calendar_green_days}'
+      name: 07 Nov 2022
+      is_active: true
+      start_timestamp: 2022-11-07T00:00:00+11:00
+      end_timestamp: 2022-11-12T00:00:00+11:00
+- type: CALENDAR_EVENT
+  id: nsw_calendar_event_14_nov_2022
+  vault_id: nsw_calendar_event_14_nov_2022
+  on_conflict: SKIP
+  payload: |
+    calendar_event:
+      id: nsw_calendar_event_14_nov_2022
+      calendar_id: '&{nsw_calendar_green_days}'
+      name: 14 Nov 2022
+      is_active: true
+      start_timestamp: 2022-11-14T00:00:00+11:00
+      end_timestamp: 2022-11-19T00:00:00+11:00
+- type: CALENDAR_EVENT
+  id: nsw_calendar_event_21_nov_2022
+  vault_id: nsw_calendar_event_21_nov_2022
+  on_conflict: SKIP
+  payload: |
+    calendar_event:
+      id: nsw_calendar_event_21_nov_2022
+      calendar_id: '&{nsw_calendar_green_days}'
+      name: 21 Nov 2022
+      is_active: true
+      start_timestamp: 2022-11-21T00:00:00+11:00
+      end_timestamp: 2022-11-26T00:00:00+11:00
+- type: CALENDAR_EVENT
+  id: nsw_calendar_event_28_nov_2022
+  vault_id: nsw_calendar_event_28_nov_2022
+  on_conflict: SKIP
+  payload: |
+    calendar_event:
+      id: nsw_calendar_event_28_nov_2022
+      calendar_id: '&{nsw_calendar_green_days}'
+      name: 28 Nov 2022
+      is_active: true
+      start_timestamp: 2022-11-28T00:00:00+11:00
+      end_timestamp: 2022-12-03T00:00:00+11:00
+- type: CALENDAR_EVENT
+  id: nsw_calendar_event_05_dec_2022
+  vault_id: nsw_calendar_event_05_dec_2022
+  on_conflict: SKIP
+  payload: |
+    calendar_event:
+      id: nsw_calendar_event_05_dec_2022
+      calendar_id: '&{nsw_calendar_green_days}'
+      name: 05 Dec 2022
+      is_active: true
+      start_timestamp: 2022-12-05T00:00:00+11:00
+      end_timestamp: 2022-12-10T00:00:00+11:00
+- type: CALENDAR_EVENT
+  id: nsw_calendar_event_12_dec_2022
+  vault_id: nsw_calendar_event_12_dec_2022
+  on_conflict: SKIP
+  payload: |
+    calendar_event:
+      id: nsw_calendar_event_12_dec_2022
+      calendar_id: '&{nsw_calendar_green_days}'
+      name: 12 Dec 2022
+      is_active: true
+      start_timestamp: 2022-12-12T00:00:00+11:00
+      end_timestamp: 2022-12-17T00:00:00+11:00
+- type: CALENDAR_EVENT
+  id: nsw_calendar_event_19_dec_2022
+  vault_id: nsw_calendar_event_19_dec_2022
+  on_conflict: SKIP
+  payload: |
+    calendar_event:
+      id: nsw_calendar_event_19_dec_2022
+      calendar_id: '&{nsw_calendar_green_days}'
+      name: 19 Dec 2022
+      is_active: true
+      start_timestamp: 2022-12-19T00:00:00+11:00
+      end_timestamp: 2022-12-24T00:00:00+11:00
+- type: CALENDAR_EVENT
+  id: nsw_calendar_event_28_dec_2022
+  vault_id: nsw_calendar_event_28_dec_2022
+  on_conflict: SKIP
+  payload: |
+    calendar_event:
+      id: nsw_calendar_event_28_dec_2022
+      calendar_id: '&{nsw_calendar_green_days}'
+      name: 28 Dec 2022
+      is_active: true
+      start_timestamp: 2022-12-28T00:00:00+11:00
+      end_timestamp: 2022-12-31T00:00:00+11:00

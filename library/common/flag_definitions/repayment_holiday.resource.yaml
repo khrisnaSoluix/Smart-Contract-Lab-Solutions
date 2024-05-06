@@ -1,0 +1,10 @@
+---
+type: FLAG_DEFINITION
+id: REPAYMENT_HOLIDAY
+payload: |
+  flag_definition:
+    id: REPAYMENT_HOLIDAY
+    name: REPAYMENT_HOLIDAY
+    description: Account repayment holiday
+    required_flag_level: FLAG_LEVEL_ACCOUNT
+    flag_visibility: FLAG_VISIBILITY_OPERATOR

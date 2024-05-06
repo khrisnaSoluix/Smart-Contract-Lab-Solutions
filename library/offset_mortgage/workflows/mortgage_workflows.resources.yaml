@@ -1,0 +1,24 @@
+# Copyright @ 2021 Thought Machine Group Limited. All rights reserved.
+---
+resources:
+  - type: WORKFLOW_DEFINITION_VERSION
+    id: OFFSET_MORTGAGE_APPLICATION
+    activate: true
+    payload: |
+      workflow_definition_version:
+          workflow_definition_id: OFFSET_MORTGAGE_APPLICATION
+          specification: '@{offset_mortgage_application.yaml}'
+  - type: WORKFLOW_DEFINITION_VERSION
+    id: OFFSET_MORTGAGE_CLOSURE
+    activate: true
+    payload: |
+      workflow_definition_version:
+          workflow_definition_id: OFFSET_MORTGAGE_CLOSURE
+          specification: '@{offset_mortgage_closure.yaml}'
+  - type: WORKFLOW_DEFINITION_VERSION
+    id: OFFSET_MORTGAGE_UPDATE
+    activate: true
+    payload: |
+      workflow_definition_version:
+          workflow_definition_id: OFFSET_MORTGAGE_UPDATE
+          specification: '@{offset_mortgage_update.yaml}'

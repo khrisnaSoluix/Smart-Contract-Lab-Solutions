@@ -1,0 +1,41 @@
+# Copyright @ 2021 Thought Machine Group Limited. All rights reserved.
+---
+type: SMART_CONTRACT_VERSION
+id: time_deposit
+payload: |
+  product_version:
+      display_name: Time Deposit
+      code: '@{time_deposit.py}'
+      product_id: time_deposit
+      params:
+        - name: denomination
+          value: 'GBP'
+        - name: interest_accrual_hour
+          value: '23'
+        - name: interest_accrual_minute
+          value: '58'
+        - name: interest_accrual_second
+          value: '59'
+        - name: interest_application_hour
+          value: '23'
+        - name: interest_application_minute
+          value: '59'
+        - name: interest_application_second
+          value: '59'
+        - name: accrual_precision
+          value: '5'
+        - name: fulfillment_precision
+          value: '2'
+        - name: minimum_first_deposit
+          value: '50'
+        - name: maximum_balance
+          value: '100000'
+        - name: single_deposit
+          value: 'unlimited'
+        - name: accrued_interest_payable_account
+          value: 'ACCRUED_INTEREST_PAYABLE'
+        - name: interest_paid_account
+          value: 'INTEREST_PAID'
+      tags:
+        - "SAVING"
+  migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_ADD_VERSION_APPLY_NEW_USERS

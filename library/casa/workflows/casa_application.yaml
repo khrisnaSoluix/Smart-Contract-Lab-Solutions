@@ -1,0 +1,633 @@
+# Copyright @ 2021 Thought Machine Group Limited. All rights reserved.
+---
+name: CASA Application
+instance_title: CASA Application
+description: Apply for a CASA Account
+schema_version: 3.2.0
+definition_version: 1.0.5
+
+starting_state: select_product_id
+end_states:
+  - state: account_opened_successfully
+    result: SUCCESSFUL
+  - state: account_opening_failed
+    result: FAILED
+
+states:
+  select_product_id:
+    display_name: Select Product Id
+    description: Select product id from 'current_account' or 'easy_access_saver'
+    expected_context_keys:
+      - user_id
+    entry_actions:
+      save_to_global_state:
+        context_keys:
+          - user_id
+    state_ui:
+      ui_actions:
+        - action_id: select_product
+          event: product_id_selected
+          display_name: Select Product
+          ui_inputs:
+            - key: product_id
+              display_name: Current account or Easy Access Saver?
+              string_input: {}
+              json_definition:
+                value_selector:
+                  values:
+                    - label: "Current Account"
+                      value: "current_account"
+                    - label: "Easy Access Saver"
+                      value: "easy_access_saver"
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - product_id
+    transitions:
+      - to: capture_account_tier
+        trigger: product_id_selected
+
+
+  capture_account_tier:
+    display_name: Capture account tier
+    state_ui:
+      ui_actions:
+        - action_id: account tier
+          event: account_tier_selected
+          display_name: Select account tier
+          ui_inputs:
+            - key: account_tier
+              display_name: Account tier
+              string_input: {}
+              json_definition:
+                value_selector:
+                  values:
+                    - value: "&{CASA_TIER_UPPER}"
+                      label: "Upper Tier"
+                    - value: "&{CASA_TIER_MIDDLE}"
+                      label: "Middle Tier"
+                    - value: "&{CASA_TIER_LOWER}"
+                      label: "Lower Tier"
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - account_tier
+    transitions:
+      - to: query_contract_versions
+        trigger: account_tier_selected
+        description: account tier has been selected
+
+  query_contract_versions:
+    display_name: Fetch contract versions
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/product-versions
+        method: GET
+        arguments:
+          product_id: ${product_id}
+          view: PRODUCT_VERSION_VIEW_INCLUDE_PARAMETERS
+          page_size: 30
+          page_token: ${next_page_token:}
+        response_event: contract_versions_returned
+        response_fields:
+          - key_name: product_versions
+            response_json_path: product_versions
+            extract_singleton_element: true
+          - key_name: next_page_token
+            response_json_path: next_page_token
+            extract_singleton_element: true
+    transitions:
+      - to: extract_current_contract_parameter_details
+        trigger: contract_versions_returned
+        description: Contracts returned
+
+  extract_current_contract_parameter_details:
+    display_name: Extract contract parameters
+    expected_context_keys:
+      - next_page_token
+      - product_versions
+    type: transform
+    transform_ref: extract_current_contract_parameters
+    transitions:
+      - to: confirm_product_id
+        trigger: contract_parameters_extracted
+        description: Contract parameters extracted
+        actions:
+          save_to_global_state:
+            context_keys:
+              - ATM_limit_max
+              - ATM_limit_min
+              - ATM_limit_step
+              - ATM_increment_msg
+              - denomination
+              - arranged_overdraft_limit_max
+              - arranged_overdraft_limit_min
+              - arranged_overdraft_limit_step
+              - unarranged_overdraft_limit_max
+              - unarranged_overdraft_limit_min
+              - unarranged_overdraft_limit_step
+      - to: query_contract_versions
+        trigger: current_product_version_not_found
+        description: Fetch more product versions
+      - to: account_opening_failed
+        trigger: no_valid_contract
+        description: No valid contract
+
+  confirm_product_id:
+    display_name: Confirm product id
+    description: Confirm product id
+    type: transform
+    transform_ref: confirm_product_id
+    transitions:
+      - to: choose_daily_atm_limit
+        trigger: create_current_account
+      - to: capture_interest_application_preferences
+        trigger: create_easy_access_saver
+      - to: account_opening_failed
+        trigger: unsupported_product_id
+
+  choose_daily_atm_limit:
+    display_name: Choose daily ATM withdrawal limit
+    state_ui:
+      ui_panels:
+        - panel_id: atm_withdrawal
+          display_name: Enter limit on daily ATM cash withdrawal
+          json_definition:
+            text:
+              value: ${atm_limit_error_message:}Enter daily cash withdrawal limit between ${ATM_limit_min} ${denomination} and ${ATM_limit_max} ${denomination}${ATM_increment_msg}.
+      ui_actions:
+        - action_id: chosen_daily_atm_limit
+          event: chosen_daily_atm_limit
+          display_name: Choose daily ATM withdrawal limit
+          ui_inputs:
+            - key: chosen_daily_atm_limit
+              number_input:
+                min_value: 0
+    transitions:
+      - to: check_daily_atm_limit
+        description: Check limit
+        trigger: chosen_daily_atm_limit
+        actions:
+          save_to_global_state:
+            context_keys:
+              - chosen_daily_atm_limit
+
+  check_daily_atm_limit:
+    display_name: Check daily ATM limit
+    type: transform
+    transform_ref: check_daily_atm_limit
+    transitions:
+      - to: choose_unarranged_overdraft_limit
+        description: Proceed
+        trigger: checked_daily_atm_limit
+      - to: choose_daily_atm_limit
+        description: Re-enter limit
+        trigger: daily_limit_out_of_range
+
+  choose_unarranged_overdraft_limit:
+    display_name: Choose unarranged overdraft limit
+    state_ui:
+      ui_panels:
+        - panel_id: overdraft
+          display_name: Proceed with unarranged overdraft
+          json_definition:
+            text:
+              value: ${unarranged_overdraft_error_message:}Enter overdraft limit between ${unarranged_overdraft_limit_min} ${denomination} and ${unarranged_overdraft_limit_max} ${denomination}.
+      ui_actions:
+        - action_id: chosen_overdraft_limit
+          event: chosen_overdraft_limit
+          display_name: Set unarranged overdraft
+          ui_inputs:
+            - key: chosen_unarranged_overdraft_limit
+              number_input:
+                min_value: 0
+    transitions:
+      - to: check_unarranged_overdraft_limit
+        description: Proceed
+        trigger: chosen_overdraft_limit
+        actions:
+          save_to_global_state:
+            context_keys:
+              - chosen_unarranged_overdraft_limit
+
+  check_unarranged_overdraft_limit:
+    display_name: Check unarranged overdraft limit
+    type: transform
+    transform_ref: check_unarranged_overdraft_limit
+    transitions:
+      - to: choose_arranged_overdraft_limit
+        description: Proceed
+        trigger: checked_unarranged_overdraft_limit
+        actions:
+          save_to_global_state:
+            context_keys:
+              - checked_arranged_overdraft_limit_max
+      - to: retrieve_customer_accounts
+        description: Arranged overdraft not available
+        trigger: arranged_overdraft_not_available
+        actions:
+          save_to_global_state:
+            context_keys:
+              - chosen_arranged_overdraft_limit
+      - to: choose_unarranged_overdraft_limit
+        description: Re-enter limit
+        trigger: unarranged_overdraft_limit_out_of_range
+
+  choose_arranged_overdraft_limit:
+    display_name: Choose arranged overdraft limit
+    state_ui:
+      ui_panels:
+        - panel_id: overdraft
+          display_name: Proceed with overdraft
+          json_definition:
+            text:
+              value: ${arranged_overdraft_error_message:}Enter overdraft limit between ${arranged_overdraft_limit_min} ${denomination} and ${checked_arranged_overdraft_limit_max} ${denomination}.
+      ui_actions:
+        - action_id: chosen_overdraft_limit
+          event: chosen_arranged_overdraft_limit
+          display_name: Set overdraft
+          ui_inputs:
+            - key: chosen_arranged_overdraft_limit
+              number_input:
+                min_value: 0
+    transitions:
+      - to: check_arranged_overdraft_limit
+        description: Proceed
+        trigger: chosen_arranged_overdraft_limit
+        actions:
+          save_to_global_state:
+            context_keys:
+              - chosen_arranged_overdraft_limit
+
+  check_arranged_overdraft_limit:
+    display_name: Check arranged overdraft limit
+    type: transform
+    transform_ref: check_arranged_overdraft_limit
+    transitions:
+      - to: retrieve_customer_accounts
+        description: Proceed
+        trigger: checked_arranged_overdraft_limit
+      - to: choose_arranged_overdraft_limit
+        description: Re-enter limit
+        trigger: arranged_overdraft_limit_out_of_range
+
+  retrieve_customer_accounts:
+    display_name: Retrieve accounts
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/accounts
+        method: GET
+        arguments:
+          page_size: 20
+          page_token: ${next_page_token:}
+          stakeholder_id: ${user_id}
+          account_statuses:
+            - ACCOUNT_STATUS_OPEN
+        response_event: customer_accounts_retrieved
+        response_fields:
+          - key_name: retrieved_accounts
+            response_json_path: accounts
+          - key_name: next_page_token
+            response_json_path: next_page_token
+            extract_singleton_element: true
+    transitions:
+      - to: build_account_list
+        description: Accounts retrieved
+        trigger: customer_accounts_retrieved
+
+  build_account_list:
+    display_name: Build account list
+    type: transform
+    transform_ref: build_account_list
+    transitions:
+      - to: retrieve_customer_accounts
+        description: Next page
+        trigger: retrieve_more_accounts
+        actions:
+          save_to_global_state:
+            context_keys:
+              - open_accounts
+      - to: check_for_savings_account
+        description: All accounts retrieved
+        trigger: accounts_retrieved
+
+  check_for_savings_account:
+    display_name: Check for savings account
+    type: transform
+    transform_ref: check_for_savings_account
+    transitions:
+      - to: capture_autosave_preferences
+        description: Have savings account(s)
+        trigger: have_savings_account
+        actions:
+          save_to_global_state:
+            context_keys:
+              - exclude_accounts
+      - to: autosave_not_available
+        description: No savings account
+        trigger: no_savings_account
+
+  capture_autosave_preferences:
+    display_name: Choose whether to use autosave
+    state_ui:
+      ui_actions:
+        - action_id: autosave_disabled
+          event: proceed
+          display_name: Autosave disabled
+        - action_id: choose_autosave_account
+          event: proceed
+          display_name: Enable autosave to account
+          ui_inputs:
+            - key: autosave_account_id
+              string_input: {}
+              display_name: Select target account for autosave
+              json_definition:
+                account_selector:
+                  customer_id: ${user_id}
+                  account_statuses_to_include:
+                    - ACCOUNT_STATUS_OPEN
+                  exclude_account_ids: json_object(${exclude_accounts})
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - autosave_account_id
+    transitions:
+      - to: capture_interest_application_preferences
+        description: Proceed
+        trigger: proceed
+
+  autosave_not_available:
+    display_name: Autosave not available
+    state_ui:
+      ui_panels:
+        - panel_id: autosave_not_available
+          display_name: Autosave not available
+          json_definition:
+            text:
+              value: Customer has no savings accounts. Proceeding without autosave.
+      ui_actions:
+        - action_id: proceed_without_autosave
+          event: proceed_without_autosave
+          display_name: Ok
+    transitions:
+      - to: capture_interest_application_preferences
+        description: Proceed
+        trigger: proceed_without_autosave
+
+  capture_interest_application_preferences:
+    display_name: Capture interest application preferences
+    state_ui:
+      ui_actions:
+        - action_id: set_interest_application_day
+          event: interest_application_day_provided
+          display_name: Set interest application day
+          ui_inputs:
+            - key: interest_application_day
+              display_name: Interest application day (1-31)
+              number_input:
+                default_value: 1
+                min_value: 1
+                max_value: 31
+                precision: 0
+                step: 1
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - interest_application_day
+    transitions:
+      - to: create_account
+        description: Interest application day captured
+        trigger: interest_application_day_provided
+
+  create_account:
+    display_name: Create the account
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/accounts
+        method: POST
+        arguments:
+          request_id: generate_uuid()
+          account:
+            id: generate_uuid()
+            product_id: ${product_id}
+            status: ACCOUNT_STATUS_PENDING
+            stakeholder_ids:
+              - ${user_id}
+            permitted_denominations:
+              - ${denomination}
+            instance_param_vals:
+              arranged_overdraft_limit: ${chosen_arranged_overdraft_limit:}
+              unarranged_overdraft_limit: ${chosen_unarranged_overdraft_limit:}
+              interest_application_day: ${interest_application_day}
+              daily_atm_withdrawal_limit: ${chosen_daily_atm_limit:}
+              autosave_savings_account: ${autosave_account_id:}
+            details: {}
+        response_fields:
+          - key_name: account_id
+            response_json_path: id
+            extract_singleton_element: true
+        response_event: account_created
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - account_id
+    transitions:
+      - to: create_account_tier_flag
+        description: Account provisionally created
+        trigger: account_created
+
+  create_account_tier_flag:
+    display_name: Create account tier flag
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/flags
+        method: POST
+        arguments:
+          flag:
+            flagDefinitionId: ${account_tier}
+            accountId: ${account_id}
+            description: Setting current account tier
+          requestId: generate_uuid()
+        response_event: account_tier_flag_created
+    transitions:
+      - to: open_account
+        trigger: account_tier_flag_created
+
+  open_account:
+    display_name: Open account
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/accounts/{account.id}
+        method: PUT
+        arguments:
+          request_id: generate_uuid()
+          account:
+            id: ${account_id}
+            status: ACCOUNT_STATUS_OPEN
+          update_mask: status
+        response_event: account_opened
+    transitions:
+      - to: account_opened_successfully
+        trigger: account_open_successful
+        auto_trigger_conditions:
+          streaming_api_conditions:
+            topic: vault.core_api.v1.accounts.account_update.events
+            message_content:
+              - path: "['*'].account_update.status"
+                values:
+                  - ACCOUNT_UPDATE_STATUS_COMPLETED
+                quantifier: any
+      - to: account_opening_failed
+        trigger: account_open_failure
+        auto_trigger_conditions:
+          streaming_api_conditions:
+            topic: vault.core_api.v1.accounts.account_update.events
+            message_content:
+              - path: "['*'].account_update.status"
+                values:
+                  - ACCOUNT_UPDATE_STATUS_COMPLETED
+                  - ACCOUNT_UPDATE_STATUS_PENDING_EXECUTION
+                quantifier: none
+        actions:
+          save_to_global_state:
+            new_key_value_pairs:
+              failure_message: "Failed to activate account, please retry."
+
+  account_opened_successfully:
+    display_name: Account opened successfully
+
+  account_opening_failed:
+    display_name: Account opening failed
+    state_ui:
+      ui_panels:
+        - panel_id: account_opening_failure_panel
+          display_name: Account opening failed
+          json_definition:
+            text:
+              value: ${failure_message}
+              is_error: true
+
+transforms:
+  confirm_product_id: |
+    product_id = context.get('product_id')
+    if 'easy_access_saver' in product_id:
+      return ['create_easy_access_saver', {}]
+    elif 'current_account' in product_id:
+      return ['create_current_account', {}]
+    else:
+      return ['unsupported_product_id', {}]
+
+  extract_current_contract_parameters: |
+    product_versions = json.loads(context.get('product_versions', '[]'))
+    for version in product_versions:
+      if version.get('is_current'):
+        new_context = {}
+
+        params = {param['name']:param for param in version['params']}
+
+        if not params.get('arranged_overdraft_limit') or not params.get('unarranged_overdraft_limit'):
+          return ['no_valid_contract', {'failure_message': 'Expected overdraft limit parameter(s) not found'}]
+        if not params.get('maximum_daily_atm_withdrawal_limit') or not params.get('daily_atm_withdrawal_limit'):
+          return ['no_valid_contract', {'failure_message': 'Expected ATM limit parameter(s) not found'}]
+
+        new_context['denomination'] = params['denomination']['value']
+
+        new_context['unarranged_overdraft_limit_max'] = params['unarranged_overdraft_limit']['number']['max_value']
+        new_context['unarranged_overdraft_limit_min'] = params['unarranged_overdraft_limit']['number']['min_value']
+        new_context['unarranged_overdraft_limit_step'] = params['unarranged_overdraft_limit']['number']['step']
+
+        new_context['arranged_overdraft_limit_max'] = params['arranged_overdraft_limit']['number']['max_value']
+        new_context['arranged_overdraft_limit_min'] = params['arranged_overdraft_limit']['number']['min_value']
+        new_context['arranged_overdraft_limit_step'] = params['arranged_overdraft_limit']['number']['step']
+
+        if params['maximum_daily_atm_withdrawal_limit']['value'] != "":
+          new_context['ATM_limit_max'] = json.loads(params['maximum_daily_atm_withdrawal_limit']['value'])[context['account_tier']]
+          new_context['ATM_limit_min'] = params['daily_atm_withdrawal_limit']['number']['min_value']
+          new_context['ATM_limit_step'] = params['daily_atm_withdrawal_limit']['number']['step']
+          if new_context['ATM_limit_step'] != '1':
+            new_context['ATM_increment_msg'] = ' in increments of ' + new_context["ATM_limit_step"] + ' ' + new_context["denomination"]
+          else:
+            new_context['ATM_increment_msg'] = ''
+
+        return ['contract_parameters_extracted', new_context]
+
+    next_page_token = context.get('next_page_token')
+    if next_page_token:
+      return ['current_product_version_not_found', {'next_page_token': next_page_token}]
+    else:
+      return ['no_valid_contract', {'failure_message': '"Current" account version not found'}]
+
+  check_daily_atm_limit: |
+    error_list = []
+    daily_limit = context['chosen_daily_atm_limit']
+
+    if decimal.lessthan(daily_limit, context['ATM_limit_min']):
+      error_list.append(' - Entered value was less than minimum. ')
+    if decimal.greaterthan(daily_limit, context['ATM_limit_max']):
+      error_list.append(' - Entered value was greater than maximum. ')
+    if not decimal.iszero(decimal.mod(daily_limit, context['ATM_limit_step'])):
+      error_list.append(' - Entered value was not in required step. ')
+
+    if error_list:
+      error_message = 'An invalid daily atm limit has been entered:\n'+'\n'.join(error_list)+'\n'
+      return ['daily_limit_out_of_range', {'atm_limit_error_message': error_message}]
+    return ['checked_daily_atm_limit', {}]
+
+  check_unarranged_overdraft_limit: |
+    error_list = []
+    overdraft_limit = context['chosen_unarranged_overdraft_limit']
+
+    if decimal.lessthan(overdraft_limit, context['unarranged_overdraft_limit_min']):
+      error_list.append(' - Entered value was less than the minimum of: ' + context['unarranged_overdraft_limit_min'])
+    if decimal.greaterthan(overdraft_limit, context['unarranged_overdraft_limit_max']):
+      error_list.append(' - Entered value was greater than the maximum of: ' + context['unarranged_overdraft_limit_max'])
+    if not decimal.iszero(decimal.mod(overdraft_limit, context['unarranged_overdraft_limit_step'])):
+      error_list.append(' - Entered value was not in required step: ' + context['unarranged_overdraft_limit_step'])
+
+    if error_list:
+      error_message = 'An invalid unarranged overdraft limit has been entered:\n'+'\n'.join(error_list)+'\n'
+      return ['unarranged_overdraft_limit_out_of_range', {'unarranged_overdraft_error_message': error_message}]
+    if decimal.iszero(overdraft_limit):
+      return ['arranged_overdraft_not_available', {'chosen_arranged_overdraft_limit': '0'}]
+    return ['checked_unarranged_overdraft_limit', {
+      'checked_arranged_overdraft_limit_max': min(context.get('arranged_overdraft_limit_max'), context.get('chosen_unarranged_overdraft_limit'))
+    }]
+
+  check_arranged_overdraft_limit: |
+    error_list = []
+    overdraft_limit = context['chosen_arranged_overdraft_limit']
+    if decimal.lessthan(overdraft_limit, context['arranged_overdraft_limit_min']):
+      error_list.append(' - Entered value was less than the minimum of: ' + context['arranged_overdraft_limit_min'])
+    if decimal.greaterthan(overdraft_limit, context['checked_arranged_overdraft_limit_max']):
+      error_list.append(' - Entered value was greater than the maximum of: ' + context.get('checked_arranged_overdraft_limit_max'))
+    if not decimal.iszero(decimal.mod(overdraft_limit, context['arranged_overdraft_limit_step'])):
+      error_list.append(' - Entered value was not in required step: ' + context['arranged_overdraft_limit_step'])
+
+    if error_list:
+      error_message = 'An invalid aranged overdraft limit has been entered:\n'+'\n'.join(error_list)+'\n'
+      return ['arranged_overdraft_limit_out_of_range', {'arranged_overdraft_error_message': error_message}]
+    return ['checked_arranged_overdraft_limit', {}]
+
+  build_account_list: |
+    open_accounts = json.loads(context.get('open_accounts', '[]'))
+    open_accounts.extend(json.loads(context['retrieved_accounts'])[0])
+    next_page_token = context.get('next_page_token')
+    new_context = {'open_accounts': json.dumps(open_accounts)}
+
+    if next_page_token:
+      new_context['next_page_token'] = next_page_token
+      return ['retrieve_more_accounts', new_context]
+    else:
+      return ['accounts_retrieved', new_context]
+
+  check_for_savings_account: |
+    accounts = json.loads(context['open_accounts'])
+    non_savings_accounts = [
+      account['id']
+      for account in accounts
+      if account['product_id'] != 'easy_access_saver' and account['product_id'][:21] != 'e2e_easy_access_saver'
+    ]
+    if len(non_savings_accounts) == len(accounts):
+      return ['no_savings_account', {}]
+    else:
+      return ['have_savings_account', {'exclude_accounts':json.dumps(non_savings_accounts)}]

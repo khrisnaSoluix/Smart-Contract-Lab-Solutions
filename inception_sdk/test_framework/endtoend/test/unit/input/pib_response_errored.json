@@ -1,0 +1,64 @@
+{
+    "id": "e61317df-29bb-415b-b89b-9b20e4a407fd",
+    "create_request_id": "f2eb358b-ac11-45e2-ba02-ca035a2d8ab6",
+    "client_id": "AsyncCreatePostingInstructionBatch",
+    "client_batch_id": "5ef43aff-569e-433b-94b6-c44f7b517a62",
+    "posting_instructions": [
+        {
+            "id": "dbc9f347-a0b4-487c-ac3b-24e7f8c5b3dc",
+            "client_transaction_id": "adbb78ed-43c6-405c-ba43-14926e003f73",
+            "inbound_hard_settlement": {
+                "amount": "220",
+                "denomination": "GBP",
+                "target_account": {
+                    "account_id": "b76dce35-358c-7dde-09e8-635caff9ef20"
+                },
+                "internal_account_id": "e2e_L_DUMMY_CONTRA",
+                "advice": false,
+                "target_account_id": "b76dce35-358c-7dde-09e8-635caff9ef20"
+            },
+            "pics": [],
+            "instruction_details": {},
+            "committed_postings": [
+                {
+                    "credit": true,
+                    "amount": "220",
+                    "denomination": "GBP",
+                    "account_id": "b76dce35-358c-7dde-09e8-635caff9ef20",
+                    "account_address": "DEFAULT",
+                    "asset": "COMMERCIAL_BANK_MONEY",
+                    "phase": "POSTING_PHASE_COMMITTED"
+                },
+                {
+                    "credit": false,
+                    "amount": "220",
+                    "denomination": "GBP",
+                    "account_id": "e2e_L_DUMMY_CONTRA",
+                    "account_address": "DEFAULT",
+                    "asset": "COMMERCIAL_BANK_MONEY",
+                    "phase": "POSTING_PHASE_COMMITTED"
+                }
+            ],
+            "posting_violations": [],
+            "account_violations": [],
+            "restriction_violations": [],
+            "contract_violations": [],
+            "override": {
+                "restrictions": {
+                    "all": false,
+                    "restriction_set_ids": []
+                }
+            },
+            "transaction_code": null
+        }
+    ],
+    "batch_details": {},
+    "value_timestamp": "2020-04-08T04:01:00Z",
+    "status": "POSTING_INSTRUCTION_BATCH_STATUS_ACCEPTED",
+    "error": {
+        "type": "POSTING_INSTRUCTION_BATCH_ERROR_TYPE_TTL_EXPIRED",
+        "message": "dummy"
+    },
+    "insertion_timestamp": "2023-03-10T12:43:34.925868Z",
+    "dry_run": false
+}

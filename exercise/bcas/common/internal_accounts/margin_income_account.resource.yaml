@@ -1,0 +1,11 @@
+# Copyright @ 2022 Thought Machine Group Limited. All rights reserved.
+---
+type: INTERNAL_ACCOUNT
+id: MARGIN_INCOME_ACCOUNT
+vault_id: MARGIN_INCOME_ACCOUNT
+payload: |
+  internal_account:
+      id: MARGIN_INCOME_ACCOUNT
+      product_id: margin_income_account_contract
+      accounting:
+        tside: TSIDE_ASSET

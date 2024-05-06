@@ -1,0 +1,69 @@
+# Copyright @ 2021 Thought Machine Group Limited. All rights reserved.
+---
+pack_version: 1.0.0
+pack_name: GPL Current Account
+resource_ids:
+  # --------- SMART CONTRACTS
+  - current_account
+  - easy_access_saver
+  # --------- WORKFLOW DEFINITIONS
+  - CASA_APPLICATION
+  - CASA_CLOSURE
+  - CASA_OVERDRAFT_ADJUSTMENT
+  - CASA_OVERDRAFT_CANCELLATION
+  - CASA_OVERDRAFT_CREATION
+  - CASA_INTEREST_PAYMENT_DATE_CHANGE
+  - CASA_TRANSACTION_LIMIT_WARNING 
+
+  # --------- FLAG DEFINITIONS
+  - CASA_TIER_LOWER
+  - CASA_TIER_MIDDLE
+  - CASA_TIER_UPPER
+  # Common
+  - ACCOUNT_DORMANT
+
+  # --------- ACCOUNT SCHEDULE TAGS
+  - CASA_ACCRUE_INTEREST_AND_DAILY_FEES_AST
+  - CASA_APPLY_ACCRUED_INTEREST_AST
+  - CASA_APPLY_ANNUAL_FEES_AST
+  - CASA_APPLY_MONTHLY_FEES_AST
+
+  # --------- INTERNAL ACCOUNT SMART CONTRACTS
+  - accrued_interest_payable_account_contract
+  - interest_paid_account_contract
+  - accrued_interest_receivable_account_contract
+  - interest_received_account_contract
+  - maintenance_fee_income_account_contract
+  - annual_maintenance_fee_income_account_contract
+  - minimum_balance_fee_income_account_contract
+  - excess_withdrawal_fee_income_account_contract
+  - inactivity_fee_income_account_contract
+  - overdraft_fee_income_account_contract
+  - overdraft_fee_receivable_account_contract
+  - pnl_account_contract
+
+  # --------- INTERNAL ACCOUNTS
+  - ACCRUED_INTEREST_PAYABLE_ACCOUNT
+  - INTEREST_PAID_ACCOUNT
+  - ACCRUED_INTEREST_RECEIVABLE_ACCOUNT
+  - INTEREST_RECEIVED_ACCOUNT
+  - MAINTENANCE_FEE_INCOME_ACCOUNT
+  - ANNUAL_MAINTENANCE_FEE_INCOME_ACCOUNT
+  - MINIMUM_BALANCE_FEE_INCOME_ACCOUNT
+  - EXCESS_WITHDRAWAL_FEE_INCOME_ACCOUNT
+  - INACTIVITY_FEE_INCOME_ACCOUNT
+  - OVERDRAFT_FEE_INCOME_ACCOUNT
+  - OVERDRAFT_FEE_RECEIVABLE_ACCOUNT
+  - PNL_ACCOUNT
+
+  # --------- CONTRACT MODULES
+  - utils
+  - interest
+
+  # --------- CONTRACT MODULE VERSIONS
+  - utils_version
+  - interest_version
+
+  # --------- SMART CONTRACT MODULE VERSIONS LINKS
+  - current_account_module_versions_link
+  - easy_access_saver_module_versions_link

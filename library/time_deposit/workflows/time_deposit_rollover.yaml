@@ -1,0 +1,209 @@
+# Copyright @ 2021 Thought Machine Group Limited. All rights reserved.
+---
+name: Rollover Time Deposit
+instance_title: Time Deposit Rollover
+description: A workflow to rollover Time Deposit.
+schema_version: 3.2.0
+definition_version: 1.0.2
+
+starting_state: get_account_details
+end_states:
+  - state: account_opened_successfully
+    result: SUCCESSFUL
+
+states:
+  get_account_details:
+    display_name: Get account details
+    description: Get account maturity process preferences
+    entry_actions:
+      save_to_global_state:
+        context_keys:
+          - user_id
+          - current_account_id
+          - account_denomination
+      vault_callback:
+        path: core-api/v1/accounts/{id}
+        method: GET
+        arguments:
+          id: ${current_account_id}
+        response_event: account_details_retrieved
+        response_fields:
+          - key_name: account_details
+            response_json_path: details
+            extract_singleton_element: true
+          - key_name: interest_payment_destination
+            response_json_path: details.interest_payment_destination
+            extract_singleton_element: true
+          - key_name: fee_free_percentage_limit
+            response_json_path: instance_param_vals.fee_free_percentage_limit
+            extract_singleton_element: true
+          - key_name: withdrawal_fee
+            response_json_path: instance_param_vals.withdrawal_fee
+            extract_singleton_element: true
+          - key_name: withdrawal_percentage_fee
+            response_json_path: instance_param_vals.withdrawal_percentage_fee
+            extract_singleton_element: true
+          - key_name: auto_rollover_type
+            response_json_path: instance_param_vals.auto_rollover_type
+            extract_singleton_element: true
+          - key_name: partial_principal_amount
+            response_json_path: instance_param_vals.partial_principal_amount
+            extract_singleton_element: true
+          - key_name: rollover_interest_application_frequency
+            response_json_path: instance_param_vals.rollover_interest_application_frequency
+            extract_singleton_element: true
+          - key_name: rollover_term_unit
+            response_json_path: instance_param_vals.rollover_term_unit
+            extract_singleton_element: true
+          - key_name: rollover_term
+            response_json_path: instance_param_vals.rollover_term
+            extract_singleton_element: true
+          - key_name: rollover_grace_period
+            response_json_path: instance_param_vals.rollover_grace_period
+            extract_singleton_element: true
+          - key_name: rollover_interest_application_day
+            response_json_path: instance_param_vals.rollover_interest_application_day
+            extract_singleton_element: true
+          - key_name: rollover_gross_interest_rate
+            response_json_path: instance_param_vals.rollover_gross_interest_rate
+            extract_singleton_element: true
+          - key_name: rollover_period_end_hour
+            response_json_path: instance_param_vals.rollover_period_end_hour
+            extract_singleton_element: true
+          - key_name: rollover_account_closure_period
+            response_json_path: instance_param_vals.rollover_account_closure_period
+            extract_singleton_element: true
+          - key_name: product_id
+            response_json_path: product_id
+            extract_singleton_element: true
+    transitions:
+      - to: create_account_details
+        trigger: account_details_retrieved
+        actions:
+          save_to_global_state:
+            context_keys:
+              - account_details
+              - fee_free_percentage_limit
+              - withdrawal_fee
+              - withdrawal_percentage_fee
+              - auto_rollover_type
+              - partial_principal_amount
+              - rollover_interest_application_frequency
+              - rollover_term_unit
+              - rollover_term
+              - rollover_grace_period
+              - rollover_interest_application_day
+              - rollover_gross_interest_rate
+              - close_time
+              - interest_payment_destination
+              - rollover_period_end_hour
+              - rollover_account_closure_period
+              - product_id
+
+  create_account_details:
+    display_name: create account details
+    type: transform
+    transform_ref: create_account_details
+    transitions:
+      - to: create_account
+        trigger: account_details_created
+        actions:
+          save_to_global_state:
+            context_keys:
+              - new_account_details
+
+  create_account:
+    display_name: Create the account
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/accounts
+        method: POST
+        arguments:
+          request_id: generate_uuid()
+          account:
+            id: generate_uuid()
+            product_id: ${product_id}
+            status: ACCOUNT_STATUS_PENDING
+            stakeholder_ids:
+              - ${user_id}
+            permitted_denominations:
+              - ${account_denomination}
+            instance_param_vals:
+              interest_application_frequency: ${rollover_interest_application_frequency}
+              term_unit: ${rollover_term_unit}
+              term: ${rollover_term}
+              interest_application_day: ${rollover_interest_application_day}
+              gross_interest_rate: ${rollover_gross_interest_rate}
+              deposit_period: "0"
+              grace_period: ${rollover_grace_period}
+              cool_off_period: "0"
+              period_end_hour: ${rollover_period_end_hour}
+              account_closure_period: ${rollover_account_closure_period}
+              fee_free_percentage_limit: ${fee_free_percentage_limit}
+              withdrawal_fee: ${withdrawal_fee}
+              withdrawal_percentage_fee: ${withdrawal_percentage_fee}
+              auto_rollover_type: ${auto_rollover_type}
+              partial_principal_amount: ${partial_principal_amount}
+              rollover_interest_application_frequency: ${rollover_interest_application_frequency}
+              rollover_term_unit: ${rollover_term_unit}
+              rollover_term: ${rollover_term}
+              rollover_grace_period: ${rollover_grace_period}
+              rollover_interest_application_day: ${rollover_interest_application_day}
+              rollover_gross_interest_rate: ${rollover_gross_interest_rate}
+              rollover_period_end_hour: ${rollover_period_end_hour}
+              rollover_account_closure_period: ${rollover_account_closure_period}
+            details: json_object(${new_account_details})
+        response_fields:
+          - key_name: account_id
+            response_json_path: id
+            extract_singleton_element: true
+        response_event: account_created
+    transitions:
+      - to: open_account
+        description: Account provisionally created
+        trigger: account_created
+        actions:
+          save_to_global_state:
+            context_keys:
+              - account_id
+
+  open_account:
+    display_name: Open account
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/accounts/{account.id}
+        method: PUT
+        arguments:
+          request_id: generate_uuid()
+          account:
+            id: ${account_id}
+            status: ACCOUNT_STATUS_OPEN
+          update_mask: status
+        response_event: account_opened
+    transitions:
+      - to: account_opened_successfully
+        description: Account opened
+        trigger: account_opened
+
+  account_opened_successfully:
+    display_name: Account opened successfully
+
+transforms:
+  create_account_details: |
+    interest_payment_destination = context['interest_payment_destination']
+    account_details = json.loads(context['account_details'])
+    new_account_details = {
+      'interest_payment_destination': interest_payment_destination
+    }
+
+    maturity_vault_account_id = account_details['maturity_vault_account_id']
+    new_account_details['maturity_vault_account_id'] = maturity_vault_account_id
+
+    if interest_payment_destination == 'vault':
+      interest_vault_account_id = account_details['interest_vault_account_id']
+      new_account_details['interest_vault_account_id'] = interest_vault_account_id
+
+    new_context = {}
+    new_context['new_account_details'] = json.dumps(new_account_details)
+
+    return ['account_details_created', new_context]

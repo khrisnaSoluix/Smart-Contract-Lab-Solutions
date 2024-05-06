@@ -1,0 +1,172 @@
+# Copyright @ 2021 Thought Machine Group Limited. All rights reserved.
+---
+name: Credit Card Expire Interest Free Periods
+instance_title: Expire credit card interest periods
+description: Expire all interest free periods on credit card
+schema_version: 3.2.0
+definition_version: 1.4.0
+starting_state: retrieve_account_parameter_details
+end_states:
+  - state: interest_free_expiry_updated_successfully
+    result: SUCCESSFUL
+  - state: interest_free_expiry_update_failed
+    result: FAILED
+
+auto_instantiation_conditions:
+  - streaming_api_condition:
+      topic: vault.core_api.v1.contracts.contract_notification.events
+      message_contents:
+        - path: notification_type
+          values:
+            - EXPIRE_INTEREST_FREE_PERIODS_NOTIFICATION
+    instantiation_context:
+      - key_name: account_id
+        json_path: notification_details.account_id
+        extract_singleton_element: true
+
+states:
+  retrieve_account_parameter_details:
+    display_name: Retrieve account parameter details
+    entry_actions:
+      save_to_global_state:
+        context_keys:
+          - account_id
+      vault_callback:
+        path: core-api/v1/accounts/{id}
+        method: GET
+        arguments:
+          id: ${account_id}
+        response_event: account_received
+        response_fields:
+          - key_name: account_status
+            response_json_path: status
+            extract_singleton_element: true
+          - key_name: interest_free_expiry
+            response_json_path: instance_param_vals.interest_free_expiry
+            extract_singleton_element: true
+          - key_name: product_id
+            response_json_path: product_id
+            extract_singleton_element: true
+          - key_name: transaction_interest_free_expiry
+            response_json_path: instance_param_vals.transaction_interest_free_expiry
+            extract_singleton_element: true
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - interest_free_expiry
+          - transaction_interest_free_expiry
+    transitions:
+      - to: validate_account_details
+        trigger: account_received
+
+  validate_account_details:
+    expected_context_keys:
+      - account_status
+      - product_id
+    display_name: Process account details
+    type: transform
+    transform_ref: validate_account_details
+    transitions:
+      - to: update_interest_free_periods
+        description: Account details validated
+        trigger: account_details_validated
+      - to: interest_free_expiry_update_failed
+        description: Invalid account details
+        trigger: invalid_account_details
+
+  update_interest_free_periods:
+    display_name: Update interest free periods
+    type: transform
+    transform_ref: update_interest_free_periods
+    transitions:
+      - to: upload_updated_interest_free_periods
+        description: Interest free periods updated
+        trigger: interest_free_periods_updated
+
+  upload_updated_interest_free_periods:
+    display_name: Upload new balance transfer references
+    expected_context_keys:
+      - updated_interest_free_expiry
+      - updated_transaction_interest_free_expiry
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/account-updates
+        method: POST
+        arguments:
+          request_id: generate_uuid()
+          account_update:
+            id: generate_uuid()
+            account_id: ${account_id}
+            instance_param_vals_update:
+              instance_param_vals:
+                interest_free_expiry: ${updated_interest_free_expiry}
+                transaction_interest_free_expiry: ${updated_transaction_interest_free_expiry}
+    transitions:
+      - to: interest_free_expiry_updated_successfully
+        trigger: account_update_success
+        description: Successfully updated account with updated interest free periods
+        auto_trigger_conditions:
+          streaming_api_conditions:
+            topic: vault.api.v1.accounts.account.instance_param_vals.updated
+            message_content:
+              - path: update_status
+                values:
+                  - ACCOUNT_UPDATE_STATUS_COMPLETED
+                quantifier: any
+      - to: interest_free_expiry_update_failed
+        trigger: account_update_failure
+        description: Failure updating account
+        auto_trigger_conditions:
+          streaming_api_conditions:
+            topic: vault.api.v1.accounts.account.instance_param_vals.updated
+            message_content:
+              - path: update_status
+                values:
+                  - ACCOUNT_UPDATE_STATUS_COMPLETED
+                quantifier: none
+
+  interest_free_expiry_updated_successfully:
+    display_name: Interest free period expiry updated successfully
+    state_ui:
+      ui_panels:
+        - panel_id: update_display
+          display_name: Values updated
+          json_definition:
+            text:
+              value: |
+                The following periods have been expired
+                interest_free_expiry - ${interest_free_expiry}
+                transaction_free_expiry - ${transaction_interest_free_expiry}
+
+  interest_free_expiry_update_failed:
+    display_name: Interest free period expiry update failed
+    state_ui:
+      ui_panels:
+        - panel_id: interest_free_period_update_fail_panel
+          display_name: Failure reason
+          json_definition:
+            text:
+              value: ${failure_message:Could not update interest free period expiry}
+
+transforms:
+  validate_account_details: |
+    if context['account_status'] != 'ACCOUNT_STATUS_OPEN':
+      return ['invalid_account_details', {'failure_message': 'account_status is not ACCOUNT_STATUS_OPEN'}]
+
+    if context['product_id'] != 'credit_card' and context['product_id'] != 'speedy_credit_card' and context['product_id'][:15] != 'e2e_credit_card':
+      return ['invalid_account_details', {'failure_message': 'This workflow only supports accounts of type credit_card'}]
+
+    return ['account_details_validated', {}]
+
+  update_interest_free_periods: |
+    interest_free_expiry = json.loads(context['interest_free_expiry'])
+    for txn_type in list(interest_free_expiry):
+      interest_free_expiry[txn_type] = ''
+
+    transaction_interest_free_expiry = json.loads(context['transaction_interest_free_expiry'])
+    for txn_type in list(transaction_interest_free_expiry):
+      if transaction_interest_free_expiry[txn_type]:
+        for ref in list(transaction_interest_free_expiry[txn_type]):
+          transaction_interest_free_expiry[txn_type][ref] = ''
+
+    return ['interest_free_periods_updated', {'updated_interest_free_expiry': json.dumps(interest_free_expiry), 'updated_transaction_interest_free_expiry': json.dumps(transaction_interest_free_expiry)}]

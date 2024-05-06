@@ -1,0 +1,11 @@
+# Copyright @ 2021 Thought Machine Group Limited. All rights reserved.
+---
+type: INTERNAL_ACCOUNT
+id: ACCRUED_INTEREST_RECEIVED_ACCOUNT
+vault_id: ACCRUED_INTEREST_RECEIVED
+payload: |
+  internal_account:
+      id: ACCRUED_INTEREST_RECEIVED_ACCOUNT
+      product_id: '&{accrued_interest_received_account_contract:product_id}'
+      accounting:
+        tside: TSIDE_LIABILITY

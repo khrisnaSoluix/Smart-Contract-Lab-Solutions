@@ -1,0 +1,48 @@
+# Copyright @ 2021 Thought Machine Group Limited. All rights reserved.
+---
+pack_version: 1.0.0
+pack_name: GPL Loan
+resource_ids:
+  # --------- SMART CONTRACTS
+  - loan
+
+  # --------- WORKFLOW DEFINITIONS
+  - LOAN_APPLICATION
+  - LOAN_MARK_DELINQUENT
+  - LOAN_REPAYMENT_HOLIDAY_APPLICATION
+
+  # --------- ACCOUNT SCHEDULE TAGS
+  - LOAN_ACCRUE_INTEREST_AST
+  - LOAN_BALLOON_PAYMENT_EVENT_AST
+  - LOAN_CHECK_OVERDUE_AST
+  - LOAN_CHECK_DELINQUENCY_AST
+  - LOAN_DUE_AMOUNT_CALCULATION_AST
+
+  # --------- INTERNAL ACCOUNT SMART CONTRACTS
+  - accrued_interest_receivable_account_contract
+  - capitalised_interest_received_account_contract
+  - capitalised_interest_receivable_account_contract
+  - capitalised_penalties_received_account_contract
+  - early_repayment_fee_income_account_contract
+  - interest_received_account_contract
+  - late_repayment_fee_income_account_contract
+  - overpayment_fee_income_account_contract
+  - penalty_interest_received_account_contract
+  - upfront_fee_income_account_contract
+
+  # --------- INTERNAL ACCOUNTS
+  - ACCRUED_INTEREST_RECEIVABLE_ACCOUNT
+  - CAPITALISED_INTEREST_RECEIVED_ACCOUNT
+  - CAPITALISED_INTEREST_RECEIVABLE_ACCOUNT
+  - CAPITALISED_PENALTIES_RECEIVED_ACCOUNT
+  - EARLY_REPAYMENT_FEE_INCOME_ACCOUNT
+  - INTEREST_RECEIVED_ACCOUNT
+  - LATE_REPAYMENT_FEE_INCOME_ACCOUNT
+  - OVERPAYMENT_FEE_INCOME_ACCOUNT
+  - PENALTY_INTEREST_RECEIVED_ACCOUNT
+  - UPFRONT_FEE_INCOME_ACCOUNT
+
+  # --------- FLAG DEFINITIONS
+  # Common
+  - ACCOUNT_DELINQUENT
+  - REPAYMENT_HOLIDAY

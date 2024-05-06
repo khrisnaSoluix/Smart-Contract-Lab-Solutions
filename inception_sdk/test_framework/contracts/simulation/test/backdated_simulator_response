@@ -1,0 +1,430 @@
+[{
+    'result': {
+        'account_notes': {},
+        'balances': {},
+        'derived_params': {},
+        'instantiate_workflow_requests': {},
+        'logs': ['created account "1"'],
+        'posting_instruction_batches': [],
+        'timestamp': '2019-01-01T00:00:00Z'
+    }
+}, {
+    'result': {
+        'account_notes': {},
+        'balances': {},
+        'derived_params': {},
+        'instantiate_workflow_requests': {},
+        'logs': [
+            'created account "Main account"', 'set account parameter "denomination" value to "GBP"',
+            'set account parameter "customer_wallet_limit" value to '
+            '"1000"', 'set account parameter "nominated_account" value to "2"',
+            'set account parameter "daily_spending_limit" value to '
+            '"9999"', 'set account parameter "additional_denominations" value '
+            'to "[\\"GBP\\", \\"USD\\"]"'
+        ],
+        'posting_instruction_batches': [],
+        'timestamp': '2019-01-01T00:00:00Z'
+    }
+}, {
+    'result': {
+        'account_notes': {},
+        'balances': {},
+        'derived_params': {},
+        'instantiate_workflow_requests': {},
+        'logs': ['created 1 scheduled event jobs for account '
+                 '"Main account"'],
+        'posting_instruction_batches': [],
+        'timestamp': '2019-01-01T00:00:00Z'
+    }
+}, {
+    'result': {
+        'account_notes': {},
+        'balances': {
+            '1': {
+                'balances': [{
+                    'account_address': 'DEFAULT',
+                    'account_id': '1',
+                    'amount': '-100',
+                    'asset': 'COMMERCIAL_BANK_MONEY',
+                    'denomination': 'GBP',
+                    'id': '',
+                    'phase': 'POSTING_PHASE_COMMITTED',
+                    'posting_instruction_batch_id': '',
+                    'total_credit': '0',
+                    'total_debit': '100',
+                    'update_posting_instruction_batch_id': '',
+                    'value_time': '2019-01-01T00:00:00Z'
+                }]
+            },
+            'Main account': {
+                'balances': [{
+                    'account_address': 'DEFAULT',
+                    'account_id': 'Main account',
+                    'amount': '100',
+                    'asset': 'COMMERCIAL_BANK_MONEY',
+                    'denomination': 'GBP',
+                    'id': '',
+                    'phase': 'POSTING_PHASE_COMMITTED',
+                    'posting_instruction_batch_id': '',
+                    'total_credit': '100',
+                    'total_debit': '0',
+                    'update_posting_instruction_batch_id': '',
+                    'value_time': '2019-01-01T00:00:00Z'
+                }]
+            }
+        },
+        'derived_params': {},
+        'instantiate_workflow_requests': {},
+        'logs': [],
+        'posting_instruction_batches': [{
+            'batch_details': {},
+            'client_batch_id': 'dcb38109-a917-43ba-bb7e-ba3b7112cf7e',
+            'client_id': 'AsyncCreatePostingInstructionBatch',
+            'create_request_id': '',
+            'dry_run': False,
+            'error': None,
+            'id': 'f70a4995-bfe3-4cac-9111-51b94bb840d1',
+            'insertion_timestamp': '2019-01-01T00:00:00Z',
+            'posting_instructions': [{
+                'account_violations': [],
+                'client_transaction_id': '5777e40d-66e5-49d1-a0a8-653d48c3e162',
+                'committed_postings': [{
+                    'account_address': 'DEFAULT',
+                    'account_id': 'Main account',
+                    'amount': '100',
+                    'asset': 'COMMERCIAL_BANK_MONEY',
+                    'credit': True,
+                    'denomination': 'GBP',
+                    'phase': 'POSTING_PHASE_COMMITTED'
+                }, {
+                    'account_address': 'DEFAULT',
+                    'account_id': '1',
+                    'amount': '100',
+                    'asset': 'COMMERCIAL_BANK_MONEY',
+                    'credit': False,
+                    'denomination': 'GBP',
+                    'phase': 'POSTING_PHASE_COMMITTED'
+                }],
+                'contract_violations': [],
+                'id': '0bb1a601-1276-4804-a75f-27d978e026f8',
+                'inbound_hard_settlement': {
+                    'advice': False,
+                    'amount': '100',
+                    'denomination': 'GBP',
+                    'internal_account_id': '1',
+                    'target_account': {
+                        'account_id': 'Main account'
+                    },
+                    'target_account_id': 'Main account'
+                },
+                'instruction_details': {},
+                'override': {
+                    'restrictions': None
+                },
+                'pics': [],
+                'posting_violations': [],
+                'restriction_violations': [],
+                'transaction_code': None
+            }],
+            'status': 'POSTING_INSTRUCTION_BATCH_STATUS_UNKNOWN',
+            'value_timestamp': '2019-01-01T00:00:00Z'
+        }],
+        'timestamp': '2019-01-01T00:00:00Z'
+    }
+}, {
+    'result': {
+        'account_notes': {},
+        'balances': {
+            '1': {
+                'balances': [{
+                    'account_address': 'DEFAULT',
+                    'account_id': '1',
+                    'amount': '-300',
+                    'asset': 'COMMERCIAL_BANK_MONEY',
+                    'denomination': 'GBP',
+                    'id': '',
+                    'phase': 'POSTING_PHASE_COMMITTED',
+                    'posting_instruction_batch_id': '',
+                    'total_credit': '0',
+                    'total_debit': '300',
+                    'update_posting_instruction_batch_id': '',
+                    'value_time': '2019-01-01T01:00:00Z'
+                }]
+            },
+            'Main account': {
+                'balances': [{
+                    'account_address': 'DEFAULT',
+                    'account_id': 'Main account',
+                    'amount': '300',
+                    'asset': 'COMMERCIAL_BANK_MONEY',
+                    'denomination': 'GBP',
+                    'id': '',
+                    'phase': 'POSTING_PHASE_COMMITTED',
+                    'posting_instruction_batch_id': '',
+                    'total_credit': '300',
+                    'total_debit': '0',
+                    'update_posting_instruction_batch_id': '',
+                    'value_time': '2019-01-01T01:00:00Z'
+                }]
+            }
+        },
+        'derived_params': {},
+        'instantiate_workflow_requests': {},
+        'logs': [],
+        'posting_instruction_batches': [{
+            'batch_details': {},
+            'client_batch_id': '3bb0bc07-1eae-4020-8f23-088b13571268',
+            'client_id': 'AsyncCreatePostingInstructionBatch',
+            'create_request_id': '',
+            'dry_run': False,
+            'error': None,
+            'id': '9b2a0597-d05c-4d49-a924-605c4b72506e',
+            'insertion_timestamp': '2019-01-01T01:00:00Z',
+            'posting_instructions': [{
+                'account_violations': [],
+                'client_transaction_id': '76117f1c-fa15-4ef0-bb83-3f6ecbeaab33',
+                'committed_postings': [{
+                    'account_address': 'DEFAULT',
+                    'account_id': 'Main account',
+                    'amount': '200',
+                    'asset': 'COMMERCIAL_BANK_MONEY',
+                    'credit': True,
+                    'denomination': 'GBP',
+                    'phase': 'POSTING_PHASE_COMMITTED'
+                }, {
+                    'account_address': 'DEFAULT',
+                    'account_id': '1',
+                    'amount': '200',
+                    'asset': 'COMMERCIAL_BANK_MONEY',
+                    'credit': False,
+                    'denomination': 'GBP',
+                    'phase': 'POSTING_PHASE_COMMITTED'
+                }],
+                'contract_violations': [],
+                'id': 'f19254f8-9cb0-491e-917a-c1ede6cbd020',
+                'inbound_hard_settlement': {
+                    'advice': False,
+                    'amount': '200',
+                    'denomination': 'GBP',
+                    'internal_account_id': '1',
+                    'target_account': {
+                        'account_id': 'Main account'
+                    },
+                    'target_account_id': 'Main account'
+                },
+                'instruction_details': {},
+                'override': {
+                    'restrictions': None
+                },
+                'pics': [],
+                'posting_violations': [],
+                'restriction_violations': [],
+                'transaction_code': None
+            }],
+            'status': 'POSTING_INSTRUCTION_BATCH_STATUS_UNKNOWN',
+            'value_timestamp': '2019-01-01T01:00:00Z'
+        }],
+        'timestamp': '2019-01-01T01:00:00Z'
+    }
+}, {
+    'result': {
+        'account_notes': {},
+        'balances': {
+            '1': {
+                'balances': [{
+                    'account_address': 'DEFAULT',
+                    'account_id': '1',
+                    'amount': '-600',
+                    'asset': 'COMMERCIAL_BANK_MONEY',
+                    'denomination': 'GBP',
+                    'id': '',
+                    'phase': 'POSTING_PHASE_COMMITTED',
+                    'posting_instruction_batch_id': '',
+                    'total_credit': '0',
+                    'total_debit': '600',
+                    'update_posting_instruction_batch_id': '',
+                    'value_time': '2019-01-01T01:00:00Z'
+                }]
+            },
+            'Main account': {
+                'balances': [{
+                    'account_address': 'DEFAULT',
+                    'account_id': 'Main account',
+                    'amount': '600',
+                    'asset': 'COMMERCIAL_BANK_MONEY',
+                    'denomination': 'GBP',
+                    'id': '',
+                    'phase': 'POSTING_PHASE_COMMITTED',
+                    'posting_instruction_batch_id': '',
+                    'total_credit': '600',
+                    'total_debit': '0',
+                    'update_posting_instruction_batch_id': '',
+                    'value_time': '2019-01-01T01:00:00Z'
+                }]
+            }
+        },
+        'derived_params': {},
+        'instantiate_workflow_requests': {},
+        'logs': [],
+        'posting_instruction_batches': [{
+            'batch_details': {},
+            'client_batch_id': '21f0b0d4-e003-4730-8800-630c0c59c389',
+            'client_id': 'AsyncCreatePostingInstructionBatch',
+            'create_request_id': '',
+            'dry_run': False,
+            'error': None,
+            'id': '37ba8e5e-cbfa-4f08-94d4-78f3c219fd28',
+            'insertion_timestamp': '2019-01-01T02:00:00Z',
+            'posting_instructions': [{
+                'account_violations': [],
+                'client_transaction_id': 'fec8784b-bc8e-4887-92db-fdc656907922',
+                'committed_postings': [{
+                    'account_address': 'DEFAULT',
+                    'account_id': 'Main account',
+                    'amount': '300',
+                    'asset': 'COMMERCIAL_BANK_MONEY',
+                    'credit': True,
+                    'denomination': 'GBP',
+                    'phase': 'POSTING_PHASE_COMMITTED'
+                }, {
+                    'account_address': 'DEFAULT',
+                    'account_id': '1',
+                    'amount': '300',
+                    'asset': 'COMMERCIAL_BANK_MONEY',
+                    'credit': False,
+                    'denomination': 'GBP',
+                    'phase': 'POSTING_PHASE_COMMITTED'
+                }],
+                'contract_violations': [],
+                'id': 'f85fb52c-d8a9-4259-bc8a-d3130af8e03e',
+                'inbound_hard_settlement': {
+                    'advice': False,
+                    'amount': '300',
+                    'denomination': 'GBP',
+                    'internal_account_id': '1',
+                    'target_account': {
+                        'account_id': 'Main account'
+                    },
+                    'target_account_id': 'Main account'
+                },
+                'instruction_details': {},
+                'override': {
+                    'restrictions': None
+                },
+                'pics': [],
+                'posting_violations': [],
+                'restriction_violations': [],
+                'transaction_code': None
+            }],
+            'status': 'POSTING_INSTRUCTION_BATCH_STATUS_UNKNOWN',
+            'value_timestamp': '2019-01-01T00:00:00Z'
+        }],
+        'timestamp': '2019-01-01T02:00:00Z'
+    }
+}, {
+    'result': {
+        'account_notes': {},
+        'balances': {
+            '1': {
+                'balances': [{
+                    'account_address': 'DEFAULT',
+                    'account_id': '1',
+                    'amount': '-1000',
+                    'asset': 'COMMERCIAL_BANK_MONEY',
+                    'denomination': 'GBP',
+                    'id': '',
+                    'phase': 'POSTING_PHASE_COMMITTED',
+                    'posting_instruction_batch_id': '',
+                    'total_credit': '0',
+                    'total_debit': '1000',
+                    'update_posting_instruction_batch_id': '',
+                    'value_time': '2019-01-01T01:30:00Z'
+                }]
+            },
+            'Main account': {
+                'balances': [{
+                    'account_address': 'DEFAULT',
+                    'account_id': 'Main account',
+                    'amount': '1000',
+                    'asset': 'COMMERCIAL_BANK_MONEY',
+                    'denomination': 'GBP',
+                    'id': '',
+                    'phase': 'POSTING_PHASE_COMMITTED',
+                    'posting_instruction_batch_id': '',
+                    'total_credit': '1000',
+                    'total_debit': '0',
+                    'update_posting_instruction_batch_id': '',
+                    'value_time': '2019-01-01T01:30:00Z'
+                }]
+            }
+        },
+        'derived_params': {},
+        'instantiate_workflow_requests': {},
+        'logs': [],
+        'posting_instruction_batches': [{
+            'batch_details': {},
+            'client_batch_id': '25610066-6e8e-4f95-8b11-4c3910343e2e',
+            'client_id': 'AsyncCreatePostingInstructionBatch',
+            'create_request_id': '',
+            'dry_run': False,
+            'error': None,
+            'id': '2f448afd-ebf4-46b5-b461-e9f194bf81eb',
+            'insertion_timestamp': '2019-01-01T03:00:00Z',
+            'posting_instructions': [{
+                'account_violations': [],
+                'client_transaction_id': 'cff6fbd4-a603-4e68-894c-9a769b1d55c6',
+                'committed_postings': [{
+                    'account_address': 'DEFAULT',
+                    'account_id': 'Main account',
+                    'amount': '400',
+                    'asset': 'COMMERCIAL_BANK_MONEY',
+                    'credit': True,
+                    'denomination': 'GBP',
+                    'phase': 'POSTING_PHASE_COMMITTED'
+                }, {
+                    'account_address': 'DEFAULT',
+                    'account_id': '1',
+                    'amount': '400',
+                    'asset': 'COMMERCIAL_BANK_MONEY',
+                    'credit': False,
+                    'denomination': 'GBP',
+                    'phase': 'POSTING_PHASE_COMMITTED'
+                }],
+                'contract_violations': [],
+                'id': '2f6d42ea-0d24-4b5b-8bfc-78121be04870',
+                'inbound_hard_settlement': {
+                    'advice': False,
+                    'amount': '400',
+                    'denomination': 'GBP',
+                    'internal_account_id': '1',
+                    'target_account': {
+                        'account_id': 'Main account'
+                    },
+                    'target_account_id': 'Main account'
+                },
+                'instruction_details': {},
+                'override': {
+                    'restrictions': None
+                },
+                'pics': [],
+                'posting_violations': [],
+                'restriction_violations': [],
+                'transaction_code': None
+            }],
+            'status': 'POSTING_INSTRUCTION_BATCH_STATUS_UNKNOWN',
+            'value_timestamp': '2019-01-01T01:30:00Z'
+        }],
+        'timestamp': '2019-01-01T03:00:00Z'
+    }
+}, {
+    'result': {
+        'account_notes': {},
+        'balances': {},
+        'derived_params': {},
+        'instantiate_workflow_requests': {},
+        'logs': ['processed scheduled event "ZERO_OUT_DAILY_SPEND" for '
+                 'account "Main account"'],
+        'posting_instruction_batches': [],
+        'timestamp': '2019-01-01T23:59:59Z'
+    }
+}]

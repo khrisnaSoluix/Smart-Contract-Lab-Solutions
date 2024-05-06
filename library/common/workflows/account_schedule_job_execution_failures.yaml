@@ -1,0 +1,174 @@
+# Copyright @ 2020 Thought Machine Group Limited. All rights reserved.
+---
+name: Determine account schedule job execution failure action
+schema_version: 3.2.0
+definition_version: 1.2.0
+instance_title: Account schedule job execution failure
+description: Raise a ticket for an operations user to handle account schedule job execution failures
+starting_state: get_account_schedule_job
+end_states:
+  - state: execution_failure_ignored
+    result: SUCCESSFUL
+  - state: execution_retried
+    result: SUCCESSFUL
+
+auto_instantiation_conditions:
+  - streaming_api_condition:
+      topic: vault.core_api.v1.accounts.account_schedule_job_execution_failure.events
+    instantiation_context:
+      - key_name: timestamp
+        json_path: timestamp
+        extract_singleton_element: true
+      - key_name: account_id
+        json_path: account_id
+        extract_singleton_element: true
+      - key_name: event_type
+        json_path: event_type
+        extract_singleton_element: true
+      - key_name: job_id
+        json_path: job_id
+        extract_singleton_element: true
+      - key_name: failure_reason
+        json_path: failure_reason
+        extract_singleton_element: true
+
+states:
+  get_account_schedule_job:
+    display_name: Retrieve account schedule job from the Core API
+    expected_context_keys:
+      - timestamp
+      - account_id
+      - event_type
+      - job_id
+      - failure_reason
+    entry_actions:
+      save_to_global_state:
+        context_keys:
+          - timestamp
+          - account_id
+          - event_type
+          - job_id
+          - failure_reason
+      vault_callback:
+        path: core-api/v1/jobs:batchGet
+        method: GET
+        arguments:
+          ids:
+            - ${job_id}
+        response_fields:
+          - key_name: jobs
+            response_json_path: jobs
+            extract_singleton_element: true
+        response_event: got_job
+    transitions:
+      - to: extract_account_schedule_job_details
+        trigger: got_job
+
+  extract_account_schedule_job_details:
+    display_name: Extract account schedule job details to context
+    type: transform
+    transform_ref: extract_job_details
+    transitions:
+      - to: notify_execution_failure
+        trigger: job_details_extracted
+
+
+  notify_execution_failure:
+    display_name: Notify execution failure
+    description: Raise ticket to determine whether to retry or ignore
+    entry_actions:
+      create_ticket:
+        title: Account schedule job - execution failure
+
+        assigned_roles: [ops_user]
+        ticket_ui:
+          ui_panels:
+            - panel_id: account_schedule_job_execution_failure_advice
+              display_name: Account schedule job execution failure advice
+              json_definition:
+                text:
+                  value: |
+                    An account schedule job execution has failed.
+                    Assess the state of Vault and any errors logged to determine whether to ignore the failure or retry the job execution.
+
+                    Examples of when to retry job executions are transient errors, such as severe service or infrastructure downtime.
+                    Job executions should not be retried when the failure was caused by an invalid contract template.
+            - panel_id: job_execution_details
+              display_name: Job execution details
+              json_definition:
+                key_value_table:
+                  ordered_items:
+                    - label: Account ID
+                      value: ${account_id}
+                    - label: Event type
+                      value: ${event_type}
+                    - label: Timestamp
+                      value: ${timestamp}
+                    - label: Scheduled timestamp
+                      value: ${scheduled_timestamp}
+                    - label: Job ID
+                      value: ${job_id}
+                    - label: Schedule ID
+                      value: ${schedule_id}
+                    - label: Failure reason
+                      value: ${failure_reason}
+          ui_actions:
+            - action_id: retry_execution
+              target_status: CLOSED
+              display_name: Retry execution
+            - action_id: ignore_execution_failure
+              target_status: CLOSED
+              display_name: Ignore execution failure
+    transitions:
+      - to: retry_execution
+        trigger: autotrigger_ticket_close
+        auto_trigger_conditions:
+          ticket_conditions:
+            quantifier: all
+            ticket_metadata:
+              action_id: retry_execution
+            ticket_end_statuses: CLOSED
+      - to: execution_failure_ignored
+        trigger: autotrigger_ticket_cancel
+        auto_trigger_conditions:
+          ticket_conditions:
+            quantifier: all
+            ticket_metadata:
+              action_id: ignore_execution_failure
+            ticket_end_statuses: CLOSED
+
+  retry_execution:
+    display_name: Retry account schedule job execution
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/jobs/{id}:republish
+        method: POST
+        arguments:
+          id: ${job_id}
+        response_event: job_execution_retried
+    transitions:
+      - to: execution_retried
+        trigger: job_execution_retried
+
+  execution_retried:
+    display_name: Execution retried
+
+  execution_failure_ignored:
+    display_name: Execution failure ignored
+
+transforms:
+  extract_job_details: |
+    job_id = context['job_id']
+    job = json.loads(context['jobs'])[job_id]
+
+    new_context = {
+      'timestamp': context['timestamp'],
+      'account_id': context['account_id'],
+      'event_type': context['event_type'],
+      'job_id': job_id,
+      'failure_reason': context['failure_reason'],
+      'schedule_id': job['schedule_id'],
+      'scheduled_timestamp': job['schedule_timestamp'],
+    }
+
+    return ['job_details_extracted', new_context]

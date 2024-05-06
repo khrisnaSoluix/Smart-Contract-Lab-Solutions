@@ -1,0 +1,67 @@
+dataloader_setup:
+  contract_name: "wallet"
+  dependency_groups:
+    - instances: 1
+      customer:
+        id_base: 700
+      flags: []
+      accounts:
+        - account_opening_timestamp:
+            delta:
+              days: -1
+          instance_param_vals: &instance_param_vals
+            denomination: "SGD"
+            customer_wallet_limit: "1000"
+            nominated_account: "1"
+            daily_spending_limit: "999"
+            additional_denominations: '["USD","GBP"]'
+          flags: []
+simulation_setup:
+  start:
+    delta:
+      days: -2
+  end:
+    delta:
+      days: -1
+  expected_number_of_postings: 3
+  events:
+    - type: create_account_instruction
+      timestamp: start
+      account_id: "1"
+      product_id: "1"
+      instance_param_vals: {}
+    - type: create_account_instruction
+      timestamp: start
+      account_id: "Main account"
+      product_id: "2"
+      instance_param_vals: *instance_param_vals
+    - type: create_inbound_hard_settlement_instruction
+      amount: "500"
+      event_datetime: start
+      denomination: "SGD"
+      client_transaction_id: "initial_top_up"
+      client_batch_id: "initial_top_up"
+    - type: create_outbound_hard_settlement_instruction
+      amount: "100"
+      event_datetime:
+        delta:
+          days: 1
+      denomination: "SGD"
+      client_transaction_id: "initial_spend"
+      client_batch_id: "initial_spend"
+expected_outcome:
+  balances:
+    - address: "DEFAULT"
+      asset: "COMMERCIAL_BANK_MONEY"
+      denomination: "SGD"
+      phase: "POSTING_PHASE_COMMITTED"
+      net: "400"
+      net_debits: "100"
+      net_credits: "500"
+    - address: "todays_spending"
+      asset: "COMMERCIAL_BANK_MONEY"
+      denomination: "SGD"
+      phase: "POSTING_PHASE_COMMITTED"
+      net: "0"
+      net_debits: "100"
+      net_credits: "100"

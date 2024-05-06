@@ -1,0 +1,12 @@
+---
+type: ACCOUNT_SCHEDULE_TAG
+id: CURRENT_ACCOUNT_ACCRUE_INTEREST_AST
+payload: |
+  account_schedule_tag:
+    id: CURRENT_ACCOUNT_ACCRUE_INTEREST_AST
+    description: CURRENT_ACCOUNT_ACCRUE_INTEREST
+    sends_scheduled_operation_reports: false
+    schedule_status_override: ACCOUNT_SCHEDULE_TAG_SCHEDULE_STATUS_OVERRIDE_NO_OVERRIDE
+    schedule_status_override_start_timestamp: null
+    schedule_status_override_end_timestamp: null
+    test_pause_at_timestamp: null

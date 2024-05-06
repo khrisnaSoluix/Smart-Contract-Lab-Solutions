@@ -1,0 +1,131 @@
+# Copyright @ 2021 Thought Machine Group Limited. All rights reserved.
+---
+type: SMART_CONTRACT_VERSION
+id: us_savings_account
+payload: |
+  product_version:
+      display_name: US Savings Account
+      code: '@{us_savings_account.py}'
+      product_id: us_savings_account
+      params:
+        - name: denomination
+          value: 'USD'
+        - name: tiered_interest_rates
+          value: '{
+                "US_SAVINGS_ACCOUNT_TIER_UPPER": {
+                    "tier1": "0.02"
+                },
+                "US_SAVINGS_ACCOUNT_TIER_MIDDLE": {
+                    "tier1": "0.0125"
+                },
+                "US_SAVINGS_ACCOUNT_TIER_LOWER": {
+                    "tier1": "0.01"
+                }
+            }'
+        - name: balance_tier_ranges
+          value: '{
+                "tier1": {"min": "0"}
+            }'
+        - name: minimum_deposit
+          value: '0.01'
+        - name: maximum_balance
+          value: '0'
+        - name: maximum_daily_deposit
+          value: '0'
+        - name: maximum_daily_withdrawal
+          value: '0'
+        - name: minimum_withdrawal
+          value: '0.01'
+        - name: accrued_interest_payable_account
+          value: 'ACCRUED_INTEREST_PAYABLE'
+        - name: interest_paid_account
+          value: 'INTEREST_PAID'
+        - name: accrued_interest_receivable_account
+          value: 'ACCRUED_INTEREST_RECEIVABLE'
+        - name: interest_received_account
+          value: 'INTEREST_RECEIVED'
+        - name: maintenance_fee_income_account
+          value: 'MAINTENANCE_FEE_INCOME'
+        - name: excess_withdrawal_fee_income_account
+          value: 'EXCESS_WITHDRAWAL_FEE_INCOME'
+        - name: minimum_balance_fee_income_account
+          value: 'MINIMUM_BALANCE_FEE_INCOME'
+        - name: days_in_year
+          value: 'actual'
+        - name: interest_accrual_hour
+          value: '0'
+        - name: interest_accrual_minute
+          value: '0'
+        - name: interest_accrual_second
+          value: '0'
+        - name: interest_application_hour
+          value: '0'
+        - name: interest_application_minute
+          value: '1'
+        - name: interest_application_second
+          value: '0'
+        - name: interest_application_frequency
+          value: 'monthly'
+        - name: monthly_withdrawal_limit
+          value: '6'
+        - name: reject_excess_withdrawals
+          value: 'true'
+        - name: excess_withdrawal_fee
+          value: '10.00'
+        - name: maintenance_fee_annual
+          value: '0.00'
+        - name: maintenance_fee_monthly
+          value: '{
+                "US_SAVINGS_ACCOUNT_TIER_UPPER": "15",
+                "US_SAVINGS_ACCOUNT_TIER_MIDDLE": "10",
+                "US_SAVINGS_ACCOUNT_TIER_LOWER": "5"
+            }'
+        - name: promotional_maintenance_fee_monthly
+          value: '{
+                "US_SAVINGS_ACCOUNT_TIER_UPPER": "0",
+                "US_SAVINGS_ACCOUNT_TIER_MIDDLE": "0",
+                "US_SAVINGS_ACCOUNT_TIER_LOWER": "0"
+            }'
+        - name: automated_transfer_tag
+          value: 'DEPOSIT_ACH_'
+        - name: fees_application_day
+          value: '1'
+        - name: fees_application_hour
+          value: '0'
+        - name: fees_application_minute
+          value: '1'
+        - name: fees_application_second
+          value: '0'
+        - name: account_tier_names
+          value: '[
+                "US_SAVINGS_ACCOUNT_TIER_UPPER",
+                "US_SAVINGS_ACCOUNT_TIER_MIDDLE",
+                "US_SAVINGS_ACCOUNT_TIER_LOWER"
+            ]'
+        - name: tiered_minimum_balance_threshold
+          value: '{
+                "US_SAVINGS_ACCOUNT_TIER_UPPER": "25",
+                "US_SAVINGS_ACCOUNT_TIER_MIDDLE": "75",
+                "US_SAVINGS_ACCOUNT_TIER_LOWER": "100"
+            }'
+        - name: minimum_combined_balance_threshold
+          value: '{
+                "US_SAVINGS_ACCOUNT_TIER_UPPER": "3000",
+                "US_SAVINGS_ACCOUNT_TIER_MIDDLE": "4000",
+                "US_SAVINGS_ACCOUNT_TIER_LOWER": "5000"
+            }'
+        - name: minimum_balance_fee
+          value: '0.00'
+        - name: promotional_rates
+          value: '{
+                "US_SAVINGS_ACCOUNT_TIER_UPPER": {
+                    "tier1": "0.04"
+                },
+                "US_SAVINGS_ACCOUNT_TIER_MIDDLE": {
+                    "tier1": "0.025"
+                },
+                "US_SAVINGS_ACCOUNT_TIER_LOWER": {
+                    "tier1": "0.02"
+                }
+            }'
+  migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_ADD_VERSION_APPLY_NEW_USERS

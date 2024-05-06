@@ -1,0 +1,110 @@
+---
+type: SMART_CONTRACT_VERSION
+id: us_checking_account
+payload: |
+  product_version:
+      display_name: US Checking Account
+      code: '@{us_checking_account_rendered.py}'
+      product_id: us_checking_account
+      params:
+        - name: account_tier_names
+          value: '["&{UPPER_TIER}", "&{MIDDLE_TIER}", "&{LOWER_TIER}"]'
+        - name: denomination
+          value: 'GBP'
+        - name: dormancy_flags
+          value: '["&{ACCOUNT_DORMANT}"]'
+        - name: inactivity_fee
+          value: '0.00'
+        - name: inactivity_fee_income_account
+          value: '&{INACTIVITY_FEE_INCOME_ACCOUNT}'
+        - name: partial_inactivity_fee_enabled
+          value: 'False'
+        - name: inactivity_fee_application_hour
+          value: '0'
+        - name: inactivity_fee_application_minute
+          value: '0'
+        - name: inactivity_fee_application_second
+          value: '1'
+        - name: inactivity_flags
+          value: '["&{ACCOUNT_INACTIVE}"]'
+        - name: application_precision
+          value: '2'
+        - name: interest_paid_account
+          value: '&{INTEREST_PAID_ACCOUNT}'
+        - name: interest_received_account
+          value: '&{INTEREST_RECEIVED_ACCOUNT}'
+        - name: interest_application_frequency
+          value: 'monthly'
+        - name: interest_application_hour
+          value: '0'
+        - name: interest_application_minute
+          value: '0'
+        - name: interest_application_second
+          value: '1'
+        - name: minimum_balance_fee
+          value: '0.00'
+        - name: minimum_balance_threshold_by_tier
+          value: '{"&{UPPER_TIER}": "25", "&{MIDDLE_TIER}": "75", "&{LOWER_TIER}": "100"}'
+        - name: minimum_balance_fee_income_account
+          value: '&{MINIMUM_BALANCE_FEE_INCOME_ACCOUNT}'
+        - name: minimum_balance_fee_application_hour
+          value: '0'
+        - name: minimum_balance_fee_application_minute
+          value: '0'
+        - name: minimum_balance_fee_application_second
+          value: '1'
+        - name: partial_minimum_balance_fee_application_enabled
+          value: 'False'
+        - name: partial_paper_statement_fee_enabled
+          value: 'False'
+        - name: paper_statement_fee_rate
+          value: '0.00'
+        - name: paper_statement_fee_income_account
+          value: '&{PAPER_STATEMENT_FEE_INCOME_ACCOUNT}'
+        - name: paper_statement_fee_hour
+          value: '0'
+        - name: paper_statement_fee_minute
+          value: '0'
+        - name: paper_statement_fee_second
+          value: '1'
+        - name: tiered_daily_withdrawal_limits
+          value: '{"&{UPPER_TIER}": {"ATM": "5000"}, "&{MIDDLE_TIER}": {"ATM": "2000"}, "&{LOWER_TIER}": {"ATM": "1500"}}'
+        - name: excluded_overdraft_coverage_transaction_types
+          value: '[]'
+        - name: tiered_interest_rates
+          value: '{"0.00": "0.01", "1000.00": "0.02", "3000.00": "0.035", "7500.00": "0.05", "10000.00": "0.06"}'
+        - name: accrued_interest_payable_account
+          value: '&{ACCRUED_INTEREST_PAYABLE_ACCOUNT}'
+        - name: accrued_interest_receivable_account
+          value: '&{ACCRUED_INTEREST_RECEIVABLE_ACCOUNT}'
+        - name: days_in_year
+          value: '365'
+        - name: accrual_precision
+          value: '5'
+        - name: interest_accrual_hour
+          value: '0'
+        - name: interest_accrual_minute
+          value: '0'
+        - name: interest_accrual_second
+          value: '0'
+        - name: monthly_maintenance_fee_by_tier
+          value: '{"&{UPPER_TIER}": "20", "&{MIDDLE_TIER}": "10", "&{LOWER_TIER}": "5"}'
+        - name: monthly_maintenance_fee_income_account
+          value: '&{MONTHLY_MAINTENANCE_FEE_INCOME_ACCOUNT}'
+        - name: partial_maintenance_fee_enabled
+          value: 'False'
+        - name: maintenance_fee_application_hour
+          value: '0'
+        - name: maintenance_fee_application_minute
+          value: '1'
+        - name: maintenance_fee_application_second
+          value: '0'
+        - name: deposit_threshold_by_tier
+          value: '{"&{UPPER_TIER}": "25", "&{MIDDLE_TIER}": "75", "&{LOWER_TIER}": "100"}'
+        - name: capitalise_accrued_interest_on_account_closure
+          value: 'False'
+        - name: fee_types_eligible_for_rebate
+          value: '["out_of_network_atm"]'
+        - name: fee_rebate_internal_accounts
+          value: '{"out_of_network_atm": "&{OUT_OF_NETWORK_ATM_FEE_REBATE_ACCOUNT}"}'
+  migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_ADD_VERSION_APPLY_NEW_USERS

@@ -1,0 +1,11 @@
+# Copyright @ 2021 Thought Machine Group Limited. All rights reserved.
+---
+type: INTERNAL_ACCOUNT
+id: FEE_LOAN_ACCOUNT
+vault_id: FEE_LOAN
+payload: |
+  internal_account:
+      id: FEE_LOAN
+      product_id: '&{fee_loan_account_contract:product_id}'
+      accounting:
+        tside: TSIDE_LIABILITY

@@ -1,0 +1,10 @@
+type: CALENDAR
+id: nsw_calendar_green_days
+vault_id: nsw_calendar_green_days
+on_conflict: SKIP
+payload: |
+  calendar:
+    id: nsw_calendar_green_days
+    is_active: true
+    display_name: NSW Calendar Business Days
+    description: NSW banking days.

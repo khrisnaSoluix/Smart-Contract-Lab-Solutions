@@ -1,0 +1,11 @@
+# Copyright @ 2021 Thought Machine Group Limited. All rights reserved.
+---
+type: INTERNAL_ACCOUNT
+id: OFF_BALANCE_SHEET_CONTRA_ACCOUNT
+vault_id: OFF_BALANCE_SHEET
+payload: |
+  internal_account:
+      id: OFF_BALANCE_SHEET
+      product_id: '&{off_balance_sheet_contra_account_contract:product_id}'
+      accounting:
+        tside: TSIDE_LIABILITY

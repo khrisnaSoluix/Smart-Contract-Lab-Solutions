@@ -1,0 +1,572 @@
+# Copyright @ 2021 Thought Machine Group Limited. All rights reserved.
+---
+name: CASA Closure
+instance_title: CASA Closure
+description: A Workflow to close a CASA Account
+schema_version: 3.2.0
+definition_version: 1.1.0
+
+starting_state: retrieve_account_details
+end_states:
+  - state: account_closed_successfully
+    result: SUCCESSFUL
+  - state: account_closure_failure
+    result: FAILED
+
+states:
+  retrieve_account_details:
+    display_name: Retrieve account details
+    expected_context_keys:
+      - account_id
+    entry_actions:
+      save_to_global_state:
+        context_keys:
+          - account_id
+          - user_id          
+      vault_callback:
+        path: core-api/v1/accounts/{id}
+        method: GET
+        arguments:
+          id: ${account_id}
+        response_fields:
+          - key_name: product_id
+            response_json_path: product_id
+            extract_singleton_element: true
+          - key_name: status
+            response_json_path: status
+            extract_singleton_element: true
+        response_event: account_details_retrieved
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - product_id
+    transitions:
+      - to: check_account_status
+        description: Details retrieved
+        trigger: account_details_retrieved
+
+  check_account_status:
+    display_name: Check account status
+    type: transform
+    transform_ref: check_account_status_is_open
+    transitions:
+      - to: retrieve_account_balance
+        description: Account open
+        trigger: account_status_is_open
+      - to: account_closure_failure
+        description: Not open
+        trigger: account_status_is_not_open
+
+  retrieve_account_balance:
+    display_name: Retrieve account balance
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/balances/live
+        method: GET
+        arguments:
+          account_ids: 
+            - ${account_id}
+          page_size: 100
+        response_event: balance_retrieved
+        response_fields:
+          - key_name: live_balance
+            response_json_path: balances
+            extract_singleton_element: true
+    transitions:
+      - to: check_balances
+        description: Balances retrieved
+        trigger: balance_retrieved
+  
+  check_balances:
+    display_name: Check balances
+    type: transform
+    transform_ref: check_balances
+    transitions:
+      - to: check_for_closure_confirmation
+        description: Zero balance
+        trigger: account_zero
+      - to: retrieve_customer_accounts
+        description: Positive balance
+        trigger: account_positive
+        actions:
+          save_to_global_state:
+            context_keys:
+              - denomination
+              - amount
+      - to: account_closure_failure
+        description: Negative balance
+        trigger: account_negative
+      - to: pending_transaction_found
+        description: Pending transaction
+        trigger: pending_transaction
+  
+  pending_transaction_found:
+    display_name: Pending transaction found
+    expected_context_keys:
+      - rejection_reason
+    type: transform
+    transform: |
+      return ['pending_transaction_found', {'rejection_reason': context.get('rejection_reason')}]
+    transitions:
+      - to: account_closure_failure
+        description: Pending transaction
+        trigger: pending_transaction_found
+
+  retrieve_customer_accounts:
+    display_name: Retrieve accounts
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/accounts
+        method: GET
+        arguments:
+          page_size: 20
+          page_token: ${next_page_token:}
+          stakeholder_id: ${user_id}
+          account_statuses:
+            - ACCOUNT_STATUS_OPEN
+        response_event: accounts_retrieved
+        response_fields:
+          - key_name: retrieved_accounts
+            response_json_path: accounts
+          - key_name: next_page_token
+            response_json_path: next_page_token
+            extract_singleton_element: true
+    transitions:
+      - to: build_account_list
+        description: Accounts retrieved
+        trigger: accounts_retrieved
+
+  build_account_list:
+    display_name: Build account list
+    type: transform
+    transform_ref: build_account_list
+    transitions:
+      - to: retrieve_customer_accounts
+        description: Next page
+        trigger: retrieve_more_accounts
+        actions:
+          save_to_global_state:
+            context_keys:
+              - open_accounts
+      - to: filter_suitable_accounts
+        description: All accounts retrieved
+        trigger: all_accounts_retrieved
+
+  filter_suitable_accounts:
+    display_name: Create list of disbursement actions
+    type: transform
+    transform_ref: filter_suitable_accounts
+    exit_actions:
+        save_to_global_state:
+          new_key_value_pairs:
+            closure_confirmed: true
+    transitions:
+      - to: account_closure_failure
+        description: No valid account for disbursment
+        trigger: no_valid_account
+        actions:
+          save_to_global_state:
+            context_keys:
+              - rejection_reason
+      - to: capture_disbursement_destination
+        description: capture disbursement destination
+        trigger: select_account_for_disbursement
+
+  capture_disbursement_destination:
+    display_name: Capture disbursement destination
+    expected_context_keys:
+      - excluded_accounts
+    state_ui:
+      ui_panels:
+        - panel_id: display_remaining_balance
+          display_name: Remaining balance in ${denomination}
+          json_definition:
+            text:
+              value: ${denomination} ${amount}
+      ui_actions:
+        - action_id: local_transfer_selected
+          event: local_transfer_selected
+          display_name: Disburse balance to local account
+          ui_inputs:
+            - key: target_account_id
+              display_name: Select target account for disbursement
+              string_input: {}
+              json_definition:
+                account_selector:
+                  customer_id: ${user_id}
+                  account_statuses_to_include: 
+                    - ACCOUNT_STATUS_OPEN
+                  exclude_account_ids: json_object(${excluded_accounts})
+    transitions:
+      - to: create_local_transfer
+        description: Local transfer
+        trigger: local_transfer_selected
+
+  create_local_transfer:
+    display_name: Transfer balance to local account
+    expected_context_keys:
+      - target_account_id
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/posting-instruction-batches:asyncCreate
+        method: POST
+        arguments:
+          request_id: generate_uuid()
+          posting_instruction_batch:
+            client_id: AsyncCreatePostingInstructionBatch
+            client_batch_id: generate_uuid()
+            posting_instructions:
+              - client_transaction_id: generate_uuid()
+                transfer:
+                  amount: ${amount}
+                  denomination: ${denomination}
+                  debtor_target_account:
+                    account_id: ${account_id}
+                  creditor_target_account:
+                    account_id: ${target_account_id}
+            batch_details:
+              note: Transferring closing account balance
+    transitions:
+      - to: retrieve_account_balance_after_posting
+        description: Transfer succeeded
+        trigger: local_transfer_succeeded
+        auto_trigger_conditions:
+          streaming_api_conditions:
+            topic: vault.api.v1.postings.posting_instruction_batch.created
+            message_content:
+              - path: "posting_instruction_batch.status"
+                values:
+                  - POSTING_INSTRUCTION_BATCH_STATUS_ACCEPTED
+                quantifier: any
+            response_fields:
+              - key_name: posting_instruction_batch_id
+                response_json_path: posting_instruction_batch.id
+                extract_singleton_element: true
+              - key_name: value_timestamp
+                response_json_path: posting_instruction_batch.value_timestamp
+                extract_singleton_element: true
+        actions:
+          save_to_global_state:
+            new_key_value_pairs:
+              balance_check_counter: 1
+              posting_instruction_batch_id: ${posting_instruction_batch_id}
+              value_timestamp: ${value_timestamp}
+      - to: account_closure_failure
+        description: Transfer failed
+        trigger: transfer_failed
+        actions:
+          save_to_global_state:
+            new_key_value_pairs:
+              rejection_reason: Failed to transfer balance
+        auto_trigger_conditions:
+          streaming_api_conditions:
+            topic: vault.api.v1.postings.posting_instruction_batch.created
+            message_content:
+              - path: "posting_instruction_batch.status"
+                values:
+                  - POSTING_INSTRUCTION_BATCH_STATUS_REJECTED
+                quantifier: any
+
+  retrieve_account_balance_after_posting:
+    display_name: Retrieve account balance after transfer
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/balances/timerange
+        method: GET
+        arguments:
+          account_ids: 
+            - ${account_id}
+          from_time: ${value_timestamp}
+          to_time: ${value_timestamp}
+          page_size: 30
+        response_event: balance_after_posting_retrieved
+        response_fields:
+          - key_name: balances
+            response_json_path: balances
+            extract_singleton_element: true
+    transitions:
+      - to: check_balances_updated_after_posting
+        description: Balances after posting retrieved
+        trigger: balance_after_posting_retrieved
+
+  check_balances_updated_after_posting:
+    display_name: Check balances are updated after posting
+    type: transform
+    transform_ref: check_for_updated_balances
+    transitions:
+      - to: retrieve_account_balance
+        description: Balances updated after posting
+        trigger: balances_updated_after_posting
+      - to: retrieve_account_balance_after_posting
+        description: Balances not updated after posting
+        trigger: balances_not_updated_after_posting
+        actions:
+          save_to_global_state:
+            context_keys:
+              - balance_check_counter
+      - to: balances_stuck_after_posting
+        description: Balances updated after posting
+        trigger: balances_stuck_after_posting
+
+  balances_stuck_after_posting:
+    display_name: Balances stuck after posting
+    state_ui:
+      ui_panels:
+        - panel_id: choose_action_after_stuck_balance
+          display_name: Choose action after stuck balance
+          json_definition:
+            text:
+              value: >
+                Balances are not updating for posting instruction batch
+                ${posting_instruction_batch_id} after ${balance_check_counter} attempts.
+                You may retry another ${balance_check_counter} attempts in case this was
+                due to a transient issue. Otherwise it is recommended you check with support to
+                determine the root cause before retrying further or cancelling the workflow.
+      ui_actions:
+        - action_id: retry_check_balances_updated_after_posting
+          event: retry_check_balances_updated_after_posting
+          display_name: Retry checking balances updated for posting
+    transitions:
+      - to: retrieve_account_balance_after_posting
+        description: Retry check balances updated after posting 
+        trigger: retry_check_balances_updated_after_posting
+        actions:
+          save_to_global_state:
+            new_key_value_pairs:
+              balance_check_counter: 1
+
+  check_for_closure_confirmation:
+    display_name: Check for existing closure confirmation
+    type: transform
+    transform_ref: check_for_closure_confirmation
+    transitions:
+      - to: update_account_status_to_pending_closure
+        description: Closure confirmed
+        trigger: confirmed_closure
+      - to: request_confirmation
+        description: Need confirmation
+        trigger: no_confirmation
+
+  request_confirmation:
+    display_name: Account has zero balance and will be closed
+    state_ui:
+      ui_actions:
+        - action_id: confirm_closure
+          event: closure_confirmed
+          display_name: Confirm closure
+    transitions:
+      - to: retrieve_account_balance
+        description: Closure confirmed
+        trigger: closure_confirmed
+        actions:
+          save_to_global_state:
+            new_key_value_pairs:
+              closure_confirmed: true
+
+  update_account_status_to_pending_closure:
+    display_name: Update account status to pending closure
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/accounts/{account.id}
+        method: PUT
+        arguments:
+          request_id: generate_uuid()
+          account:
+            id: ${account_id}
+            status: ACCOUNT_STATUS_PENDING_CLOSURE
+          update_mask: status
+    transitions:
+      - to: update_account_status_to_closed
+        description: Close account
+        trigger: account_pending_closure
+        auto_trigger_conditions:
+          streaming_api_conditions:
+            topic: vault.core_api.v1.accounts.account_update.events
+            message_content:
+              - path: "['*'].account_update.status"
+                values:
+                  - ACCOUNT_UPDATE_STATUS_COMPLETED
+                quantifier: any
+      - to: account_closure_failure
+        description: Closure failed
+        trigger: account_update_failure
+        auto_trigger_conditions:
+          streaming_api_conditions:
+            topic: vault.core_api.v1.accounts.account_update.events
+            message_content:
+              - path: "['*'].account_update.status"
+                values:
+                  - ACCOUNT_UPDATE_STATUS_COMPLETED
+                  - ACCOUNT_UPDATE_STATUS_PENDING_EXECUTION
+                quantifier: none
+
+  update_account_status_to_closed:
+    display_name: Update account status to closed
+    description: Update account status to closed via synchronous API call (no need to wait for topic msg)
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/accounts/{account.id}
+        method: PUT
+        arguments:
+          request_id: generate_uuid()
+          account:
+            id: ${account_id}
+            status: ACCOUNT_STATUS_CLOSED
+          update_mask: status
+        response_event: account_closed
+    transitions:
+      - to: account_closed_successfully
+        description: Close account
+        trigger: account_closed
+
+  account_closed_successfully:
+    display_name: Account closed successfully
+    state_ui:
+      ui_panels:
+        - panel_id: account_closed_panel
+          display_name: Account closure successful
+          json_definition:
+            text:
+              value: >
+                Account has been successfully closed. Please destroy any debit cards related 
+                to this account.
+
+  account_closure_failure:
+    display_name: Account closure rejected
+    state_ui:
+      ui_panels:
+        - panel_id: account_closure_failure_panel
+          display_name: Account closure rejected
+          json_definition:
+            text:
+              value: ${rejection_reason:Account closure rejected}
+
+transforms:
+  check_balances: |
+    live_balances = json.loads(context.get('live_balance'))
+
+    in_flight_balances = []
+    outgoing_amounts = {}
+    incoming_amounts = {}
+    for live_balance in live_balances:
+      if (
+        live_balance.get('phase') == 'POSTING_PHASE_PENDING_OUTGOING' and
+        live_balance.get('account_address') == 'DEFAULT' and
+        live_balance.get('asset') == 'COMMERCIAL_BANK_MONEY'
+      ):
+        denomination = live_balance.get('denomination')
+        outgoing_amounts.setdefault(denomination, '0')
+        outgoing_amounts[denomination] = decimal.add(outgoing_amounts[denomination], live_balance.get('amount'))
+      if (
+        live_balance.get('phase') == 'POSTING_PHASE_PENDING_INCOMING' and
+        live_balance.get('account_address') == 'DEFAULT' and
+        live_balance.get('asset') == 'COMMERCIAL_BANK_MONEY'
+      ):
+        denomination = live_balance.get('denomination')
+        incoming_amounts.setdefault(denomination, '0')
+        incoming_amounts[denomination] = decimal.add(incoming_amounts[denomination], live_balance.get('amount'))
+
+    in_flight_balances.extend(outgoing_amounts.values())
+    in_flight_balances.extend(incoming_amounts.values())
+
+    if any([not decimal.iszero(balance) for balance in in_flight_balances]):
+      rejection_reason = 'Account is ineligible for closure while there are current pending transactions on the account.'
+      return ['pending_transaction', {'rejection_reason': rejection_reason}]
+
+    # When the account is closed the customer is liable for unapplied overdraft interest,
+    # but the bank gets the unapplied deposit interest, so ACCRUED_DEPOSIT is
+    # deliberately missing here
+    final_balance_dimensions = [
+        ('DEFAULT', 'POSTING_PHASE_COMMITTED'),
+        ('ACCRUED_OVERDRAFT', 'POSTING_PHASE_COMMITTED'),
+        ('OVERDRAFT_FEE', 'POSTING_PHASE_COMMITTED')
+      ]
+
+    # Find the final balances for each interesting balance dimension and merge by currency
+    final_amounts_by_denom = {}
+    for account_address, posting_phase in final_balance_dimensions:
+      dimension_balances = {}
+      for live_balance in live_balances:
+        if (
+          live_balance.get('phase') == posting_phase and
+          live_balance.get('account_address') == account_address and
+          live_balance.get('asset') == 'COMMERCIAL_BANK_MONEY'
+        ):
+          denomination = live_balance.get('denomination')
+          dimension_balances.setdefault(denomination, '0')
+          dimension_balances[denomination] = decimal.add(dimension_balances[denomination], live_balance.get('amount'))
+      for denom, amount in dimension_balances.items():
+        amount = decimal.quantize(amount, '.01')
+        final_amounts_by_denom.setdefault(denom, '0')
+        final_amounts_by_denom[denom] = decimal.add(final_amounts_by_denom[denom], amount)
+
+    final_amounts_by_denom = {denom: amount for denom, amount in final_amounts_by_denom.items() if not decimal.iszero(amount)}
+
+    if len(final_amounts_by_denom) == 0:
+      return ['account_zero', {}]
+
+    if any([decimal.lessthan(amount, '0') for amount in final_amounts_by_denom.values()]):
+      return ['account_negative', {'rejection_reason': 'Account is ineligible for closure while the final balance is negative'}]
+
+    # The Workflow loops through this state multiple times if there is remaining balance
+    # We return one denomination's balance here and expect to come back if there are others
+    denomination, amount = final_amounts_by_denom.popitem()
+    return ['account_positive', {'denomination': denomination, 'amount': str(amount)}]
+
+  build_account_list: |
+    open_accounts = json.loads(context.get('open_accounts', '[]'))
+    open_accounts.extend(json.loads(context['retrieved_accounts'])[0])
+    next_page_token = context.get('next_page_token')
+    new_context = {'open_accounts': json.dumps(open_accounts)}
+
+    if next_page_token:
+      new_context['next_page_token'] = next_page_token
+      return ['retrieve_more_accounts', new_context]
+    else:
+      return ['all_accounts_retrieved', new_context]
+
+  filter_suitable_accounts: |
+    # create list of unsuitable accounts to exclude from the list
+    all_accounts = json.loads(context.get('open_accounts', '[]'))
+    excluded_accounts = []
+    suitable_account_types = ['current_account', 'easy_access_saver', 'casa']
+    for account in all_accounts:
+      product_id = account['product_id']
+      suitable_account = product_id in suitable_account_types or any([product_id.startswith('e2e_' + account_type) for account_type in suitable_account_types])
+      if not suitable_account or context['denomination'] not in account['permitted_denominations']:
+        excluded_accounts.append(account['id'])
+       
+    if context['account_id'] not in excluded_accounts:
+      excluded_accounts.append(context['account_id'])
+
+    if len(excluded_accounts) == len(all_accounts):
+      return ['no_valid_account', {'rejection_reason': 'no suitable account for disbursement' }]
+    else:
+      return ['select_account_for_disbursement', {'excluded_accounts': json.dumps(excluded_accounts)}]
+
+  check_account_status_is_open: |
+    if context.get('status') == 'ACCOUNT_STATUS_OPEN':
+      return ['account_status_is_open', {}]
+    else:
+      return ['account_status_is_not_open', {}]
+
+  check_for_closure_confirmation: |
+    if context.get('closure_confirmed'):
+      return ['confirmed_closure', {}]
+    else:
+      return ['no_confirmation', {}]
+
+  check_for_updated_balances: |
+    balances = json.loads(context.get('balances', '[]'))
+    posting_instruction_batch_id = context.get('posting_instruction_batch_id')
+    if len(balances) > 0 and any([posting_instruction_batch_id == balance['posting_instruction_batch_id'] for balance in balances]): 
+      return ['balances_updated_after_posting', {}]
+    else:
+      balance_check_counter = int(context.get('balance_check_counter', 1)) + 1
+      if balance_check_counter <= 10:
+        return [
+          'balances_not_updated_after_posting',
+          {'balance_check_counter': balance_check_counter}
+        ]
+      else:
+        return ['balances_stuck_after_posting', {}]

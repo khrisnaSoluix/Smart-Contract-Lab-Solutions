@@ -1,0 +1,88 @@
+# Copyright @ 2021 Thought Machine Group Limited. All rights reserved.
+---
+pack_version: 1.0.0
+pack_name: GPL Savings Sweep
+resource_ids:
+  # --------- SMART CONTRACTS
+  - us_checking_account
+  - us_savings_account
+
+  # --------- SUPERVISOR SMART CONTRACTS
+  - savings_sweep_supervisor_contract
+
+  # --------- SUPERVISOR SMART CONTRACT VERSIONS
+  - savings_sweep_supervisor_contract_version
+
+  # --------- WORKFLOW DEFINITIONS
+  - US_CHECKING_ACCOUNT_APPLICATION
+  - US_SAVINGS_ACCOUNT_APPLICATION
+  - US_PRODUCTS_CLOSURE
+  - SAVINGS_SWEEP_ACCOUNT_ASSOCIATION
+  - SAVINGS_SWEEP_HIERARCHY_MANAGEMENT
+  - SAVINGS_SWEEP_SAVINGS_ACCOUNT_DISASSOCIATION
+  - SAVINGS_SWEEP_CHECKING_AND_SAVINGS_ACCOUNT_APPLICATION
+
+
+  # --------- FLAG DEFINITIONS
+  - STANDARD_OVERDRAFT_TRANSACTION_COVERAGE
+  - US_CHECKING_ACCOUNT_TIER_LOWER
+  - US_CHECKING_ACCOUNT_TIER_MIDDLE
+  - US_CHECKING_ACCOUNT_TIER_UPPER
+  - US_SAVINGS_ACCOUNT_TIER_LOWER
+  - US_SAVINGS_ACCOUNT_TIER_MIDDLE
+  - US_SAVINGS_ACCOUNT_TIER_UPPER
+  - PROMOTIONAL_INTEREST_RATES
+  - PROMOTIONAL_MAINTENANCE_FEE
+  # Common
+  - ACCOUNT_DORMANT
+
+  # --------- ACCOUNT SCHEDULE TAGS
+  - SUPERVISOR_CHECKING_APPLY_MONTHLY_FEES_AST
+  - SUPERVISOR_SAVINGS_APPLY_MONTHLY_FEES_AST
+
+  - US_CHECKING_ACCRUE_INTEREST_AND_DAILY_FEES_AST
+  - US_CHECKING_APPLY_ACCRUED_DEPOSIT_INTEREST_AST
+  - US_CHECKING_APPLY_ACCRUED_OVERDRAFT_INTEREST_AST
+  - US_CHECKING_APPLY_ANNUAL_FEES_AST
+  - US_CHECKING_APPLY_MONTHLY_FEES_AST
+  - US_SAVINGS_ACCRUE_INTEREST_AST
+  - US_SAVINGS_APPLY_ACCRUED_INTEREST_AST
+  - US_SAVINGS_APPLY_ANNUAL_FEES_AST
+  - US_SAVINGS_APPLY_MONTHLY_FEES_AST
+
+  # --------- INTERNAL ACCOUNT SMART CONTRACTS
+  - accrued_interest_payable_account_contract
+  - interest_paid_account_contract
+  - accrued_interest_receivable_account_contract
+  - interest_received_account_contract
+  - annual_maintenance_fee_income_account_contract
+  - inactivity_fee_income_account_contract
+  - maintenance_fee_income_account_contract
+  - minimum_balance_fee_income_account_contract
+  - overdraft_fee_income_account_contract
+  - overdraft_fee_receivable_account_contract
+
+  # --------- INTERNAL ACCOUNTS
+  - ACCRUED_INTEREST_PAYABLE_ACCOUNT
+  - INTEREST_PAID_ACCOUNT
+  - ACCRUED_INTEREST_RECEIVABLE_ACCOUNT
+  - INTEREST_RECEIVED_ACCOUNT
+  - ANNUAL_MAINTENANCE_FEE_INCOME_ACCOUNT
+  - INACTIVITY_FEE_INCOME_ACCOUNT
+  - MAINTENANCE_FEE_INCOME_ACCOUNT
+  - MINIMUM_BALANCE_FEE_INCOME_ACCOUNT
+  - OVERDRAFT_FEE_INCOME_ACCOUNT
+  - OVERDRAFT_FEE_RECEIVABLE_ACCOUNT
+
+  # --------- CONTRACT MODULES
+  - interest
+  - utils
+  
+  # --------- CONTRACT MODULE VERSIONS
+  - interest_version
+  - utils_version
+
+  # --------- SMART CONTRACT MODULE VERSIONS LINKS
+  - us_checking_account_module_versions_link
+  - us_savings_account_module_versions_link
+  

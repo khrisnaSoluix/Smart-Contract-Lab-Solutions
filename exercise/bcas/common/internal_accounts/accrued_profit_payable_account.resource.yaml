@@ -1,0 +1,11 @@
+# Copyright @ 2022 Thought Machine Group Limited. All rights reserved.
+---
+type: INTERNAL_ACCOUNT
+id: ACCRUED_PROFIT_PAYABLE_ACCOUNT
+vault_id: ACCRUED_PROFIT_PAYABLE
+payload: |
+  internal_account:
+      id: ACCRUED_PROFIT_PAYABLE
+      product_id: accrued_profit_payable_account_contract
+      accounting:
+        tside: TSIDE_ASSET

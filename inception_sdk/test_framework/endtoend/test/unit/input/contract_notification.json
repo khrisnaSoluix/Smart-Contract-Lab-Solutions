@@ -1,0 +1,9 @@
+{
+  "event_id": "123test123",
+  "notification_type": "my_notification_type",
+  "resource_id": "my_resource_id",
+  "resource_type": "RESOURCE_ACCOUNT",
+  "notification_details": {
+    "key": "value"
+  }
+}

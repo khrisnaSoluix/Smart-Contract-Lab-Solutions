@@ -1,0 +1,45 @@
+# Copyright @ 2023 Thought Machine Group Limited. All rights reserved.
+---
+name: Line of Credit Mark Delinquent
+instance_title: Line of Credit Mark Delinquent
+description: A workflow to set a Line of Credit account to be delinquent.
+schema_version: 3.2.0
+definition_version: 2.0.0
+
+starting_state: set_account_delinquent_flag
+end_states:
+  - state: account_delinquency_set
+    result: SUCCESSFUL
+
+auto_instantiation_conditions:
+  - streaming_api_condition:
+      topic: vault.core_api.v1.contracts.contract_notification.events
+      message_contents:
+        - path: notification_type
+          values:
+            - LINE_OF_CREDIT_MARK_DELINQUENT
+    instantiation_context:
+      - key_name: account_id
+        json_path: notification_details.account_id
+        extract_singleton_element: true
+
+states:
+  set_account_delinquent_flag:
+    display_name: Set account delinquent flag
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/flags
+        method: POST
+        arguments:
+          flag:
+            flag_definition_id: "&{ACCOUNT_DELINQUENT}"
+            description: Account delinquent
+            account_id: ${account_id}
+          request_id: generate_uuid()
+        response_event: account_delinquency_set
+    transitions:
+      - to: account_delinquency_set
+        trigger: account_delinquency_set
+
+  account_delinquency_set:
+    display_name: Account delinquency set

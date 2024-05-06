@@ -1,0 +1,11 @@
+# Copyright @ 2021 Thought Machine Group Limited. All rights reserved.
+---
+type: INTERNAL_ACCOUNT
+id: UNARRANGED_OVERDRAFT_FEE_INCOME_ACCOUNT
+vault_id: UNARRANGED_OVERDRAFT_FEE_INCOME
+payload: |
+  internal_account:
+      id: UNARRANGED_OVERDRAFT_FEE_INCOME
+      product_id: '&{unarranged_overdraft_fee_income_account_contract:product_id}'
+      accounting:
+        tside: TSIDE_LIABILITY

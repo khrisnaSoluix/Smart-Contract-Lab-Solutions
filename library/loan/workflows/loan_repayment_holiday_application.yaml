@@ -1,0 +1,395 @@
+# Copyright @ 2021 Thought Machine Group Limited. All rights reserved.
+---
+name: Loan Repayment Holiday Application
+instance_title: Loan Repayment Holiday Application
+description: Set account to be on repayment holiday
+schema_version: 3.2.0
+definition_version: 2.0.0
+
+starting_state: retrieve_account_parameter_details
+end_states:
+  - state: repayment_holiday_set
+    result: SUCCESSFUL
+  - state: account_already_on_holiday
+    result: SUCCESSFUL
+  - state: impact_preference_update_failed
+    result: FAILED
+  - state: repayment_holiday_application_failed
+    result: FAILED
+
+states:
+  retrieve_account_parameter_details:
+    display_name: Retrieve account parameter details
+    expected_context_keys:
+      - account_id
+    entry_actions:
+      save_to_global_state:
+        context_keys:
+          - account_id
+      vault_callback:
+        path: core-api/v1/accounts/{id}
+        method: GET
+        arguments:
+          id: ${account_id}
+        response_event: account_retrieved
+        response_fields:
+          - key_name: account_status
+            response_json_path: status
+            extract_singleton_element: true
+          - key_name: instance_param_vals
+            response_json_path: instance_param_vals
+            extract_singleton_element: true
+          - key_name: due_amount_calculation_day
+            response_json_path: instance_param_vals.due_amount_calculation_day
+            extract_singleton_element: true
+          - key_name: impact_preference
+            response_json_path: instance_param_vals.repayment_holiday_impact_preference
+            extract_singleton_element: true
+          - key_name: opening_timestamp
+            response_json_path: opening_timestamp
+            extract_singleton_element: true
+          - key_name: product_id
+            response_json_path: product_id
+            extract_singleton_element: true
+          - key_name: product_version_id
+            response_json_path: product_version_id
+            extract_singleton_element: true
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - instance_param_vals
+          - due_amount_calculation_day
+          - impact_preference
+          - product_id
+          - product_version_id
+    transitions:
+      - to: query_contract_parameters
+        trigger: account_retrieved
+        description: Retrieved account details  
+
+  query_contract_parameters:
+    display_name: Query loan parameters
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/product-versions
+        method: GET
+        arguments:
+          product_id: ${product_id}
+          view: PRODUCT_VERSION_VIEW_INCLUDE_PARAMETERS
+          page_size: 30
+          page_token: ${next_page_token:}
+        response_event: contract_versions_returned
+        response_fields:
+          - key_name: product_versions
+            response_json_path: product_versions
+            extract_singleton_element: true
+          - key_name: next_page_token
+            response_json_path: next_page_token
+            extract_singleton_element: true
+    transitions:
+      - to: extract_current_parameter_details
+        trigger: contract_versions_returned
+        description: Contracts returned
+
+  extract_current_parameter_details:
+    display_name: Extract parameters
+    expected_context_keys:
+      - next_page_token
+      - product_versions
+    type: transform
+    transform_ref: extract_current_parameter_details
+    transitions:
+      - to: validate_account_applicability
+        trigger: amortisation_method_extracted
+        actions:
+          save_to_global_state:
+            context_keys:
+              - amortisation_method
+      - to: query_contract_parameters
+        trigger: matching_product_version_not_found
+      - to: repayment_holiday_application_failed
+        trigger: no_valid_contract
+      
+    
+  validate_account_applicability:
+    display_name: Validate if repayment holiday is supported
+    type: transform
+    transform_ref: validate_if_balloon_payment_loan
+    transitions:
+      - to: capture_repayment_holiday_period
+        trigger: not_balloon_loan
+      - to: repayment_holiday_application_failed
+        trigger: is_balloon_loan
+
+  capture_repayment_holiday_period:
+    display_name: Capture repayment holiday period
+    state_ui:
+      ui_actions:
+        - action_id: repayment_holiday_date_chosen
+          event: repayment_holiday_date_chosen
+          display_name: >
+            Capture repayment holiday period.
+            Start and end date must be on day ${due_amount_calculation_day} of the month.
+            There must be at least 4 days from now until the the start.
+          ui_inputs:
+            - key: repayment_holiday_start_date
+              display_name: Start date of repayment holiday period${invalid_date_message:}
+              string_input: {}
+              json_definition:
+                date:
+            - key: repayment_holiday_end_date
+              display_name: End date of repayment holiday period${invalid_date_message:}
+              string_input: {}
+              json_definition:
+                date:
+    transitions:
+      - to: transform_repayment_holiday_dates
+        trigger: repayment_holiday_date_chosen
+        description: Repayment holiday period
+
+  transform_repayment_holiday_dates:
+    display_name: Transform repayment holiday dates
+    type: transform
+    transform_ref: transform_repayment_holiday_date
+    transitions:
+      - to: get_account_flags
+        trigger: repayment_holiday_dates_transformed
+
+  get_account_flags:
+    display_name: Get customer flags
+    entry_actions:
+      save_to_global_state:
+        context_keys:
+          - repayment_holiday_start_date
+          - repayment_holiday_end_date
+      vault_callback:
+        path: core-api/v1/flags
+        method: GET
+        arguments:
+          account_ids:
+            - ${account_id}
+          effective_timestamp: ${repayment_holiday_start_date}
+          include_inactive: false
+          flag_visibility_level: FLAG_VISIBILITY_CONTRACT
+          page_size: 100
+        response_fields:
+          - key_name: customer_flags
+            response_json_path: flags
+            extract_singleton_element: true
+        response_event: customer_flags_retrieved
+    transitions:
+      - to: validate_repayment_holiday_date
+        trigger: customer_flags_retrieved
+
+  validate_repayment_holiday_date:
+    display_name: Validate repayment holiday dates
+    type: transform
+    transform_ref: validate_repayment_holiday_date
+    transitions:
+      - to: capture_repayment_holiday_period
+        trigger: invalid_repayment_holiday_date
+        description: Date Invalid
+      - to: account_already_on_holiday
+        trigger: repayment_holiday_active
+      - to: capture_impact_preference
+        trigger: repayment_holiday_inactive
+
+  capture_impact_preference:
+    display_name: Capture repayment holiday impact preference
+    state_ui:
+      ui_actions:
+        - action_id: choose_impact_preference
+          event: impact_preference_selected
+          display_name: >
+            Select preferred repayment holiday impact.
+            This selection will apply to all future scheduled repayment holidays on this account.
+          ui_inputs:
+            - key: chosen_impact_preference
+              display_name: Default value is ${impact_preference}
+              string_input:
+              json_definition:
+                value_selector:
+                  values:
+                    - label: "Increase EMI"
+                      value: "increase_emi"
+                    - label: "Increase term"
+                      value: "increase_term"
+    transitions:
+      - to: check_impact_preference
+        trigger: impact_preference_selected
+        actions:
+          save_to_global_state:
+            context_keys:
+              - chosen_impact_preference
+
+  check_impact_preference:
+    display_name: Check impact preference
+    type: transform
+    transform_ref: check_impact_preference
+    transitions:
+      - to: update_impact_preference_parameter
+        trigger: parameter_requires_update
+      - to: set_repayment_holiday_flag
+        trigger: parameter_update_not_required
+
+  update_impact_preference_parameter:
+    display_name: Update impact preference parameter
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/account-updates
+        method: POST
+        arguments:
+          request_id: generate_uuid()
+          account_update:
+            id: generate_uuid()
+            account_id: ${account_id}
+            instance_param_vals_update:
+              instance_param_vals:
+                repayment_holiday_impact_preference: ${chosen_impact_preference}
+    transitions:
+      - to: set_repayment_holiday_flag
+        trigger: account_update_success
+        description: Successfully updated impact preference
+        auto_trigger_conditions:
+          streaming_api_conditions:
+            topic: vault.api.v1.accounts.account.instance_param_vals.updated
+            message_content:
+              - path: update_status
+                values:
+                  - ACCOUNT_UPDATE_STATUS_COMPLETED
+                quantifier: any
+      - to: impact_preference_update_failed
+        trigger: account_update_failure
+        description: Failure updating repayment day
+        auto_trigger_conditions:
+          streaming_api_conditions:
+            topic: vault.api.v1.accounts.account.instance_param_vals.updated
+            message_content:
+              - path: update_status
+                values:
+                  - ACCOUNT_UPDATE_STATUS_COMPLETED
+                quantifier: none
+
+  set_repayment_holiday_flag:
+    display_name: Set repayment holiday flag
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/flags
+        method: POST
+        arguments:
+          flag:
+            flag_definition_id: "&{REPAYMENT_HOLIDAY}"
+            description: Repayment holiday
+            account_id: ${account_id}
+            effective_timestamp: ${repayment_holiday_start_date}
+            expiry_timestamp: ${repayment_holiday_end_date}
+          request_id: generate_uuid()
+        response_event: repayment_holiday_set
+    transitions:
+      - to: repayment_holiday_set
+        trigger: repayment_holiday_set
+
+  # Final states
+  repayment_holiday_set:
+    display_name: Repayment holiday is set
+
+  account_already_on_holiday:
+    display_name: Account is already on repayment holiday
+
+  impact_preference_update_failed:
+    display_name: Impact preference update failed
+    entry_actions:
+      add_or_replace_global_ui_panels:
+        - panel_id: account_error_panel
+          display_name: Impact preference update failed
+          json_definition:
+            key_value_table:
+              items:
+                Error message: Failed to update repayment_holiday_impact_preference parameter.
+
+  repayment_holiday_application_failed:
+    display_name: Repayment holiday not supported
+    entry_actions:
+      add_or_replace_global_ui_panels:
+        - panel_id: account_error_panel
+          display_name: Repayment holiday not supported
+          json_definition:
+            key_value_table:
+              items:
+                Error message: ${failure_message}
+
+transforms: 
+  extract_current_parameter_details: |
+    product_versions = json.loads(context.get('product_versions', '[]'))
+    account_product_version_id = context.get('product_version_id')
+
+    for version in product_versions:
+      if version.get('id') == account_product_version_id:
+        for param in version['params']:
+          if param['name'] == 'amortisation_method':
+            return ['amortisation_method_extracted', {'amortisation_method': param['value']}]
+    
+    next_page_token = context.get('next_page_token')
+    if next_page_token:
+      return ['matching_product_version_not_found', {'next_page_token': next_page_token}]
+    else:
+      return ['no_valid_contract', {'failure_message': 'Matching product version not found'}]
+
+
+  validate_if_balloon_payment_loan: |
+    contract_amortisation_method = context.get('amortisation_method')
+    if contract_amortisation_method in ["interest_only", "no_repayment", "minimum_repayment_with_balloon_payment"]:
+      return ['is_balloon_loan', {'failure_message': 'Balloon payment loans do not support repayment holidays'}]
+    else:
+      return ['not_balloon_loan', {}]
+
+  transform_repayment_holiday_date: |
+    # the flag start & end timestamps are hardcoded to occur at '00:00:30'
+    flag_time = '00:00:30'
+    start_datetime = context.get('repayment_holiday_start_date') + 'T' + flag_time + 'Z'
+    end_datetime = context.get('repayment_holiday_end_date') + 'T' + flag_time + 'Z'
+    return [
+        'repayment_holiday_dates_transformed',
+        {
+          'repayment_holiday_start_date': start_datetime,
+          'repayment_holiday_end_date': end_datetime
+        }
+      ]
+
+  validate_repayment_holiday_date: |
+    customer_flags = json.loads(context.get('customer_flags'))
+    active_flags = [flag['flag_definition_id'] for flag in customer_flags if flag['is_active']]
+    repayment_holiday = '&{REPAYMENT_HOLIDAY}' in active_flags
+
+    if repayment_holiday:
+      return ['repayment_holiday_active', {}]
+
+    due_amount_calculation_day = context.get('due_amount_calculation_day')
+
+    start_datetime = datetime.strptime('2006-01-02T15:04:05Z', context.get('repayment_holiday_start_date'))
+    end_datetime = datetime.strptime('2006-01-02T15:04:05Z', context.get('repayment_holiday_end_date'))
+    four_days_away = datetime.utcnow() + 86400 * 4
+
+    if due_amount_calculation_day != str(datetime.day(start_datetime)) or due_amount_calculation_day != str(datetime.day(end_datetime)):
+      message = '. Repayment holiday must start and end on repayment day: ' + due_amount_calculation_day
+      return ['invalid_repayment_holiday_date', {'invalid_date_message': message}]
+    elif four_days_away > start_datetime:
+      message = '. Repayment holiday must start from four days in the future'
+      return ['invalid_repayment_holiday_date', {'invalid_date_message': message}]
+    elif start_datetime >= end_datetime:
+      message = '. Repayment holiday end time cannot be earlier than start time'
+      return ['invalid_repayment_holiday_date', {'invalid_date_message': message}]
+    else:
+      return [
+        'repayment_holiday_inactive',
+        {
+          'repayment_holiday_start_date': datetime.strftime(start_datetime, '%Y-%m-%dT%H:%M:%SZ'),
+          'repayment_holiday_end_date': datetime.strftime(end_datetime, '%Y-%m-%dT%H:%M:%SZ')
+        }
+      ]
+
+  check_impact_preference: |
+    if context.get('impact_preference') == context.get('chosen_impact_preference'):
+      return ['parameter_update_not_required', {}]
+    else:
+      return ['parameter_requires_update', {}]

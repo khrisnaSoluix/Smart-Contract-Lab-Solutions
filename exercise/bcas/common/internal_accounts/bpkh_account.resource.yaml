@@ -1,0 +1,11 @@
+# Copyright @ 2021 Thought Machine Group Limited. All rights reserved.
+---
+type: INTERNAL_ACCOUNT
+id: BPKH_ACCOUNT
+vault_id: BPKH_ACCOUNT
+payload: |
+  internal_account:
+      id: BPKH_ACCOUNT
+      product_id: bpkh_account_contract
+      accounting:
+        tside: TSIDE_LIABILITY

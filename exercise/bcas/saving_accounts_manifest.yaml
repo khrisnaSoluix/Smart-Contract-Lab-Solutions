@@ -1,0 +1,30 @@
+# Copyright @ 2021 Thought Machine Group Limited. All rights reserved.
+---
+pack_version: 1.0.0
+pack_name: GPL Time Deposit Mudharabah
+resource_ids:
+  # --------- CALENDARS
+  - PUBLIC_HOLIDAYS
+
+  # --------- SMART CONTRACTS
+  - time_deposit_mudharabah
+
+  # --------- ACCOUNT SCHEDULE TAGS
+  - SHARIAH_TIME_DEPOSIT_ACCRUE_PROFIT_AST
+  - SHARIAH_TIME_DEPOSIT_ACCOUNT_MATURITY_AST
+  - SHARIAH_TIME_DEPOSIT_APPLY_PROFIT_AST
+  - SHARIAH_TIME_DEPOSIT_NOTIFY_UPCOMING_MATURITY_AST
+
+  # --------- INTERNAL ACCOUNT SMART CONTRACTS
+  - profit_paid_account_contract
+  - zakat_receivable_account_contract
+  - tax_receivable_account_contract
+  - accrued_profit_payable_account_contract
+  - disbursement_account_contract
+
+  # --------- INTERNAL ACCOUNTS
+  - PROFIT_PAID_ACCOUNT
+  - ZAKAT_RECEIVABLE_ACOUNT
+  - TAX_RECEIVABLE_ACOUNT
+  - ACCRUED_PROFIT_PAYABLE_ACCOUNT
+  - DISBURSEMENT_ACCOUNT

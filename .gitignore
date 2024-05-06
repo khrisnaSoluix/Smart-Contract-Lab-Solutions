@@ -1,0 +1,19 @@
+plz-out
+.idea/*
+*.sw?
+**/__pycache__
+.DS_store
+*.coverage
+*.vscode
+**/venv
+test.results/*
+test.results/TEST-library.current_account.tests.performance.test_current_account_performance.CurrentAccountPerformanceTest.xml
+test.results/TEST-unittest.suite._ErrorHolder.xml
+.plzconfig.rej
+.plzconfig.local
+*.ignore.*
+
+
+# Config for testing and put your credentials
+common/test_utils/contracts/simulation/test_config.json
+common/test_utils/endtoend/config.json

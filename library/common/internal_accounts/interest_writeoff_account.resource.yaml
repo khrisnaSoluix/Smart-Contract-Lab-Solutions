@@ -1,0 +1,11 @@
+# Copyright @ 2021 Thought Machine Group Limited. All rights reserved.
+---
+type: INTERNAL_ACCOUNT
+id: INTEREST_WRITEOFF_ACCOUNT
+vault_id: INTEREST_WRITEOFF
+payload: |
+  internal_account:
+      id: INTEREST_WRITEOFF
+      product_id: '&{interest_writeoff_account_contract:product_id}'
+      accounting:
+        tside: TSIDE_LIABILITY

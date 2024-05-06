@@ -1,0 +1,226 @@
+# Copyright @ 2021 Thought Machine Group Limited. All rights reserved.
+---
+name: CASA Interest Payment Date Change
+instance_title: CASA Interest Payment Date Change
+description: A workflow to change the CASA interest payment day.
+schema_version: 3.2.0
+definition_version: 1.0.1
+starting_state: retrieve_account_details
+end_states:
+  - state: account_instance_parameters_update_success
+    result: SUCCESSFUL
+  - state: account_is_not_open_error
+    result: FAILED
+  - state: account_instance_parameters_update_rejected
+    result: FAILED
+
+states:
+  retrieve_account_details:
+    display_name: Retrieve account details
+    description: Retrieve account details
+    entry_actions:
+      save_to_global_state:
+        context_keys:
+          - user_id
+          - account_id
+      vault_callback:
+        path: core-api/v1/accounts/{id}
+        method: GET
+        arguments:
+          id: ${account_id}
+        response_fields:
+          - key_name: account_open_date
+            response_json_path: opening_timestamp
+            extract_singleton_element: true
+          - key_name: instance_param_vals
+            response_json_path: instance_param_vals
+            extract_singleton_element: true
+          - key_name: account_status
+            response_json_path: status
+            extract_singleton_element: true
+        response_event: account_details_retrieved
+    transitions:
+      - to: process_account_details
+        trigger: account_details_retrieved
+        description: Account details retrieved
+
+  process_account_details:
+    display_name: Process account details
+    expected_context_keys:
+      - account_open_date
+      - instance_param_vals
+      - account_status
+    type: transform
+    transform_ref: process_account_details
+    transitions:
+      - to: change_interest_payment_day
+        trigger: account_details_processed
+        actions:
+          save_to_global_state:
+            context_keys:
+              - interest_application_day
+      - to: account_is_not_open_error
+        trigger: account_is_not_open
+
+  change_interest_payment_day:
+    display_name: Change interest payment day
+    description: Change interest payment day
+    state_ui:
+      ui_panels:
+        - panel_id: current_interest_payment_day_panel
+          display_name: Current interest payment day (in month)
+          json_definition:
+            text:
+              value: The interest is currently paid on day ${interest_application_day} of the month.
+      ui_actions:
+        - action_id: change_interest_payment_day
+          event: interest_payment_day_given
+          display_name: Enter new interest payment day
+          ui_inputs:
+            - key: new_interest_application_day
+              display_name: |
+                New interest payment day (1 - 31). Interest payment falls on last day of month where
+                provided day is not available.
+              number_input:
+                min_value: 1
+                max_value: 31
+                step: 1
+    transitions:
+      - to: process_new_interest_payment_day
+        trigger: interest_payment_day_given
+        actions:
+          save_to_global_state:
+            context_keys:
+              - new_interest_application_day
+
+  process_new_interest_payment_day:
+    display_name: Validate new interest payment day
+    type: transform
+    transform_ref: process_new_interest_payment_day
+    transitions:
+      - to: update_interest_payment_day
+        trigger: new_interest_payment_day_processed
+        actions:
+          save_to_global_state:
+            context_keys:
+              - new_interest_application_day_suffix
+      - to: retry_change_interest_payment_day
+        trigger: new_interest_payment_day_invalid
+
+  update_interest_payment_day:
+    display_name: Update interest payment day
+    description: Update interest payment day using the Core API
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/account-updates
+        method: POST
+        arguments:
+          request_id: generate_uuid()
+          account_update:
+            id: generate_uuid()
+            account_id: ${account_id}
+            instance_param_vals_update:
+              instance_param_vals:
+                interest_application_day: ${new_interest_application_day}
+    transitions:
+      - to: account_instance_parameters_update_success
+        trigger: account_update_success
+        auto_trigger_conditions:
+          streaming_api_conditions:
+            topic: vault.api.v1.accounts.account.instance_param_vals.updated
+            message_content:
+              - path: update_status
+                values:
+                  - ACCOUNT_UPDATE_STATUS_COMPLETED
+                quantifier: any
+      - to: account_instance_parameters_update_rejected
+        trigger: account_update_failure
+        auto_trigger_conditions:
+          streaming_api_conditions:
+            topic: vault.api.v1.accounts.account.instance_param_vals.updated
+            message_content:
+              - path: update_status
+                values:
+                  - ACCOUNT_UPDATE_STATUS_COMPLETED
+                quantifier: none
+
+  account_instance_parameters_update_success:
+    display_name: Account successfully updated
+    entry_actions:
+      add_or_replace_global_ui_panels:
+        - panel_id: display_message_panel
+          display_name: Display message
+          json_definition:
+            key_value_table:
+              items:
+                Message: Interest will now be paid on the ${new_interest_application_day}${new_interest_application_day_suffix} of every month. If the date does not exist for the given month, interest will be paid on the last day of the month.
+        - panel_id: account_panel
+          display_name: Updated account details
+          json_definition:
+            account:
+              account_id: ${account_id}
+              show_contract_parameters: true
+
+  account_is_not_open_error:
+    display_name: Account is not open error
+    entry_actions:
+      add_or_replace_global_ui_panels:
+        - panel_id: account_error_panel
+          display_name: Account is not open error
+          json_definition:
+            key_value_table:
+              items:
+                Error message: The interest payment day can not be changed as the account status is not open.
+
+  retry_change_interest_payment_day:
+    display_name: Retry change interest payment day
+    description: Give another opportunity to change the interest payment day
+    state_ui:
+      ui_panels:
+        - panel_id: interest_payment_day
+          display_name: Invalid interest payment day
+          json_definition:
+            text:
+              value: The chosen day must be different to the current value (${interest_application_day}).
+      ui_actions:
+        - action_id: retry_change_interest_payment_day
+          event: retry_change_interest_payment_day
+          display_name: Retry
+    transitions:
+      - to: change_interest_payment_day
+        description: Retry
+        trigger: retry_change_interest_payment_day
+
+  account_instance_parameters_update_rejected:
+    display_name: Change interest payment day rejected
+    state_ui:
+      ui_panels:
+        - panel_id: change_interest_payment_day_failure_panel
+          display_name: Change interest payment day failure details
+          json_definition:
+            key_value_table:
+              items:
+                Error message: Change interest payment day rejected
+
+transforms:
+  process_account_details: |
+    if context.get('account_status') != 'ACCOUNT_STATUS_OPEN':
+        return ['account_is_not_open', {}]
+
+    instance_param_vals = json.loads(context['instance_param_vals'])
+    interest_application_day = instance_param_vals['interest_application_day']
+
+    return ['account_details_processed', {'interest_application_day': interest_application_day}]
+
+  process_new_interest_payment_day: |
+    new_day = int(context['new_interest_application_day'])
+    current_day = int(context['interest_application_day'])
+
+    mapping = {1: 'st', 2: 'nd', 3: 'rd', 21: 'st', 22: 'nd', 23: 'rd', 31: 'st'}
+    new_day_suffix = mapping.get(new_day, 'th')
+
+    # determine if new day is the same as the current interest application day
+    if (new_day == current_day):
+      return ['new_interest_payment_day_invalid', {}]
+
+    return ['new_interest_payment_day_processed', {'new_interest_application_day_suffix': new_day_suffix}]

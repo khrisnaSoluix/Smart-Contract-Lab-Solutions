@@ -1,0 +1,9 @@
+type: INTERNAL_ACCOUNT
+id: UPFRONT_FEE_INCOME_ACCOUNT
+vault_id: UPFRONT_FEE_INCOME
+payload: |
+  internal_account:
+      id: UPFRONT_FEE_INCOME
+      product_id: '&{upfront_fee_income_account_contract:product_id}'
+      accounting:
+        tside: TSIDE_LIABILITY

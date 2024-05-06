@@ -1,0 +1,809 @@
+# Copyright @ 2020 Thought Machine Group Limited. All rights reserved.
+---
+name: US Products Closure
+instance_title: US Products Closure
+description: A workflow to close a US Checking or Savings Account
+schema_version: 3.2.0
+definition_version: 1.2.0
+
+starting_state: retrieve_account_status_and_product_id
+end_states:
+  - state: account_closed_successfully
+    result: SUCCESSFUL
+  - state: transfer_failed
+    result: FAILED
+  - state: account_closure_failure
+    result: FAILED
+
+states:
+  retrieve_account_status_and_product_id:
+    display_name: Retrieve account status and product_id
+    expected_context_keys:
+      - account_id
+    entry_actions:
+      save_to_global_state:
+        context_keys:
+          - account_id
+      vault_callback:
+        path: core-api/v1/accounts/{id}
+        method: GET
+        arguments:
+          id: ${account_id}
+        response_fields:
+          - key_name: product_id
+            response_json_path: product_id
+            extract_singleton_element: true
+          - key_name: status
+            response_json_path: status
+            extract_singleton_element: true
+          - key_name: instance_param_vals
+            response_json_path: instance_param_vals
+            extract_singleton_element: true
+        response_event: status_and_product_id_retrieved
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - product_id
+          - instance_param_vals
+    transitions:
+      - to: check_account_status
+        trigger: status_and_product_id_retrieved
+
+  check_account_status:
+    display_name: Check account status
+    type: transform
+    transform_ref: check_account_status_is_open
+    transitions:
+      - to: retrieve_associations_for_account_id
+        trigger: account_status_is_open
+      - to: account_closure_failure
+        trigger: account_status_is_not_open
+  
+  retrieve_associations_for_account_id:
+    display_name: Get account associations
+    description: Retrieve associations on the account
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/account-plan-assocs
+        method: GET
+        arguments:
+          account_ids:
+            - ${account_id}
+          page_size: 30
+          page_token: ${next_page_token1:}
+        response_fields:
+          - key_name: plan_assocs_for_account_id
+            response_json_path: account_plan_assocs
+            extract_singleton_element: true
+          - key_name: next_page_token1
+            response_json_path: next_page_token
+            extract_singleton_element: true
+        response_event: plan_assocs_for_account_id_retrieved
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - plan_assocs_for_account_id
+          - next_page_token1
+    transitions:
+      - to: check_for_plan
+        description: Check if a plan exists for this account
+        trigger: plan_assocs_for_account_id_retrieved
+
+  check_for_plan:
+    display_name: Check for existing plan
+    description: Check for existing plan
+    type: transform
+    transform_ref: check_for_plan
+    transitions:
+    - to: retrieve_initial_account_balance
+      trigger: check_complete
+    - to: retrieve_associations_for_account_id
+      trigger: check_next_page
+
+  retrieve_initial_account_balance:
+    display_name: Retrieve account balance
+    entry_actions:
+      save_to_global_state:
+        context_keys:
+          - plan_id
+          - account_plan_association_id
+      vault_callback:
+        path: core-api/v1/balances/live
+        method: GET
+        arguments:
+          account_ids: 
+            - ${account_id}
+          page_size: 100
+        response_event: initial_balance_retrieved
+        response_fields:
+          - key_name: live_balance
+            response_json_path: balances
+            extract_singleton_element: true
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - live_balance
+    transitions:
+      - to: check_balances
+        trigger: initial_balance_retrieved
+
+  check_balances:
+    display_name: Check balances
+    type: transform
+    transform_ref: check_balances
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - final_balance
+    transitions:
+      - to: display_final_balance
+        trigger: account_zero
+      - to: non_negative_balance
+        trigger: account_positive
+      - to: account_closure_failure
+        trigger: account_negative
+      - to: pending_transaction_found
+        trigger: pending_transaction
+
+  pending_transaction_found:
+    display_name: Pending transaction found
+    expected_context_keys:
+      - rejection_reason
+    type: transform
+    transform: |
+      return ['pending_transaction_found', {'rejection_reason': context.get('rejection_reason')}]
+    transitions:
+      - to: account_closure_failure
+        trigger: pending_transaction_found
+
+  non_negative_balance:
+    display_name: Non negative balance
+    type: transform
+    transform: |
+      return ['non_negative_balance', {}]
+    transitions:
+      - to: display_final_balance
+        trigger: non_negative_balance
+
+  display_final_balance:
+    display_name: Display final balance
+    state_ui:
+      ui_panels:
+        - panel_id: display_final_balance
+          display_name: Final balance
+          json_definition:
+            key_value_table:
+              items:
+                Final balance: ${final_balance}
+      ui_actions:
+        - action_id: continue_process
+          event: continue_process
+          display_name: Continue
+    transitions:
+      - to: retrieve_terms_and_conditions
+        trigger: continue_process
+
+  retrieve_terms_and_conditions:
+    display_name: Retrieve terms and conditions
+    type: transform
+    transform: |
+      return ['terms_and_conditions_retrieved', {'terms_conditions':
+        'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed consequat neque quis ante ' +
+        'aliquam, sed convallis justo ultricies. Praesent et aliquam lorem. Vivamus tempus elit ' +
+        'rutrum augue pretium, aliquet congue enim suscipit. Ut imperdiet ex ex, vel blandit ' +
+        'tellus fermentum ac. Maecenas semper vel sem quis pulvinar. Fusce eu est enim. Ut at ' +
+        'venenatis augue, vitae tincidunt est. Proin lacinia eu lectus vitae varius. Integer ' +
+        'auctor tristique laoreet. Mauris accumsan imperdiet erat, eget porttitor velit elementum ' +
+        'eget. Phasellus hendrerit purus vel quam aliquam vehicula.\n\n' +
+        'Suspendisse nibh orci, pulvinar hendrerit tortor ut, commodo suscipit orci. Quisque ' +
+        'consectetur at tellus in varius. Sed vitae sodales elit. Pellentesque laoreet posuere ' +
+        'mauris. Pellentesque elementum porttitor neque, quis tincidunt nisi commodo pretium. Sed ' +
+        'sapien nibh, facilisis vitae laoreet eget, vestibulum vitae nunc. In auctor eget erat vel ' +
+        'placerat. Morbi porta metus ut vulputate lobortis. Donec ex nunc, mollis nec eros sit ' +
+        'amet, laoreet molestie risus. Cras a sem at ipsum feugiat vulputate. Suspendisse ' +
+        'malesuada ac neque rutrum fringilla. Cras eu ipsum erat. Nulla quis est eros. Cras sed ' +
+        'dui sit amet magna tincidunt semper. Duis ultricies urna vitae lectus condimentum ' +
+        'maximus.\n\nUt in quam posuere, placerat purus vel, sollicitudin libero. Nullam egestas ' +
+        'erat vel nisi gravida, sit amet euismod diam efficitur. Etiam maximus id nunc eu ' +
+        'tincidunt. Maecenas feugiat malesuada efficitur. Nulla et est odio. Quisque imperdiet ' +
+        'bibendum porttitor. Phasellus eget neque interdum, ultricies massa nec, laoreet diam.'}]
+    transitions:
+      - to: display_terms_and_conditions
+        trigger: terms_and_conditions_retrieved
+
+  display_terms_and_conditions:
+    display_name: Display terms and conditions
+    expected_context_keys:
+      - terms_conditions
+    state_ui:
+      ui_panels:
+        - panel_id: display_terms_and_conditions
+          display_name: Terms and conditions
+          json_definition:
+            key_value_table:
+              items:
+                Terms and conditions: ${terms_conditions}
+      ui_actions:
+        - action_id: accept_terms_conditions
+          event: terms_conditions_accepted
+          display_name: Accept
+        - action_id: reject_terms_conditions
+          event: terms_conditions_rejected
+          display_name: Reject
+    transitions:
+      - to: retrieve_account_balance
+        trigger: terms_conditions_accepted
+      - to: account_closure_failure
+        trigger: terms_conditions_rejected
+
+  retrieve_account_balance:
+    display_name: Retrieve account balance
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/balances/live
+        method: GET
+        arguments:
+          account_ids: 
+            - ${account_id}
+          page_size: 100
+        response_event: balance_retrieved_after_terms
+        response_fields:
+          - key_name: live_balance
+            response_json_path: balances
+            extract_singleton_element: true
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - live_balance
+    transitions:
+      - to: add_tc_acceptance_to_context
+        trigger: balance_retrieved_after_terms
+
+  add_tc_acceptance_to_context:
+    display_name: Confirm terms and conditions acceptance
+    type: transform
+    transform: |
+      return ['acceptance_saved', {'terms_and_conditions_acceptance': 'terms_and_conditions_accepted'}]
+    transitions:
+      - to: check_balances_after_agree_terms
+        trigger: acceptance_saved
+
+  check_balances_after_agree_terms:
+    display_name: Check if balance is zero
+    description: Make sure that only trigger update account status to pending closure after balance is zero
+    type: transform
+    transform_ref: check_balances
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - final_balance
+    transitions:
+      - to: check_if_account_on_plan
+        trigger: account_zero_after_agree_terms
+      - to: retrieve_disbursement_account
+        trigger: account_positive_after_agree_terms
+      - to: account_closure_failure
+        trigger: account_negative_after_agree_terms
+      - to: pending_transaction_found_after_agree_terms
+        trigger: pending_transaction_after_agree_terms
+
+  pending_transaction_found_after_agree_terms:
+    display_name: Pending transaction found after terms and conditions
+    expected_context_keys:
+      - rejection_reason
+    type: transform
+    transform: |
+      return ['pending_transaction_found_after_agree_terms', {'rejection_reason': context.get('rejection_reason')}]
+    transitions:
+      - to: account_closure_failure
+        trigger: pending_transaction_found_after_agree_terms
+
+  retrieve_disbursement_account:
+    display_name: Retrieve disbursement account
+    state_ui:
+      ui_actions:
+        - action_id: disbursement_account
+          event: disbursement_account_given
+          display_name: Enter Vault internal disbursement account ID
+          ui_inputs:
+            - key: target_account_id
+              display_name: Account ID
+              string_input:
+                min_length: 1
+                max_length: 50
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - target_account_id
+      add_or_replace_global_ui_panels:
+        - panel_id: disbursement_account
+          display_name: Disbursement account
+          json_definition:
+            key_value_table:
+              items:
+                Account ID: ${target_account_id}
+    transitions:
+      - to: transfer_funds
+        trigger: disbursement_account_given
+
+  transfer_funds:
+    display_name: Transfer funds
+    description: Transfer funds to disbursement account
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/posting-instruction-batches:asyncCreate
+        method: POST
+        arguments:
+          request_id: generate_uuid()
+          posting_instruction_batch:
+            client_id: AsyncCreatePostingInstructionBatch
+            client_batch_id: generate_uuid()
+            posting_instructions:
+              - client_transaction_id: generate_uuid()
+                transfer:
+                  amount: ${final_balance}
+                  denomination: USD
+                  debtor_target_account:
+                    account_id: ${account_id}
+                  creditor_target_account:
+                    account_id: ${target_account_id}
+            batch_details:
+              note: Closing of Account
+              withdrawal_override: 'true'
+              force_override: 'true'
+    transitions:
+      - to: retrieve_account_balance_after_posting
+        trigger: initial_transfer_made
+        auto_trigger_conditions:
+          streaming_api_conditions:
+            topic: vault.api.v1.postings.posting_instruction_batch.created
+            message_content:
+              - path: "posting_instruction_batch.status"
+                values:
+                  - POSTING_INSTRUCTION_BATCH_STATUS_ACCEPTED
+                quantifier: any
+            response_fields:
+              - key_name: posting_instruction_batch_id
+                response_json_path: posting_instruction_batch.id
+                extract_singleton_element: true
+              - key_name: value_timestamp
+                response_json_path: posting_instruction_batch.value_timestamp
+                extract_singleton_element: true
+        actions:
+          save_to_global_state:
+            new_key_value_pairs:
+              balance_check_counter: 1
+              posting_instruction_batch_id: ${posting_instruction_batch_id}
+              value_timestamp: ${value_timestamp}
+      - to: transfer_failed
+        trigger: initial_transfer_failed
+        auto_trigger_conditions:
+          streaming_api_conditions:
+            topic: vault.api.v1.postings.posting_instruction_batch.created
+            message_content:
+              - path: "posting_instruction_batch.status"
+                values:
+                  - POSTING_INSTRUCTION_BATCH_STATUS_REJECTED
+                quantifier: any
+
+  retrieve_account_balance_after_posting:
+    display_name: Retrieve account balance after transfer
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/balances/timerange
+        method: GET
+        arguments:
+          account_ids: 
+            - ${account_id}
+          from_time: ${value_timestamp}
+          to_time: ${value_timestamp}
+          page_size: 30
+        response_event: balance_after_posting_retrieved
+        response_fields:
+          - key_name: balances
+            response_json_path: balances
+            extract_singleton_element: true
+    transitions:
+      - to: check_balances_updated_after_posting
+        description: Balances after posting retrieved
+        trigger: balance_after_posting_retrieved
+
+  check_balances_updated_after_posting:
+    display_name: Check balances are updated after posting
+    type: transform
+    transform_ref: check_for_updated_balances
+    transitions:
+      - to: retrieve_account_balance
+        description: Balances updated after posting
+        trigger: balances_updated_after_posting
+      - to: retrieve_account_balance_after_posting
+        description: Balances not updated after posting
+        trigger: balances_not_updated_after_posting
+        actions:
+          save_to_global_state:
+            context_keys:
+              - balance_check_counter
+      - to: balances_stuck_after_posting
+        description: Balances updated after posting
+        trigger: balances_stuck_after_posting
+
+  balances_stuck_after_posting:
+    display_name: Balances stuck after posting
+    state_ui:
+      ui_panels:
+        - panel_id: choose_action_after_stuck_balance
+          display_name: Choose action after stuck balance
+          json_definition:
+            text:
+              value: >
+                Balances are not updating for posting instruction batch
+                ${posting_instruction_batch_id} after ${balance_check_counter} attempts.
+                You may retry another ${balance_check_counter} attempts in case this was
+                due to a transient issue. Otherwise it is recommended you check with support to
+                determine the root cause before retrying further or cancelling the workflow.
+      ui_actions:
+        - action_id: retry_check_balances_updated_after_posting
+          event: retry_check_balances_updated_after_posting
+          display_name: Retry checking balances updated for posting
+    transitions:
+      - to: retrieve_account_balance_after_posting
+        description: Retry check balances updated after posting 
+        trigger: retry_check_balances_updated_after_posting
+        actions:
+          save_to_global_state:
+            new_key_value_pairs:
+              balance_check_counter: 1
+
+
+  transfer_failed:
+    display_name: Transfer failed
+    state_ui:
+      ui_panels:
+        - panel_id: transfer_failed_error
+          display_name: Error
+          json_definition:
+            text:
+              value: Could not make transfer out of account
+              is_error: true
+
+  check_if_account_on_plan:
+    display_name: Check if the account is on a plan
+    type: transform
+    transform_ref: check_if_plan_exists
+    transitions:
+      - to: disassociate_account_from_plan
+        trigger: plan_exists
+      - to: update_account_status_to_pending_closure
+        trigger: plan_does_not_exist
+
+  disassociate_account_from_plan:
+    display_name: Disassociate account from the current plan
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/plan-updates
+        method: POST
+        arguments:
+          request_id: generate_uuid()
+          plan_update:
+            plan_id: ${plan_id}
+            disassociate_account_update:
+              account_plan_assoc_id: ${account_plan_association_id}
+        response_fields:
+          - key_name: plan_disassociation_update_id
+            response_json_path: id
+            extract_singleton_element: true
+        response_event: plan_updated
+    transitions:
+      - to: retrieve_associated_accounts_on_plan
+        trigger: plan_updated
+  
+  retrieve_associated_accounts_on_plan:
+    display_name: Retrieve associated accounts on plan
+    description: retrieve accounts associated with plan id
+    entry_actions:
+      save_to_global_state:
+        context_keys:
+          - plan_disassociation_update_id
+      vault_callback:
+        path: core-api/v1/account-plan-assocs
+        method: GET
+        arguments:
+          plan_ids:
+            - ${plan_id}
+          page_size: 30
+          page_token: ${next_page_token2:}
+        response_fields:
+          - key_name: plan_assocs_for_plan_id
+            response_json_path: account_plan_assocs
+            extract_singleton_element: true
+          - key_name: next_page_token2
+            response_json_path: next_page_token
+            extract_singleton_element: true
+        response_event: account_plan_assocs_retrieved
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - plan_assocs_for_plan_id
+          - next_page_token2
+    transitions:
+      - to: check_number_of_associated_accounts
+        trigger: account_plan_assocs_retrieved
+
+  check_number_of_associated_accounts:
+    display_name: Check number of associated accounts on the plan
+    type: transform
+    transform_ref: get_number_of_account_assocs
+    transitions:
+      - to: close_plan
+        trigger: no_account_associations_on_plan
+      - to: retrieve_associated_accounts_on_plan
+        trigger: retrieve_more_associations
+      - to: update_account_status_to_pending_closure
+        trigger: active_assocications_exist_on_plan
+  
+  close_plan:
+    display_name: Close plan
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/plan-updates
+        method: POST
+        arguments:
+          request_id: generate_uuid()
+          plan_update:
+            plan_id: ${plan_id}
+            closure_update: {}
+        response_fields:
+          - key_name: plan_closure_update_id
+            response_json_path: id
+            extract_singleton_element: true
+        response_event: plan_closed
+    transitions:
+      - to: update_account_status_to_pending_closure
+        trigger: plan_closed
+
+  update_account_status_to_pending_closure:
+    display_name: Update account status to pending closure
+    entry_actions:
+      save_to_global_state:
+        context_keys:
+          - plan_closure_update_id
+      vault_callback:
+        path: core-api/v1/accounts/{account.id}
+        method: PUT
+        arguments:
+          request_id: generate_uuid()
+          account:
+            id: ${account_id}
+            status: ACCOUNT_STATUS_PENDING_CLOSURE
+          update_mask: status
+    transitions:
+      - to: update_account_status_to_closed
+        trigger: account_pending_closure
+        auto_trigger_conditions:
+          streaming_api_conditions:
+            topic: vault.core_api.v1.accounts.account_update.events
+            message_content:
+              - path: "['*'].account_update.status"
+                values:
+                  - ACCOUNT_UPDATE_STATUS_COMPLETED
+                quantifier: any
+      - to: account_closure_failure
+        trigger: account_update_failure
+        auto_trigger_conditions:
+          streaming_api_conditions:
+            topic: vault.core_api.v1.accounts.account_update.events
+            message_content:
+              - path: "['*'].account_update.status"
+                values:
+                  - ACCOUNT_UPDATE_STATUS_COMPLETED
+                  - ACCOUNT_UPDATE_STATUS_PENDING_EXECUTION
+                quantifier: none
+
+  update_account_status_to_closed:
+    display_name: Update account status to closed
+    description: Update account status to closed via synchronous API call (no need to wait for topic msg)
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/accounts/{account.id}
+        method: PUT
+        arguments:
+          request_id: generate_uuid()
+          account:
+            id: ${account_id}
+            status: ACCOUNT_STATUS_CLOSED
+          update_mask: status
+        response_event: account_closed
+    transitions:
+      - to: account_closed_successfully
+        trigger: account_closed
+
+  account_closed_successfully:
+    display_name: Account closed successfully
+    state_ui:
+      ui_panels:
+        - panel_id: account_closed_panel
+          display_name: Account closure successful
+          json_definition:
+            text:
+              value: >
+                Account has been successfully closed. Please destroy any debit cards related
+                to this account.
+
+  account_closure_failure:
+    display_name: Account closure rejected
+    entry_actions:
+      create_ticket:
+        title: Account closure failure notification
+        assigned_roles: [ops_user]
+        tags: [us-account-closure-failure-notification]
+        ticket_ui:
+          ui_panels:
+            - panel_id: summary
+              display_name: Account closure rejected
+              json_definition:
+                text:
+                  value: |
+                    ${rejection_reason:Account closure rejected}
+            - panel_id: details
+              display_name: Account details
+              json_definition:
+                key_value_table:
+                  ordered_items:
+                    - label: Account ID
+                      value: ${account_id}
+          ui_actions:
+            - action_id: acknowledge
+              target_status: CLOSED
+              display_name: Acknowledge notification
+    state_ui:
+      ui_panels:
+        - panel_id: account_closure_failure_panel
+          display_name: Account closure rejected
+          json_definition:
+            text:
+              value: ${rejection_reason:Account closure rejected}
+
+transforms:
+  check_balances: |
+    live_balances = json.loads(context.get('live_balance'))
+    pending_outgoing_balance = '0'
+    pending_incoming_balance = '0'
+    post_terms_and_conditions = False
+
+    if 'terms_and_conditions_acceptance' in context:
+      post_terms_and_conditions = True
+
+    for live_balance in live_balances:
+      if (
+        live_balance.get('phase') == 'POSTING_PHASE_PENDING_OUTGOING' and
+        live_balance.get('account_address') == 'DEFAULT' and
+        live_balance.get('denomination') == 'USD'
+      ):
+        pending_outgoing_balance = decimal.add(pending_outgoing_balance, live_balance.get('amount'))
+
+      elif (
+        live_balance.get('phase') == 'POSTING_PHASE_PENDING_INCOMING' and
+        live_balance.get('account_address') == 'DEFAULT' and
+        live_balance.get('denomination') == 'USD'
+      ):
+        pending_incoming_balance = decimal.add(pending_incoming_balance, live_balance.get('amount'))
+
+    pending_balances = [pending_incoming_balance, pending_outgoing_balance]
+    if any([not decimal.iszero(balance) for balance in pending_balances]):
+      rejection_reason = 'Account is ineligible for closure while there are current pending transactions on the account'
+
+      if post_terms_and_conditions:
+        return ['pending_transaction_after_agree_terms', {'rejection_reason': rejection_reason}]
+      else:
+        return ['pending_transaction', {'rejection_reason': rejection_reason}]
+
+    final_balance_calculation = {
+      'savings_account': [
+        ('DEFAULT', 'POSTING_PHASE_COMMITTED'),
+        ('ACCRUED_INCOMING', 'POSTING_PHASE_COMMITTED')
+      ],
+      'checking_account': [
+        ('DEFAULT', 'POSTING_PHASE_COMMITTED'),
+        ('ACCRUED_OUTGOING', 'POSTING_PHASE_COMMITTED'),
+        ('OVERDRAFT_FEE', 'POSTING_PHASE_COMMITTED')
+      ]
+    }
+
+    formatted_pid = str([key for key, value in final_balance_calculation.items() if key in context.get('product_id')][0])
+    final_balance = '0'
+    for account_address, posting_phase in final_balance_calculation[formatted_pid]:
+      for live_balance in live_balances:
+        if (
+          live_balance.get('phase') == posting_phase and
+          live_balance.get('account_address') == account_address and
+          live_balance.get('denomination') == 'USD'
+        ):
+          final_balance = decimal.add(final_balance, live_balance.get('amount'))
+
+    final_balance = decimal.quantize(final_balance, '.01')
+
+    new_context = {'final_balance': str(final_balance)}
+
+    if post_terms_and_conditions:
+      if decimal.greaterthan(final_balance, '0'):
+        return ['account_positive_after_agree_terms', new_context]
+      elif decimal.lessthan(final_balance, '0'):
+        new_context['rejection_reason'] = 'Account is ineligible for closure while the final balance is negative'
+        return ['account_negative_after_agree_terms', new_context]
+      else:
+        return ['account_zero_after_agree_terms', new_context]
+
+    else:
+      if decimal.greaterthan(final_balance, '0'):
+        return ['account_positive', new_context]
+      elif decimal.lessthan(final_balance, '0'):
+        new_context['rejection_reason'] = 'Account is ineligible for closure while the final balance is negative'
+        return ['account_negative', new_context]
+      else:
+        return ['account_zero', new_context]
+
+  check_disbursement_account_is_valid: |
+    if context.get('is_valid') == 'true':
+      return ['disbursement_account_valid', {}]
+    else:
+      return ['disbursement_account_not_valid', {}]
+
+  check_account_status_is_open: |
+    if context.get('status') == 'ACCOUNT_STATUS_OPEN':
+      return ['account_status_is_open', {}]
+    else:
+      return ['account_status_is_not_open', {}]
+
+  check_for_plan: |
+    new_context = {}
+    plan_assocs = json.loads(context['plan_assocs_for_account_id'])
+    next_page_token = context.get('next_page_token1')
+
+    for association in plan_assocs:
+      if association['status'] == "ACCOUNT_PLAN_ASSOC_STATUS_ACTIVE":
+        new_context['plan_id'] = association['plan_id']
+        new_context['account_plan_association_id'] = association['id']
+        return ['check_complete', new_context]
+
+    if next_page_token:
+      return ['check_next_page', {'next_page_token1': next_page_token}]
+    else:
+      return ['check_complete', {}]
+
+  get_number_of_account_assocs: |
+    new_context = {}
+    plan_assocs = json.loads(context['plan_assocs_for_plan_id'])
+    closing_account_id = context['account_id']
+    next_page_token = context.get('next_page_token2')
+
+    for association in plan_assocs:
+      if association['status'] == "ACCOUNT_PLAN_ASSOC_STATUS_ACTIVE" and association['account_id'] != closing_account_id:
+        return ['active_assocications_exist_on_plan', {}]
+
+    if next_page_token:
+      new_context['next_page_token2'] = next_page_token
+      return ['retrieve_more_associations', new_context]
+
+    else:
+        return ['no_account_associations_on_plan', {}]
+
+  check_if_plan_exists: |
+      if 'plan_id' in context:
+        return ['plan_exists', {}]
+      else:
+        return ['plan_does_not_exist', {}]
+
+  check_for_updated_balances: |
+      balances = json.loads(context.get('balances', '[]'))
+      posting_instruction_batch_id = context.get('posting_instruction_batch_id')
+      if len(balances) > 0 and any([posting_instruction_batch_id == balance['posting_instruction_batch_id'] for balance in balances]):
+        return ['balances_updated_after_posting', {}]
+      else:
+        balance_check_counter = int(context.get('balance_check_counter', 1)) + 1
+        if balance_check_counter <= 10:
+          return [
+            'balances_not_updated_after_posting',
+            {'balance_check_counter': balance_check_counter}
+          ]
+        else:
+          return ['balances_stuck_after_posting', {}]

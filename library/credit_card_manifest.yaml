@@ -1,0 +1,41 @@
+# Copyright @ 2021 Thought Machine Group Limited. All rights reserved.
+---
+pack_version: 1.0.0
+pack_name: GPL Credit Card
+resource_ids:
+  # --------- SMART CONTRACTS
+  - credit_card
+
+  # --------- WORKFLOW DEFINITIONS
+  - CREDIT_CARD_APPLICATION
+  - CREDIT_CARD_BALANCE_TRANSFER
+  - CREDIT_CARD_EXPIRE_INTEREST_FREE_PERIODS
+
+  # --------- FLAG DEFINITIONS
+  - ACCOUNT_CLOSURE_REQUESTED
+  - MANUAL_WRITE_OFF
+  - OVER_150_DPD
+  - OVER_90_DPD
+  - REPAYMENT_HOLIDAY
+
+  # --------- ACCOUNT SCHEDULE TAGS
+  - CREDIT_CARD_ACCRUE_INTEREST_AST
+  - CREDIT_CARD_ANNUAL_FEE_AST
+  - CREDIT_CARD_PAYMENT_DUE_AST
+  - CREDIT_CARD_STATEMENT_CUT_OFF_AST
+
+  # --------- INTERNAL ACCOUNT SMART CONTRACTS
+  - annual_maintenance_fee_income_account_contract
+  - fee_income_account_contract
+  - fees_interest_account_contract
+  - interest_income_account_contract
+  - interest_writeoff_account_contract
+  - principal_writeoff_account_contract
+
+  # --------- INTERNAL ACCOUNTS
+  - ANNUAL_MAINTENANCE_FEE_INCOME_ACCOUNT
+  - FEE_INCOME_ACCOUNT
+  - FEES_INTEREST_ACCOUNT
+  - INTEREST_INCOME_ACCOUNT
+  - INTEREST_WRITEOFF_ACCOUNT
+  - PRINCIPAL_WRITEOFF_ACCOUNT

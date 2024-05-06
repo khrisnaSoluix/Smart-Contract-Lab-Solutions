@@ -1,0 +1,62 @@
+# Code auto-generated
+
+# Objects below have been imported from:
+#    replace_decorator_constants.py
+# md5:df109098784da5293519e72faa12ce93
+
+from contracts_api import fetch_account_data, requires
+from datetime import datetime
+
+api = "4.0.0"
+
+# Objects below have been imported from:
+#    feature_1.py
+# md5:a5fc15305c3b4cca98216efcbc36a928
+
+feature_1_EVENT_1 = "EVENT_1"
+feature_1_BOF_1 = "bif_1"
+feature_1_CHAINED_PIF_1 = "chained_pif_1"
+feature_1_CHAINED_PIF_2 = "chained_pif_2"
+feature_1_CHAINED_PIF_3 = "chained_pif_3"
+feature_1_CHAINED_PIFS = [feature_1_CHAINED_PIF_2, feature_1_CHAINED_PIF_3]
+
+# Objects below have been imported from:
+#    replace_decorator_constants.py
+# md5:df109098784da5293519e72faa12ce93
+
+
+def custom_decorator(*args, **kwargs):
+    def wrapper_func(*args, **kwargs):
+        pass
+
+    return wrapper_func
+
+
+EVENT_2 = "EVENT_2"
+BOF_2 = "bif_2"
+PIF_2 = "pif_2"
+PIF_3 = "pif_3"
+PIF_4 = "pif_4"
+ALL_LOCAL_PIF = [PIF_2, PIF_3, PIF_4]
+CUSTOM_DATA = "CUSTOM_DATA"
+chained_bof = feature_1_BOF_1
+twice_chained_bof = chained_bof
+
+
+@requires(
+    event_type="EVENT_1", parameters=True, balances="latest", last_execution_datetime=["EVENT_1"]
+)
+@fetch_account_data(
+    balances=["bif_2"],
+    postings=["chained_pif_1", "chained_pif_2", "chained_pif_3", "pif_2", "pif_3", "pif_4"],
+    event_type="EVENT_2",
+)
+def scheduled_code(event_type: str, effective_date: datetime) -> None:
+    pass
+
+
+@custom_decorator(data=CUSTOM_DATA)
+@fetch_account_data(balances=["bif_1"])
+@fetch_account_data(balances={"v1": ["bif_1"], "v2": ["bif_1"]})
+def post_posting_code():
+    pass

@@ -1,0 +1,11 @@
+# Copyright @ 2021 Thought Machine Group Limited. All rights reserved.
+---
+type: INTERNAL_ACCOUNT
+id: FEES_INTEREST_ACCOUNT
+vault_id: FEES_INTEREST
+payload: |
+  internal_account:
+      id: FEES_INTEREST
+      product_id: '&{fees_interest_account_contract:product_id}'
+      accounting:
+        tside: TSIDE_LIABILITY

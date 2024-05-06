@@ -1,0 +1,12 @@
+# Copyright @ 2021 Thought Machine Group Limited. All rights reserved.
+---
+resources:
+  - id: WALLET_APPLICATION
+    instantiation_resources:
+      - Customer
+  - id: WALLET_AUTO_TOP_UP_SWITCH
+    instantiation_resources:
+      - Customer account
+  - id: WALLET_CLOSURE
+    instantiation_resources:
+      - Customer account

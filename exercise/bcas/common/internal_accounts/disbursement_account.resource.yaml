@@ -1,0 +1,11 @@
+# Copyright @ 2022 Thought Machine Group Limited. All rights reserved.
+---
+type: INTERNAL_ACCOUNT
+id: DISBURSEMENT_ACCOUNT
+vault_id: DISBURSEMENT_ACCOUNT
+payload: |
+  internal_account:
+      id: DISBURSEMENT_ACCOUNT
+      product_id: disbursement_account_contract
+      accounting:
+        tside: TSIDE_LIABILITY

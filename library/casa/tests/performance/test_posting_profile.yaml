@@ -1,0 +1,146 @@
+dataloader_setup:
+  contract_name: "casa"
+  template_param_vals:
+    minimum_balance_fee: 0
+  dependency_groups:
+    - customer:
+        id_base: 200
+      flags: []
+      accounts:
+        - account_id_base: casa_tps_1_
+          account_opening_timestamp:
+            delta:
+              days: -1
+          instance_param_vals: &instance_param_vals
+            arranged_overdraft_limit: "1000"
+            unarranged_overdraft_limit: "2000"
+            interest_application_day: "16"
+            daily_atm_withdrawal_limit: "1000"
+            autosave_savings_account: "1"
+          flags:
+            - flag_definition_id: CASA_TIER_MIDDLE
+simulation_setup:
+  start:
+    delta:
+      days: -1
+  end:
+    delta:
+      days: 0
+  events:
+    - type: create_account_instruction
+      timestamp: start
+      account_id: "Savings pot"
+      product_id: "1"
+      instance_param_vals: {}
+    - type: create_account_instruction
+      timestamp: start
+      account_id: "Main account"
+      product_id: "2"
+      instance_param_vals: *instance_param_vals
+    - type: create_flag_definition_event
+      timestamp: start
+      flag_definition_id: CASA_TIER_MIDDLE
+    - type: create_flag_event
+      flag_definition_id: CASA_TIER_MIDDLE
+      account_id: "Main account"
+      timestamp: start
+      expiry_timestamp: end
+    - type: create_inbound_hard_settlement_instruction
+      amount: "1000"
+      event_datetime: start
+      denomination: "GBP"
+      client_transaction_id: "123456"
+      client_batch_id: "123"
+    - type: create_outbound_hard_settlement_instruction
+      amount: "100"
+      event_datetime: start
+      denomination: "GBP"
+      client_transaction_id: "78910"
+      client_batch_id: "321"
+      instruction_details:
+        transaction_code: "6011"
+postings_setup:
+  stage_range:
+    start: 50
+    stop: 101
+    step: 25
+    duration: 300
+    timeout: 600
+  pib_template:
+    - client_id: "AsyncCreatePostingInstructionBatch"
+      client_batch_id: "123__tps3_33"
+      posting_instructions:
+        - client_transaction_id: "123456__tps3_33"
+          inbound_hard_settlement:
+            amount: "1000"
+            denomination: "GBP"
+            target_account:
+              account_id: "Main account"
+            advice: False
+          pics: []
+          instruction_details:
+            description: "test"
+          override:
+            restrictions:
+          transaction_code:
+      batch_details:
+        description: "test"
+      dry_run: False
+    - client_id: "AsyncCreatePostingInstructionBatch"
+      client_batch_id: "123__tps3_33"
+      posting_instructions:
+        - client_transaction_id: "123456__tps3_33"
+          outbound_hard_settlement:
+            amount: "20"
+            denomination: "GBP"
+            target_account:
+              account_id: "Main account"
+            advice: False
+          pics: []
+          instruction_details:
+            description: "Test ATM withdrawal"
+            transaction_code: "6011"
+          override:
+            restrictions:
+          transaction_code:
+      batch_details:
+        description: "test"
+      dry_run: False
+    - client_id: "AsyncCreatePostingInstructionBatch"
+      client_batch_id: "123__tps3_33"
+      posting_instructions:
+        - client_transaction_id: "123456__tps3_33"
+          outbound_hard_settlement:
+            amount: "25.90"
+            denomination: "GBP"
+            target_account:
+              account_id: "Main account"
+            advice: False
+          pics: []
+          instruction_details:
+            description: "Regular spend"
+          override:
+            restrictions:
+          transaction_code:
+      batch_details:
+        description: "test"
+      dry_run: False
+    - client_id: "AsyncCreatePostingInstructionBatch"
+      client_batch_id: "123__tps3_33"
+      posting_instructions:
+        - client_transaction_id: "123456__tps3_33"
+          outbound_hard_settlement:
+            amount: "5000"
+            denomination: "GBP"
+            target_account:
+              account_id: "Main account"
+            advice: False
+          pics: []
+          instruction_details:
+            description: "Posting exceeding available balance (inc any overdraft"
+          override:
+            restrictions:
+          transaction_code:
+      batch_details:
+        description: "test"
+      dry_run: False

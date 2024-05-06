@@ -1,0 +1,11 @@
+# Copyright @ 2021 Thought Machine Group Limited. All rights reserved.
+---
+type: INTERNAL_ACCOUNT
+id: INTERNAL_CONTRA_ACCOUNT
+vault_id: INTERNAL_CONTRA
+payload: |
+  internal_account:
+      id: INTERNAL_CONTRA_ACCOUNT
+      product_id: internal_contra_account_contract
+      accounting:
+        tside: TSIDE_LIABILITY

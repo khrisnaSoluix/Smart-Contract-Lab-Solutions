@@ -1,0 +1,10 @@
+---
+type: FLAG_DEFINITION
+id: ACCOUNT_DORMANT
+payload: |
+  flag_definition:
+    id: ACCOUNT_DORMANT
+    name: ACCOUNT_DORMANT
+    description: Dormant account rejects postings and maintenance fees
+    required_flag_level: FLAG_LEVEL_ACCOUNT
+    flag_visibility: FLAG_VISIBILITY_OPERATOR

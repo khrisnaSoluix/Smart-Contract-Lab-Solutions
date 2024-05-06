@@ -1,0 +1,11 @@
+# Copyright @ 2021 Thought Machine Group Limited. All rights reserved.
+---
+type: INTERNAL_ACCOUNT
+id: REVOCABLE_COMMITMENT_ACCOUNT
+vault_id: REVOCABLE_COMMITMENT
+payload: |
+  internal_account:
+      id: REVOCABLE_COMMITMENT
+      product_id: '&{revocable_commitment_account_contract:product_id}'
+      accounting:
+        tside: TSIDE_LIABILITY

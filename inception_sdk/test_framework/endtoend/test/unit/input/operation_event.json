@@ -1,0 +1,24 @@
+{
+    "event_id": "tag_id-1588377599-0",
+    "timestamp": "2022-12-21T15:50:12.584982122Z",
+    "vault_version": {
+        "major": 4,
+        "minor": 3,
+        "patch": 1,
+        "label": "-rc3"
+    },
+    "change_id": "0",
+    "operation_created": {
+        "operation": {
+            "id": "tag_id-1588377599-0",
+            "tag_name": "tag_id",
+            "next_run_timestamp": null,
+            "completed_run_timestamp": "2020-05-01T23:59:59Z"
+        }
+    },
+    "related_resource": {
+        "type": "RESOURCE_TYPE_SCHEDULER_TAG",
+        "id": "tag_id",
+        "sequence_number": "0"
+    }
+}

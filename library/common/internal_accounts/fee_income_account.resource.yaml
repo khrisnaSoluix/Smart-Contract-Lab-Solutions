@@ -1,0 +1,11 @@
+# Copyright @ 2021 Thought Machine Group Limited. All rights reserved.
+---
+type: INTERNAL_ACCOUNT
+id: FEE_INCOME_ACCOUNT
+vault_id: FEE_INCOME
+payload: |
+  internal_account:
+      id: FEE_INCOME
+      product_id: '&{fee_income_account_contract:product_id}'
+      accounting:
+        tside: TSIDE_LIABILITY

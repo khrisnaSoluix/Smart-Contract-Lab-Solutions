@@ -1,0 +1,18 @@
+{
+  "my_environment": {
+      "ops_dash_url": "",
+      "core_api_url": "",
+      "data_loader_api_url": "",
+      "workflow_api_url": "",
+      "kafka": {
+          "bootstrap.servers": "",
+          "group.id":"",
+          "auto.offset.reset":"latest",
+          "receive.message.max.bytes":"10000000000",
+          "security.protocol":"SSL"
+      },
+      "service_account_name": "",
+      "service_account_id": "",
+      "access_token": ""
+  }
+}

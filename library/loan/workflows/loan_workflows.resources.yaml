@@ -1,0 +1,24 @@
+# Copyright @ 2023 Thought Machine Group Limited. All rights reserved.
+---
+resources:
+  - type: WORKFLOW_DEFINITION_VERSION
+    id: LOAN_APPLICATION
+    activate: true
+    payload: |
+      workflow_definition_version:
+          workflow_definition_id: LOAN_APPLICATION
+          specification: '@{loan_application.yaml}'
+  - type: WORKFLOW_DEFINITION_VERSION
+    id: LOAN_MARK_DELINQUENT
+    activate: true
+    payload: |
+      workflow_definition_version:
+          workflow_definition_id: LOAN_MARK_DELINQUENT
+          specification: '@{loan_mark_delinquent.yaml}'
+  - type: WORKFLOW_DEFINITION_VERSION
+    id: LOAN_REPAYMENT_HOLIDAY_APPLICATION
+    activate: true
+    payload: |
+      workflow_definition_version:
+          workflow_definition_id: LOAN_REPAYMENT_HOLIDAY_APPLICATION
+          specification: '@{loan_repayment_holiday_application.yaml}'

@@ -1,0 +1,11 @@
+# Copyright @ 2021 Thought Machine Group Limited. All rights reserved.
+---
+type: INTERNAL_ACCOUNT
+id: IA_1_1121005_ACCOUNT
+vault_id: IA_1_1121005
+payload: |
+  internal_account:
+      id: IA_1_1121005
+      product_id: IA_1_1121005_account_contract
+      accounting:
+        tside: TSIDE_ASSET

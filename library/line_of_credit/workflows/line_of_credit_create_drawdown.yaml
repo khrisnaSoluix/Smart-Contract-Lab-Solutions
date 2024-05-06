@@ -1,0 +1,320 @@
+# Copyright @ 2023 Thought Machine Group Limited. All rights reserved.
+---
+name: Drawdown Loan Application
+instance_title: Drawdown Loan Application
+description: Drawdown loan application
+schema_version: 3.2.0
+definition_version: 2.0.0
+
+starting_state: get_customer_information
+end_states:
+  - state: drawdown_successful
+    result: SUCCESSFUL
+  - state: drawdown_failed
+    result: FAILED
+
+states:
+  get_customer_information:
+    display_name: Get customer information
+    description: Get the customer, plan and line of credit account id
+    type: transform
+    transform_ref: get_customer_information
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - loc_account_id
+          - plan_id
+          - user_id
+    transitions:
+      - to: get_loc_product_id
+        trigger: customer_information_confirmed
+        description: Successfully retrieved customer information
+      - to: drawdown_failed
+        trigger: customer_information_not_confirmed
+        description: Failed to retrieve customer information
+        actions:
+          save_to_global_state:
+            new_key_value_pairs:
+              failure_message: "Failed to retrieve either the customer id, line of credit account id or the plan id."
+
+  get_loc_product_id:
+    display_name: Get line of credit product id from account id
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/accounts/{id}
+        method: GET
+        arguments:
+          id: ${loc_account_id}
+        response_event: product_id_returned
+        response_fields:
+          - key_name: product_id
+            response_json_path: product_id
+            extract_singleton_element: true
+    transitions:
+      - to: get_loc_product_versions
+        trigger: product_id_returned
+        description: Product id returned
+
+  get_loc_product_versions:
+    display_name: Get the line of credit product versions
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/product-versions
+        method: GET
+        arguments:
+          product_id: ${product_id}
+          view: PRODUCT_VERSION_VIEW_INCLUDE_PARAMETERS
+          page_size: 30
+          page_token: ${next_page_token:}
+        response_event: contract_versions_returned
+        response_fields:
+          - key_name: product_versions
+            response_json_path: product_versions
+            extract_singleton_element: true
+          - key_name: next_page_token
+            response_json_path: next_page_token
+            extract_singleton_element: true
+    transitions:
+      - to: get_loc_parameters
+        trigger: contract_versions_returned
+        description: Contracts returned
+
+  get_loc_parameters:
+    display_name: retrieve line of credit parameters
+    description: retrieve line of credit parameters
+    expected_context_keys:
+      - next_page_token
+      - product_versions
+    type: transform
+    transform_ref: extract_current_parameter_details
+    transitions:
+      - to: choose_loan_parameters
+        trigger: parameters_extracted
+        actions:
+          save_to_global_state:
+            context_keys:
+              - denomination
+      - to: drawdown_failed
+        trigger: no_valid_contract
+        actions:
+          save_to_global_state:
+            new_key_value_pairs:
+              failure_message: ${failure_message}
+
+  choose_loan_parameters:
+    display_name: Choose drawdown loan parameters
+    state_ui:
+      ui_actions:
+        - action_id: choose_drawdown_loan_parameters
+          event: drawdown_loan_parameters_selected
+          display_name: Choose drawdown loan parameters
+          ui_inputs:
+            - key: principal
+              display_name: Loan principal (${denomination})
+              number_input:
+                min_value: 1
+                step: 1
+                default_value: 1000
+            - key: total_repayment_count
+              display_name: Enter the total loan term
+              number_input:
+                min_value: 12
+                max_value: 60
+                step: 1
+                default_value: 12
+            - key: fixed_interest_rate
+              display_name: Fixed interest rate
+              number_input:
+                min_value: 0
+                max_value: 1
+                precision: 4
+                step: 0.0001
+                default_value: 0.135
+            - key: deposit_account
+              display_name: Vault deposit account
+              string_input:
+              json_definition:
+                account_selector:
+                  customer_id: ${user_id}
+    transitions:
+      - to: select_deposit_account
+        trigger: drawdown_loan_parameters_selected
+        actions:
+          save_to_global_state:
+            context_keys:
+              - fixed_interest_rate
+              - total_repayment_count
+              - principal
+              - deposit_account
+  select_deposit_account:
+    display_name: Select deposit account
+    state_ui:
+      ui_actions:
+        - action_id: select_deposit_account
+          event: deposit_account_selected
+          display_name: Select the deposit account for disbursement
+          ui_inputs:
+            - key: deposit_account
+              display_name: Vault deposit account
+              string_input:
+              json_definition:
+                account_selector:
+                  customer_id: ${user_id}
+    transitions:
+      - to: create_drawdown_posting
+        trigger: deposit_account_selected
+        actions:
+          save_to_global_state:
+            context_keys:
+              - deposit_account
+
+  create_drawdown_posting:
+    display_name: Create drawdown posting against line of credit account
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/posting-instruction-batches:asyncCreate
+        method: POST
+        arguments:
+          request_id: generate_uuid()
+          posting_instruction_batch:
+            client_id: AsyncCreatePostingInstructionBatch
+            client_batch_id: generate_uuid()
+            posting_instructions:
+              - client_transaction_id: generate_uuid()
+                instruction_details:
+                  description: "Principal disbursement of ${principal}"
+                  event: "PRINCIPAL_PAYMENT"
+                outbound_hard_settlement:
+                  amount: ${principal}
+                  denomination: ${denomination}
+                  target_account:
+                    account_id: ${loc_account_id}
+                  internal_account_id: "1"
+    transitions:
+      - to: create_loan
+        trigger: drawdown_validation_successful
+        description: Successfully validated drawdown
+        auto_trigger_conditions:
+          streaming_api_conditions:
+            topic: vault.api.v1.postings.posting_instruction_batch.created
+            message_content:
+              - path: "posting_instruction_batch.status"
+                values:
+                  - POSTING_INSTRUCTION_BATCH_STATUS_ACCEPTED
+                quantifier: any
+      - to: drawdown_failed
+        trigger: drawdown_validation_failed
+        description: Failed to validate drawdown
+        auto_trigger_conditions:
+          streaming_api_conditions:
+            topic: vault.api.v1.postings.posting_instruction_batch.created
+            message_content:
+              - path: "posting_instruction_batch.status"
+                values:
+                  - POSTING_INSTRUCTION_BATCH_STATUS_REJECTED
+                quantifier: any
+        actions:
+          save_to_global_state:
+            new_key_value_pairs:
+              failure_message: "Drawdown posting failed validation."
+
+  create_loan:
+    display_name: Create loan
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/accounts
+        method: POST
+        arguments:
+          request_id: generate_uuid()
+          account:
+            product_id: drawdown_loan
+            status: ACCOUNT_STATUS_OPEN
+            stakeholder_ids:
+              - ${user_id}
+            permitted_denominations:
+              - ${denomination}
+            instance_param_vals:
+              fixed_interest_rate: ${fixed_interest_rate}
+              total_repayment_count: ${total_repayment_count}
+              principal: ${principal}
+              deposit_account: ${deposit_account}
+              line_of_credit_account_id: ${loc_account_id}
+        response_fields:
+          - key_name: loan_account_id
+            response_json_path: id
+            extract_singleton_element: true
+        response_event: loan_created
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - loan_account_id
+    transitions:
+      - to: associate_to_plan
+        description: Loan created
+        trigger: loan_created
+
+  associate_to_plan:
+    display_name: Associate drawdown loan to plan
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/plan-updates
+        method: POST
+        arguments:
+          request_id: generate_uuid()
+          plan_update:
+            plan_id: ${plan_id}
+            associate_account_update:
+              account_id: ${loan_account_id}
+        response_event: plan_updated
+    transitions:
+      - to: drawdown_successful
+        trigger: plan_updated
+        description: Plan updated
+
+  drawdown_successful:
+    display_name: Account opened successfully
+
+  drawdown_failed:
+    display_name: Account opening failed
+    state_ui:
+      ui_panels:
+        - panel_id: account_opening_failure_panel
+          display_name: Create loan account failed
+          json_definition:
+            text:
+              value: ${failure_message}
+              is_error: true
+
+transforms:
+  get_customer_information: |
+    if context.get('loc_account_id') and context.get('user_id') and context.get('plan_id'):
+      new_context = {
+        'loc_account_id': context.get('loc_account_id'),
+        'user_id': context.get('user_id'),
+        'plan_id': context.get('plan_id'),
+      }
+      return ['customer_information_confirmed', new_context]
+    else:
+      return ['customer_information_not_confirmed', context]
+
+  extract_current_parameter_details: |
+    product_versions = json.loads(context.get('product_versions', '[]'))
+
+    for version in product_versions:
+      if version.get('is_current'):
+        new_context = {}
+        params = {param['name']:param for param in version['params']}
+        params_list = list(params)
+
+        for param in ['denomination']:
+          if param not in params_list:
+            return ['no_valid_contract', {'failure_message': 'Expected parameter(s) not found'}]
+
+        new_context['denomination'] = params['denomination']['value']
+        return ['parameters_extracted', new_context]
+
+    next_page_token = context.get('next_page_token')
+    if next_page_token:
+      return ['current_product_version_not_found', {'next_page_token': next_page_token}]
+    else:
+      return ['no_valid_contract', {'failure_message': 'is_current product version not found'}]

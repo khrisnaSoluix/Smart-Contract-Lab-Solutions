@@ -1,0 +1,954 @@
+# Copyright @ 2021 Thought Machine Group Limited. All rights reserved.
+---
+name: Time Deposit Account Information Update
+instance_title: Time Deposit Account Information Update
+description: A workflow to update the account auto rollover details
+schema_version: 3.2.0
+definition_version: 1.1.0
+starting_state: capture_rollover_customer_preferences
+end_states:
+  - state: account_rollover_update_succeded
+    result: SUCCESSFUL
+  - state: account_rollover_update_failed
+    result: FAILED
+states:
+  capture_rollover_customer_preferences:
+    display_name: Capture rollover customer preferences
+    expected_context_keys:
+      - account_id
+      - user_id
+    entry_actions:
+      save_to_global_state:
+        context_keys:
+          - account_id
+          - user_id
+    state_ui:
+      ui_actions:
+        - action_id: customer_rollover_preferences
+          event: customer_rollover_preferences_given
+          display_name: Enter customer rollover preferences
+          ui_inputs:
+            - key: auto_rollover_type
+              display_name: Auto Rollover type
+              string_input: {}
+              json_definition:
+                value_selector:
+                  values:
+                    - value: "principal_and_interest"
+                      label: "Principal & Interest"
+                    - value: "principal"
+                      label: "Principal Only"
+                    - value: "partial_principal"
+                      label: "Partial Principal"
+                    - value: "no_rollover"
+                      label: "No Rollover"
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - auto_rollover_type
+    transitions:
+      - to: retrieve_account_details
+        trigger: customer_rollover_preferences_given
+        description: Customer rollover entered preferences
+
+  retrieve_account_details:
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/accounts/{id}
+        method: GET
+        arguments:
+          id: ${account_id}
+          fields_to_include:
+            - INCLUDE_FIELD_DERIVED_INSTANCE_PARAM_VALS
+        response_fields:
+          - key_name: instance_param_vals
+            response_json_path: instance_param_vals
+            extract_singleton_element: true
+          - key_name: derived_instance_param_vals
+            response_json_path: derived_instance_param_vals
+            extract_singleton_element: true
+        response_event: retrieved_necessary_account_details
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - instance_param_vals
+          - derived_instance_param_vals
+    transitions:
+      - to: determine_rollover_type
+        description: Retrieved necessary information from account
+        trigger: retrieved_necessary_account_details
+
+  determine_rollover_type:
+    display_name: Determine rollover type
+    description: Determine which rollover details to show based on the rollover option selected.
+    type: transform
+    transform_ref: determine_rollover_type
+    transitions:
+      - to: capture_payment_destination_at_maturity
+        description: Only the destination details are needed
+        trigger: no_rollover
+      - to: capture_rollover_details
+        description: Rollover details needs to be captured.
+        trigger: rollover_details
+      - to: capture_rollover_details_with_partial_principal
+        description: Rollover details with partial principal needs to be captured.
+        trigger: rollover_details_with_partial_principal
+      - to: capture_rollover_details_amend_period
+        description: Rollover details needs to be captured, during cool off period or grace period.
+        trigger: amend_period_rollover_details
+      - to: capture_rollover_details_with_partial_principal_amend_period
+        description: Rollover details with partial principal needs to be captured. during cool off period or grace period.
+        trigger: amend_period_rollover_details_with_partial_principal
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - amend_period_warning_msg
+        new_key_value_pairs:
+          customer_id: ${user_id}
+
+  capture_payment_destination_at_maturity:
+    display_name: Capture payment destination details.
+    state_ui:
+      ui_actions:
+        - action_id: customer_no_rollover_preferences_details
+          event: customer_no_rollover_preferences_given
+          display_name: Enter payment destination details
+          ui_inputs:
+            - key: interest_payment_destination
+              display_name: Interest payment destination
+              string_input: {}
+              json_definition:
+                value_selector:
+                  values:
+                    - value: "retain_on_account"
+                      label: "This account"
+                    - value: "vault"
+                      label: "Another Vault account"
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - interest_payment_destination
+    transitions:
+      - to: evaluate_interest_payment_destination
+        trigger: customer_no_rollover_preferences_given
+        description: Customer no rollover entered preferences
+
+  capture_rollover_details:
+    display_name: Capture rollover customer preferences details
+    state_ui:
+      ui_actions:
+        - action_id: capture_rollover_details_action
+          event: capture_rollover_details_given
+          display_name: Enter customer rollover preferences details
+          ui_inputs:
+            - key: rollover_gross_interest_rate
+              display_name: Rollover gross interest rate (%)
+              number_input:
+                default_value: 14.9
+                min_value: 0
+                precision: 2
+                step: 0.01
+            - key: rollover_period_end_hour
+              display_name: The hour of the day at which grace period closes (UTC), for rollover only.
+              number_input:
+                default_value: 21
+                min_value: 0
+                max_value: 23
+                precision: 0
+                step: 1
+            - key: rollover_grace_period
+              display_name: Rollover grace period length (days)
+              number_input:
+                default_value: 7
+                min_value: 0
+                precision: 0
+                step: 1
+            - key: rollover_account_closure_period
+              display_name: Rollover account closure period length (days)
+              number_input:
+                default_value: 7
+                min_value: 0
+                precision: 0
+                step: 1
+            - key: rollover_interest_application_frequency
+              display_name: Rollover interest application frequency
+              string_input: {}
+              json_definition:
+                value_selector:
+                  values:
+                    - value: "weekly"
+                      label: "Weekly"
+                    - value: "fortnightly"
+                      label: "Fortnightly"
+                    - value: "four_weekly"
+                      label: "Four Weekly"
+                    - value: "monthly"
+                      label: "Monthly"
+                    - value: "quarterly"
+                      label: "Quarterly"
+                    - value: "semi_annually"
+                      label: "Semi Annually"
+                    - value: "annually"
+                      label: "Annually"
+                    - value: "maturity"
+                      label: "Maturity"
+            - key: interest_payment_destination
+              display_name: Interest payment destination
+              string_input: {}
+              json_definition:
+                value_selector:
+                  values:
+                    - value: "retain_on_account"
+                      label: "This account"
+                    - value: "vault"
+                      label: "Another Vault account"
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - rollover_interest_application_frequency
+          - rollover_gross_interest_rate
+          - rollover_period_end_hour
+          - rollover_grace_period
+          - interest_payment_destination
+          - rollover_account_closure_period
+    transitions:
+      - to: evaluate_interest_payment_destination
+        trigger: capture_rollover_details_given
+        description: Customer rollover details entered.
+
+  capture_rollover_details_with_partial_principal:
+    display_name: Capture rollover customer preferences details with partial principal amount
+    state_ui:
+      ui_actions:
+        - action_id: capture_rollover_details_with_partial_principal_action
+          event: capture_rollover_details_with_partial_principal_given
+          display_name: Enter customer rollover preferences details with partial principal
+          ui_inputs:
+            - key: partial_principal_amount
+              display_name: Partial principal amount
+              number_input:
+                default_value: 0
+                min_value: 0
+                precision: 2
+                step: 0.01
+            - key: rollover_gross_interest_rate
+              display_name: Rollover gross interest rate (%)
+              number_input:
+                default_value: 14.9
+                min_value: 0
+                precision: 2
+                step: 0.01
+            - key: rollover_period_end_hour
+              display_name: The hour of the day at which grace period closes (UTC), for rollover only.
+              number_input:
+                default_value: 21
+                min_value: 0
+                max_value: 23
+                precision: 0
+                step: 1
+            - key: rollover_grace_period
+              display_name: Rollover grace period length (days)
+              number_input:
+                default_value: 7
+                min_value: 0
+                precision: 0
+                step: 1
+            - key: rollover_account_closure_period
+              display_name: Rollover account closure period length (days)
+              number_input:
+                default_value: 7
+                min_value: 0
+                precision: 0
+                step: 1
+            - key: rollover_interest_application_frequency
+              display_name: Rollover interest application frequency
+              string_input: {}
+              json_definition:
+                value_selector:
+                  values:
+                    - value: "weekly"
+                      label: "Weekly"
+                    - value: "fortnightly"
+                      label: "Fortnightly"
+                    - value: "four_weekly"
+                      label: "Four Weekly"
+                    - value: "monthly"
+                      label: "Monthly"
+                    - value: "quarterly"
+                      label: "Quarterly"
+                    - value: "semi_annually"
+                      label: "Semi Annually"
+                    - value: "annually"
+                      label: "Annually"
+                    - value: "maturity"
+                      label: "Maturity"
+            - key: interest_payment_destination
+              display_name: Interest payment destination
+              string_input: {}
+              json_definition:
+                value_selector:
+                  values:
+                    - value: "retain_on_account"
+                      label: "This account"
+                    - value: "vault"
+                      label: "Another Vault account"
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - rollover_interest_application_frequency
+          - interest_payment_destination
+          - partial_principal_amount
+          - rollover_gross_interest_rate
+          - rollover_period_end_hour
+          - rollover_grace_period
+          - rollover_account_closure_period
+    transitions:
+      - to: evaluate_interest_payment_destination
+        trigger: capture_rollover_details_with_partial_principal_given
+        description: Customer rollover (includes partial principal amount) entered preferences.
+
+  capture_rollover_details_amend_period:
+    display_name: Capture rollover customer preferences details (cool off period or grace period)
+    state_ui:
+      ui_panels:
+        - panel_id: amend_period_warning
+          display_name: Warning
+          json_definition:
+            text:
+              value: ${amend_period_warning_msg}
+              is_error: true
+      ui_actions:
+        - action_id: capture_rollover_details_amend_period_action
+          event: capture_rollover_details_amend_period_given
+          display_name: Enter customer rollover preferences details with partial principal (Cool off period or Grace period)
+          ui_inputs:
+            - key: rollover_gross_interest_rate
+              display_name: Rollover gross interest rate (%)
+              number_input:
+                default_value: 14.9
+                min_value: 0
+                precision: 2
+                step: 0.01
+            - key: rollover_period_end_hour
+              display_name: The hour of the day at which grace period closes (UTC), for rollover only.
+              number_input:
+                default_value: 21
+                min_value: 0
+                max_value: 23
+                precision: 0
+                step: 1
+            - key: rollover_grace_period
+              display_name: Rollover grace period length (days)
+              number_input:
+                default_value: 7
+                min_value: 0
+                precision: 0
+                step: 1
+            - key: rollover_account_closure_period
+              display_name: Rollover account closure period length (days)
+              number_input:
+                default_value: 7
+                min_value: 0
+                precision: 0
+                step: 1
+            - key: rollover_interest_application_frequency
+              display_name: Rollover interest application frequency
+              string_input: {}
+              json_definition:
+                value_selector:
+                  values:
+                    - value: "weekly"
+                      label: "Weekly"
+                    - value: "fortnightly"
+                      label: "Fortnightly"
+                    - value: "four_weekly"
+                      label: "Four Weekly"
+                    - value: "monthly"
+                      label: "Monthly"
+                    - value: "quarterly"
+                      label: "Quarterly"
+                    - value: "semi_annually"
+                      label: "Semi Annually"
+                    - value: "annually"
+                      label: "Annually"
+                    - value: "maturity"
+                      label: "Maturity"
+            - key: rollover_term_unit
+              display_name: Rollover term in unit
+              string_input: {}
+              json_definition:
+                value_selector:
+                  values:
+                    - value: "days"
+                      label: "Days"
+                    - value: "months"
+                      label: "Months"
+            - key: rollover_term
+              display_name: Rollover Product term
+              number_input:
+                default_value: 12
+                min_value: 0
+                precision: 0
+                step: 1
+            - key: interest_payment_destination
+              display_name: Interest payment destination
+              string_input: {}
+              json_definition:
+                value_selector:
+                  values:
+                    - value: "retain_on_account"
+                      label: "This account"
+                    - value: "vault"
+                      label: "Another Vault account"
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - rollover_interest_application_frequency
+          - rollover_gross_interest_rate
+          - rollover_term_unit
+          - rollover_term
+          - rollover_period_end_hour
+          - rollover_grace_period
+          - interest_payment_destination
+          - rollover_account_closure_period
+    transitions:
+      - to: evaluate_interest_payment_destination
+        trigger: capture_rollover_details_amend_period_given
+        description: Customer rollover details entered., during cool off period or grace period.
+
+  capture_rollover_details_with_partial_principal_amend_period:
+    display_name: Capture rollover customer preferences details with partial principal amount(Cool off period or Grace period)
+    state_ui:
+      ui_panels:
+        - panel_id: amend_period_warning
+          display_name: Warning
+          json_definition:
+            text:
+              value: ${amend_period_warning_msg}
+      ui_actions:
+        - action_id: capture_rollover_details_with_partial_principal_amend_period_action
+          event: capture_rollover_details_with_partial_principal_amend_period_given
+          display_name: Enter customer rollover preferences details with partial principal(Cool off period or Grace period)
+          ui_inputs:
+            - key: partial_principal_amount
+              display_name: Partial principal amount
+              number_input:
+                default_value: 0.01
+                min_value: 0.01
+                precision: 2
+                step: 0.01
+            - key: rollover_gross_interest_rate
+              display_name: Rollover gross interest rate (%)
+              number_input:
+                default_value: 14.9
+                min_value: 0
+                precision: 2
+                step: 0.01
+            - key: rollover_period_end_hour
+              display_name: The hour of the day at which grace period closes (UTC), for rollover only.
+              number_input:
+                default_value: 21
+                min_value: 0
+                max_value: 23
+                precision: 0
+                step: 1
+            - key: rollover_grace_period
+              display_name: Rollover grace period length (days)
+              number_input:
+                default_value: 7
+                min_value: 0
+                precision: 0
+                step: 1
+            - key: rollover_account_closure_period
+              display_name: Rollover account closure period length (days)
+              number_input:
+                default_value: 7
+                min_value: 0
+                precision: 0
+                step: 1
+            - key: rollover_interest_application_frequency
+              display_name: Rollover interest application frequency
+              string_input: {}
+              json_definition:
+                value_selector:
+                  values:
+                    - value: "weekly"
+                      label: "Weekly"
+                    - value: "fortnightly"
+                      label: "Fortnightly"
+                    - value: "four_weekly"
+                      label: "Four Weekly"
+                    - value: "monthly"
+                      label: "Monthly"
+                    - value: "quarterly"
+                      label: "Quarterly"
+                    - value: "semi_annually"
+                      label: "Semi Annually"
+                    - value: "annually"
+                      label: "Annually"
+                    - value: "maturity"
+                      label: "Maturity"
+            - key: rollover_term_unit
+              display_name: Rollover term in unit
+              string_input: {}
+              json_definition:
+                value_selector:
+                  values:
+                    - value: "days"
+                      label: "Days"
+                    - value: "months"
+                      label: "Months"
+            - key: rollover_term
+              display_name: Rollover Product term
+              number_input:
+                default_value: 12
+                min_value: 0
+                precision: 0
+                step: 1
+            - key: interest_payment_destination
+              display_name: Interest payment destination
+              string_input: {}
+              json_definition:
+                value_selector:
+                  values:
+                    - value: "retain_on_account"
+                      label: "This account"
+                    - value: "vault"
+                      label: "Another Vault account"
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - rollover_interest_application_frequency
+          - rollover_term_unit
+          - rollover_term
+          - interest_payment_destination
+          - partial_principal_amount
+          - rollover_gross_interest_rate
+          - rollover_period_end_hour
+          - rollover_grace_period
+          - rollover_account_closure_period
+    transitions:
+      - to: evaluate_interest_payment_destination
+        trigger: capture_rollover_details_with_partial_principal_amend_period_given
+        description: Customer rollover (includes partial principal amount) entered preferences, during cool off period or grace period.
+
+  evaluate_interest_payment_destination:
+    display_name: Evaluate interest payment destination
+    entry_actions:
+      save_to_global_state:
+        new_key_value_pairs:
+          current_state: evaluate_interest_payment_destination
+    type: transform
+    transform_ref: evaluate_interest_payment_destination
+    transitions:
+      - to: capture_maturity_vault_account_details
+        trigger: retain_on_account_selected_for_interest
+        description: Retain account selected
+      - to: capture_interest_vault_account_details
+        trigger: vault_account_selected_for_interest
+        description: Vault account selected.
+      - to: account_rollover_update_failed
+        trigger: error_evaluate_interest_payment_destination
+        description: Interest payment destination evaluation error.
+
+  capture_interest_vault_account_details:
+    display_name: Capture interest payment account details
+    state_ui:
+      ui_actions:
+        - action_id: interest_vault_account_details
+          event: vault_account_captured_interest
+          display_name: Vault account details
+          ui_inputs:
+            - key: interest_vault_account_id
+              display_name: Vault account
+              string_input: {}
+              json_definition:
+                account_selector:
+                  customer_id: ${customer_id}
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - interest_vault_account_id
+    transitions:
+      - to: capture_maturity_vault_account_details
+        trigger: vault_account_captured_interest
+        description: Vault account details entered.
+
+  capture_maturity_vault_account_details:
+    display_name: Capture maturity disbursement account details
+    state_ui:
+      ui_actions:
+        - action_id: vault_maturity_account_details
+          event: vault_account_captured_maturity
+          display_name: Vault account details
+          ui_inputs:
+            - key: maturity_vault_account_id
+              display_name: Vault account
+              string_input: {}
+              json_definition:
+                account_selector:
+                  customer_id: ${customer_id}
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - maturity_vault_account_id
+    transitions:
+      - to: check_interest_application_day
+        trigger: vault_account_captured_maturity
+        description: Vault account details entered.
+
+  check_interest_application_day:
+    display_name: check which settings to include in the account
+    description: If frequency is maturity or frequency < monthly remove interest_application_day from user interface and default value to original value.
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - rollover_interest_application_day
+    type: transform
+    transform_ref: check_interest_application_day
+    transitions:
+      - to: decide_rollover_update_account
+        description: Skip interest application check.
+        trigger: skip_interest_application_day
+      - to: capture_account_settings_with_interest_application_day
+        description: Should have interest application day.
+        trigger: has_interest_application_day
+      - to: convert_interest_percentage_to_decimal
+        description: Should not have interest application day.
+        trigger: has_no_interest_application_day
+
+  decide_rollover_update_account:
+    display_name: Check fields to update
+    description: Check what fields should be updated base on auto_rollover_type.
+    type: transform
+    transform_ref: decide_rollover_update_account
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - partial_principal_amount
+          - rollover_term_unit
+          - rollover_term
+          - rollover_gross_interest_rate
+          - rollover_account_closure_period
+          - rollover_period_end_hour
+          - rollover_grace_period
+          - rollover_interest_application_day
+          - rollover_interest_application_frequency
+          - term_unit
+          - term
+          - gross_interest_rate
+          - grace_period
+          - interest_application_day
+          - interest_application_frequency
+    transitions:
+      - to: update_rollover_account_details
+        description: Rollover details and amount needs to be updated without term and term unit.
+        trigger: update_account
+      - to: update_rollover_account_details_amend_period
+        description: All Rollover details and amount needs to be updated.
+        trigger: update_account_amend_period
+
+  capture_account_settings_with_interest_application_day:
+    display_name: Capture account settings with interest application day
+    state_ui:
+      ui_actions:
+        - action_id: account_settings_with_interest_application_day
+          event: account_settings_captured_with_interest_application_day
+          display_name: Enter account settings
+          ui_inputs:
+            - key: rollover_interest_application_day
+              display_name: Rollover interest application day
+              number_input:
+                default_value: 1
+                min_value: 1
+                max_value: 31
+                precision: 0
+                step: 1
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - rollover_interest_application_day
+    transitions:
+      - to: convert_interest_percentage_to_decimal
+        trigger: account_settings_captured_with_interest_application_day
+        description: Account settings entered with interest application day.
+
+  convert_interest_percentage_to_decimal:
+    display_name: Convert the interest rate to decimal
+    type: transform
+    transform_ref: convert_interest_percentage_to_decimal
+    transitions:
+      - to: decide_rollover_update_account
+        trigger: interest_converted_to_decimal
+        description: Interest converted to decimal
+
+  update_rollover_account_details:
+    display_name: Update the account
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/account-updates
+        method: POST
+        arguments:
+          request_id: generate_uuid()
+          account_update:
+            id: generate_uuid()
+            account_id: ${account_id}
+            instanceParamValsUpdate:
+              instance_param_vals:
+                auto_rollover_type: ${auto_rollover_type}
+                partial_principal_amount: ${partial_principal_amount}
+                rollover_gross_interest_rate: ${rollover_gross_interest_rate}
+                rollover_account_closure_period: ${rollover_account_closure_period}
+                rollover_period_end_hour: ${rollover_period_end_hour}
+                rollover_grace_period: ${rollover_grace_period}
+                rollover_interest_application_day: ${rollover_interest_application_day}
+                rollover_interest_application_frequency: ${rollover_interest_application_frequency}
+        response_fields:
+          - key_name: failure_reason
+            response_json_path: failure_reason
+            extract_singleton_element: true
+        response_event: account_updated_not_amend_period
+    transitions:
+      - to: evaluate_interest_payment_destination_to_save
+        trigger: rollover_account_update_success
+        description: Account update completed successfully
+        auto_trigger_conditions:
+          streaming_api_conditions:
+            topic: vault.api.v1.accounts.account.instance_param_vals.updated
+            message_content:
+              - path: update_status
+                values:
+                  - ACCOUNT_UPDATE_STATUS_COMPLETED
+                quantifier: any
+      - to: account_rollover_update_failed
+        trigger: rollover_account_update_failure
+        description: Account update did not complete successfully
+        auto_trigger_conditions:
+          streaming_api_conditions:
+            topic: vault.api.v1.accounts.account.instance_param_vals.updated
+            message_content:
+              - path: update_status
+                values:
+                  - ACCOUNT_UPDATE_STATUS_COMPLETED
+                quantifier: none
+
+  update_rollover_account_details_amend_period:
+    display_name: Update the account cool off period or grace period
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/account-updates
+        method: POST
+        arguments:
+          request_id: generate_uuid()
+          account_update:
+            id: generate_uuid()
+            account_id: ${account_id}
+            instanceParamValsUpdate:
+              instance_param_vals:
+                auto_rollover_type: ${auto_rollover_type}
+                partial_principal_amount: ${partial_principal_amount}
+                rollover_term_unit: ${rollover_term_unit}
+                rollover_term: ${rollover_term}
+                rollover_gross_interest_rate: ${rollover_gross_interest_rate}
+                rollover_account_closure_period: ${rollover_account_closure_period}
+                rollover_period_end_hour: ${rollover_period_end_hour}
+                rollover_grace_period: ${rollover_grace_period}
+                rollover_interest_application_day: ${rollover_interest_application_day}
+                rollover_interest_application_frequency: ${rollover_interest_application_frequency}
+                term_unit: ${term_unit}
+                term: ${term}
+                gross_interest_rate: ${gross_interest_rate}
+                interest_application_day: ${interest_application_day}
+                interest_application_frequency: ${interest_application_frequency}
+        response_event: account_updated_amend_period
+    transitions:
+      - to: evaluate_interest_payment_destination_to_save
+        trigger: rollover_amend_period_account_update_success
+        description: Account update completed successfully
+        auto_trigger_conditions:
+          streaming_api_conditions:
+            topic: vault.api.v1.accounts.account.instance_param_vals.updated
+            message_content:
+              - path: update_status
+                values:
+                  - ACCOUNT_UPDATE_STATUS_COMPLETED
+                quantifier: any
+      - to: account_rollover_update_failed
+        trigger: rollover_amend_period_account_update_failure
+        description: Account update did not complete successfully
+        auto_trigger_conditions:
+          streaming_api_conditions:
+            topic: vault.api.v1.accounts.account.instance_param_vals.updated
+            message_content:
+              - path: update_status
+                values:
+                  - ACCOUNT_UPDATE_STATUS_COMPLETED
+                quantifier: none
+
+  evaluate_interest_payment_destination_to_save:
+    display_name: Evaluate interest payment destination to save
+    entry_actions:
+      save_to_global_state:
+        new_key_value_pairs:
+          current_state: evaluate_interest_payment_destination_to_save
+    type: transform
+    transform_ref: evaluate_interest_payment_destination
+    transitions:
+      - to: save_interest_retain_on_account
+        trigger: retain_on_account_selected_for_interest_to_save
+        description: Retain on account selected.
+      - to: save_interest_vault_account
+        trigger: vault_account_selected_for_interest_to_save
+        description: Vault account selected.
+      - to: account_rollover_update_failed
+        trigger: error_evaluate_interest_payment_destination_to_save
+        description: Interest payment destination evaluation error.
+
+  save_interest_retain_on_account:
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/accounts/{account_id}:updateDetails
+        method: PUT
+        arguments:
+          account_id: ${account_id}
+          request_id: generate_uuid()
+          items_to_add:
+            interest_payment_destination: ${interest_payment_destination}
+            maturity_vault_account_id: ${maturity_vault_account_id}
+        response_event: interest_account_details_updated_retain_on_account
+    transitions:
+      - to: account_rollover_update_succeded
+        description: Interest account details updated.
+        trigger: interest_account_details_updated_retain_on_account
+
+  save_interest_vault_account:
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/accounts/{account_id}:updateDetails
+        method: PUT
+        arguments:
+          account_id: ${account_id}
+          request_id: generate_uuid()
+          items_to_add:
+            interest_payment_destination: ${interest_payment_destination}
+            interest_vault_account_id: ${interest_vault_account_id}
+            maturity_vault_account_id: ${maturity_vault_account_id}
+        response_event: interest_account_details_updated_vault_account
+    transitions:
+      - to: account_rollover_update_succeded
+        description: Interest account details updated.
+        trigger: interest_account_details_updated_vault_account
+
+  account_rollover_update_succeded:
+    display_name: Account updated successfully
+
+  account_rollover_update_failed:
+    display_name: Account update failed
+    state_ui:
+      ui_panels:
+        - panel_id: open_failure_panel
+          display_name: Account update failure details
+          json_definition:
+            key_value_table:
+              items:
+                Error message: Account update failed. Please check details before retrying
+
+transforms:
+  evaluate_interest_payment_destination: |
+    current_state = context.get('current_state')
+    if context.get('interest_payment_destination') == 'retain_on_account' and current_state == 'evaluate_interest_payment_destination':
+        return ['retain_on_account_selected_for_interest', {}]
+    elif context.get('interest_payment_destination') == 'retain_on_account' and current_state == 'evaluate_interest_payment_destination_to_save':
+        return ['retain_on_account_selected_for_interest_to_save', {}]
+    elif context.get('interest_payment_destination') == 'vault' and current_state == 'evaluate_interest_payment_destination':
+        return ['vault_account_selected_for_interest', {}]
+    elif context.get('interest_payment_destination') == 'vault' and current_state == 'evaluate_interest_payment_destination_to_save':
+        return ['vault_account_selected_for_interest_to_save', {}]
+    return ['error_' + current_state, {'rejection_message': 'Invalid interest payment destination'}]
+
+  convert_interest_percentage_to_decimal: |
+    gross_interest_rate = context.get('rollover_gross_interest_rate')
+    decimal_interest = decimal.div(gross_interest_rate, '100')
+    new_context = {
+      "rollover_gross_interest_rate": '{}'.format(decimal_interest)
+    }
+    return ['interest_converted_to_decimal', new_context]
+
+  determine_rollover_type: |
+    derived_instance_param_vals = json.loads(context['derived_instance_param_vals'])
+    amend_period_warning_msg = ''
+    auto_rollover_type = context['auto_rollover_type']
+    now = datetime.utcnow()
+    amend_period_end_date = derived_instance_param_vals['cool_off_period_end_date']
+    if amend_period_end_date == "None":
+      amend_period_end_date = derived_instance_param_vals['grace_period_end_date']
+    rollover_gui={
+      'no_rollover':'no_rollover',
+      'partial_principal':'rollover_details_with_partial_principal',
+    }
+    rollover_interface = rollover_gui.setdefault(auto_rollover_type, 'rollover_details')
+    if amend_period_end_date != "None"  and auto_rollover_type != 'no_rollover':
+      if now <= datetime.strptime("2006-01-02 15:04:05", amend_period_end_date):
+        rollover_interface = "amend_period_" + rollover_interface
+        amend_period_warning_msg = "Editing the fields below will affect the current time deposit, since "
+        amend_period_warning_msg += "it is not yet the end of the cool off period or grace period (" + str(amend_period_end_date) + ")"
+    return  [rollover_interface, {'amend_period_warning_msg': amend_period_warning_msg}]
+
+  decide_rollover_update_account: |
+    instance_param_vals = json.loads(context['instance_param_vals'])
+    auto_rollover_type = context['auto_rollover_type']
+    amend_period_warning_msg = context['amend_period_warning_msg']
+    context.setdefault('rollover_gross_interest_rate', instance_param_vals['rollover_gross_interest_rate'])
+    default_return_value = {
+      'partial_principal_amount': instance_param_vals['partial_principal_amount'],
+    }
+    rollover_gui = {
+      'no_rollover': {
+        'rollover_interest_application_day': instance_param_vals['rollover_interest_application_day'],
+        'rollover_interest_application_frequency': instance_param_vals['rollover_interest_application_frequency'],
+        'rollover_grace_period': instance_param_vals['rollover_grace_period'],
+        'rollover_period_end_hour': instance_param_vals['rollover_period_end_hour'],
+        'rollover_gross_interest_rate': instance_param_vals['rollover_gross_interest_rate'],
+        'rollover_term': instance_param_vals['rollover_term'],
+        'rollover_term_unit': instance_param_vals['rollover_term_unit'],
+        'rollover_account_closure_period': instance_param_vals['rollover_account_closure_period'],
+        'interest_application_day': instance_param_vals['interest_application_day'],
+        'interest_application_frequency': instance_param_vals['interest_application_frequency'],
+        'grace_period': instance_param_vals['grace_period'],
+        'gross_interest_rate': instance_param_vals['gross_interest_rate'],
+        'term': instance_param_vals['term'],
+        'term_unit': instance_param_vals['term_unit'],
+        'partial_principal_amount': instance_param_vals['partial_principal_amount'],
+      },
+      'partial_principal': {},
+    }
+
+    result = rollover_gui.setdefault(auto_rollover_type, default_return_value)
+    if amend_period_warning_msg != '':
+      result['term_unit'] = context['rollover_term_unit']
+      result['term'] = context['rollover_term']
+      result['gross_interest_rate'] = context['rollover_gross_interest_rate']
+      result['grace_period'] =  instance_param_vals['grace_period']
+      result['rollover_gross_interest_rate'] = context['rollover_gross_interest_rate']
+      result['interest_application_day'] = context['rollover_interest_application_day']
+      result['interest_application_frequency'] = context['rollover_interest_application_frequency']
+      return ['update_account_amend_period', result]
+
+    result['rollover_gross_interest_rate'] = context['rollover_gross_interest_rate']
+    result['term_unit'] = instance_param_vals['term_unit']
+    result['term'] = instance_param_vals['term']
+    result['gross_interest_rate'] = instance_param_vals['gross_interest_rate']
+    result['grace_period'] = instance_param_vals['grace_period']
+    result['interest_application_day'] = instance_param_vals['interest_application_day']
+    result['interest_application_frequency'] = instance_param_vals['interest_application_frequency']
+    return ['update_account', result]
+
+  check_interest_application_day: |
+    auto_rollover_type = context['auto_rollover_type']
+    if auto_rollover_type == 'no_rollover':
+      return ['skip_interest_application_day', {}]
+
+    interest_application_frequency = context['rollover_interest_application_frequency']
+    if interest_application_frequency not in ['maturity', 'fortnightly', 'four_weekly', 'weekly', 'no_rollover']:
+        return ['has_interest_application_day', {}]
+    return ['has_no_interest_application_day', {'rollover_interest_application_day': json.loads(context['instance_param_vals'])['rollover_interest_application_day']}]

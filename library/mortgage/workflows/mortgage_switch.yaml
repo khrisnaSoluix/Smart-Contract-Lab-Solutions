@@ -1,0 +1,582 @@
+# Copyright @ 2021 Thought Machine Group Limited. All rights reserved.
+---
+name: Mortgage Switch
+instance_title: Mortgage Switch
+description: A workflow to switch Mortgage product.
+schema_version: 3.2.0
+definition_version: 1.1.0
+
+starting_state: get_account_details
+end_states:
+  - state: product_switched
+    result: SUCCESSFUL
+  - state: product_switching_failed
+    result: FAILED
+  - state: account_is_not_open_error
+    result: FAILED
+  - state: overpayment_fee_application_failed
+    result: FAILED
+
+states:
+  get_account_details:
+    display_name: Get account details
+    description: Get account details
+    entry_actions:
+      save_to_global_state:
+        context_keys:
+          - account_id
+      vault_callback:
+        path: core-api/v1/accounts/{id}
+        method: GET
+        arguments:
+          id: ${account_id}
+          fields_to_include:
+            - INCLUDE_FIELD_DERIVED_INSTANCE_PARAM_VALS
+        response_event: account_details_retrieved
+        response_fields:
+          - key_name: instance_param_vals
+            response_json_path: instance_param_vals
+            extract_singleton_element: true
+          - key_name: derived_instance_param_vals
+            response_json_path: derived_instance_param_vals
+            extract_singleton_element: true
+          - key_name: account_status
+            response_json_path: status
+            extract_singleton_element: true
+          - key_name: customer_id
+            response_json_path: stakeholder_ids[0]
+            extract_singleton_element: true
+          - key_name: product_id
+            response_json_path: product_id
+            extract_singleton_element: true
+    transitions:
+      - to: refresh_account_balances
+        trigger: account_details_retrieved
+        description: Account details retrieved
+        actions:
+          save_to_global_state:
+            context_keys:
+              - account_status
+              - customer_id
+              - instance_param_vals
+              - product_id
+              - derived_instance_param_vals
+
+  refresh_account_balances:
+    display_name: Retrieve denomination
+    description: Retrieve account denomination
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/balances/live
+        method: GET
+        arguments:
+          account_ids: 
+            - ${account_id}
+          page_size: 100
+        response_event: balance_retrieved
+        response_fields:
+          - key_name: account_denomination
+            response_json_path: balances[?(@.phase == 'POSTING_PHASE_COMMITTED' & @.account_address == 'DEFAULT')].denomination
+            extract_singleton_element: true
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - live_balance
+    transitions:
+      - to: process_account_details
+        description: Balance retrieved
+        trigger: balance_retrieved
+        actions:
+          save_to_global_state:
+            context_keys:
+              - account_denomination
+
+  process_account_details:
+    display_name: Process account details
+    type: transform
+    transform_ref: process_account_details
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - expiry_schedule
+          - total_outstanding_debt
+          - overpayment_allowance_remaining
+          - remaining_principal
+          - overpayment_fee_percentage
+          - overpaid_this_period
+          - mortgage_start_date
+    transitions:
+      - to: account_is_not_open_error
+        trigger: account_is_not_open
+      - to: warning_outstanding_payments
+        trigger: has_outstanding_payments
+      - to: check_if_overpaid_in_period
+        trigger: no_outstanding_payments
+
+  warning_outstanding_payments:
+    display_name: Account has outstanding payments
+    state_ui:
+      ui_panels:
+        - panel_id: outstanding_payments
+          display_name: Account has outstanding payments
+          json_definition:
+            text:
+              value: This account has outstanding overdues and fees of £${outstanding_payments}. Are you sure you want to proceed?
+      ui_actions:
+        - action_id: proceed
+          event: proceed_with_switching
+          display_name: Proceed with product switching
+    transitions:
+      - to: check_if_overpaid_in_period
+        trigger: proceed_with_switching
+
+  check_if_overpaid_in_period:
+    display_name: Check if over overpayment allowance
+    type: transform
+    transform_ref: check_if_overpaid_in_period_transform
+    transitions:
+      - to: apply_overpayment_fee
+        trigger: fee_required
+        actions:
+          save_to_global_state:
+            context_keys:
+              - fee_amount
+      - to: choose_new_mortgage_terms
+        trigger: fee_not_required
+
+  apply_overpayment_fee:
+    display_name: Apply fee for overpayment
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/posting-instruction-batches:asyncCreate
+        method: POST
+        arguments:
+          request_id: generate_uuid()
+          posting_instruction_batch:
+            client_id: AsyncCreatePostingInstructionBatch
+            client_batch_id: generate_uuid()
+            posting_instructions:
+              - client_transaction_id: generate_uuid()
+                transfer:
+                  amount: ${fee_amount}
+                  denomination: ${account_denomination}
+                  debtor_target_account:
+                    account_id: ${account_id}
+                  creditor_target_account:
+                    account_id: "1"
+            batch_details:
+              note: Fee applied for overpayment
+              fee: "True"
+    transitions:
+      - to: choose_payment_account
+        trigger: fee_has_been_deducted
+        auto_trigger_conditions:
+          streaming_api_conditions:
+            topic: vault.api.v1.postings.posting_instruction_batch.created
+            message_content:
+              - path: "posting_instruction_batch.status"
+                values:
+                  - POSTING_INSTRUCTION_BATCH_STATUS_ACCEPTED
+                quantifier: any
+      - to: overpayment_fee_application_failed
+        trigger: fee_transfer_failed
+        auto_trigger_conditions:
+          streaming_api_conditions:
+            topic: vault.api.v1.postings.posting_instruction_batch.created
+            message_content:
+              - path: "posting_instruction_batch.status"
+                values:
+                  - POSTING_INSTRUCTION_BATCH_STATUS_REJECTED
+                quantifier: any
+
+  choose_payment_account:
+    display_name: Select account to pay off overpayment charge
+    entry_actions:
+      add_or_replace_global_ui_panels:
+        - panel_id: outstanding_overpayment_charge
+          display_name: Outstanding overpayment charge
+          json_definition:
+            text:
+              value: ${fee_amount}
+    state_ui:
+      ui_actions:
+        - action_id: select_account
+          event: account_selected
+          display_name: Select account to debit
+          ui_inputs:
+            - key: payment_account_id
+              display_name: Account
+              string_input: {}
+              json_definition:
+                account_selector:
+                  customer_id: ${customer_id}
+                  account_statuses_to_include:
+                    - ACCOUNT_STATUS_OPEN
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - payment_account_id
+    transitions:
+      - to: debit_overpayment_charge
+        trigger: account_selected
+
+  debit_overpayment_charge:
+    display_name: Settling overpayment charge
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/posting-instruction-batches:asyncCreate
+        method: POST
+        arguments:
+          request_id: generate_uuid()
+          posting_instruction_batch:
+            client_id: AsyncCreatePostingInstructionBatch
+            client_batch_id: generate_uuid()
+            posting_instructions:
+              - client_transaction_id: generate_uuid()
+                transfer:
+                  amount: ${fee_amount}
+                  denomination: ${account_denomination}
+                  debtor_target_account:
+                    account_id: ${payment_account_id}
+                  creditor_target_account:
+                    account_id: ${account_id}
+            batch_details:
+              note: Overpayment charge during product switching
+              event: product_switching
+    transitions:
+      - to: choose_new_mortgage_terms
+        trigger: fee_deducted
+        auto_trigger_conditions:
+          streaming_api_conditions:
+            topic: vault.api.v1.postings.posting_instruction_batch.created
+            message_content:
+              - path: "posting_instruction_batch.status"
+                values:
+                  - POSTING_INSTRUCTION_BATCH_STATUS_ACCEPTED
+                quantifier: any
+      - to: repayment_transfer_failed
+        trigger: fee_failed_transfer
+        auto_trigger_conditions:
+          streaming_api_conditions:
+            topic: vault.api.v1.postings.posting_instruction_batch.created
+            message_content:
+              - path: "posting_instruction_batch.status"
+                values:
+                  - POSTING_INSTRUCTION_BATCH_STATUS_REJECTED
+                quantifier: any
+
+  repayment_transfer_failed:
+    display_name: Payment failed
+    description: Payment failed - Please ensure the selected account accepts debits and has sufficient funds.
+    state_ui:
+      ui_actions:
+        - action_id: retry_overpayment_fee_payment
+          event: retry_overpayment_fee_payment
+          display_name: Retry overpayment fee payment
+    transitions:
+      - to: choose_payment_account
+        trigger: retry_overpayment_fee_payment
+
+  overpayment_fee_application_failed:
+    display_name: Fail to apply overpayment fee
+
+  choose_new_mortgage_terms:
+    display_name: Choose new mortgage terms
+    state_ui:
+      ui_actions:
+        - action_id: choose_new_mortgage_terms
+          event: new_mortgage_terms_chosen
+          display_name: Choose new mortgage terms
+          ui_inputs:
+            - key: fixed_interest_rate
+              display_name: Fixed interest rate
+              number_input:
+                min_value: 0
+                max_value: 1
+                precision: 4
+                step: 0.0001
+                default_value: 0.0275
+            - key: variable_rate_adjustment
+              display_name: Adjustment to be added to variable interest rate (negative or positive value)
+              number_input:
+                min_value: -1
+                max_value: 1
+                precision: 4
+                step: 0.0001
+                default_value: 0
+            - key: fixed_interest_term
+              display_name: Fixed rate Mortgage term (months)
+              number_input:
+                min_value: 0
+                precision: 1
+                step: 1
+                default_value: 0
+            - key: interest_only_term
+              display_name: Interest only Mortgage term (months)
+              number_input:
+                min_value: 0
+                precision: 1
+                step: 1
+                default_value: 0
+            - key: total_term
+              display_name: Mortgage term (months)
+              number_input:
+                min_value: 1
+                step: 1
+                default_value: 1
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - fixed_interest_rate
+          - variable_rate_adjustment
+          - fixed_interest_term
+          - interest_only_term
+          - total_term
+    transitions:
+      - to: retrieve_product_details
+        trigger: new_mortgage_terms_chosen
+
+  retrieve_product_details:
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/product-versions
+        method: GET
+        arguments:
+          product_id: ${product_id}
+          page_size: 30
+          page_token: ${next_page_token:}
+          view: PRODUCT_VERSION_VIEW_INCLUDE_PARAMETERS
+        response_fields:
+          - key_name: variable_interest_rate
+            response_json_path: product_versions[?(@.is_current == true)].params[?(@.name == 'variable_interest_rate')].value
+          - key_name: next_page_token
+            response_json_path: next_page_token
+            extract_singleton_element: true
+        response_event: retrieved_necessary_product_details
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - variable_interest_rate
+          - next_page_token
+    transitions:
+      - to: verify_product_existing
+        description: Retrieved necessary information from product
+        trigger: retrieved_necessary_product_details
+
+  verify_product_existing:
+    display_name: Verify product is existing
+    expected_context_keys:
+      - variable_interest_rate
+      - next_page_token
+    type: transform
+    transform_ref: verify_product_existing
+    transitions:
+      - to: validate_input
+        trigger: product_valid
+      - to: retrieve_product_details
+        trigger: product_invalid
+      - to: invalid_mortgage_terms
+        trigger: no_valid_contract
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - variable_interest_rate
+
+  validate_input:
+    display_name: Validate input
+    description: Validates new mortgage parameters
+    type: transform
+    transform_ref: check_input_are_valid
+    transitions:
+      - to: confirm_product_switch
+        trigger: valid_input
+      - to: invalid_mortgage_terms
+        trigger: invalid_input
+
+  invalid_mortgage_terms:
+    display_name: Invalid mortgage terms
+    state_ui:
+      ui_panels:
+        - panel_id: invalid_term
+          display_name: Invalid term
+          json_definition:
+            text:
+              value: ${error_message}
+      ui_actions:
+        - action_id: retry_mortgage_terms_input
+          display_name: Retry mortgage terms input
+          event: retry_mortgage_terms_input
+    transitions:
+      - to: choose_new_mortgage_terms
+        trigger: retry_mortgage_terms_input
+
+  confirm_product_switch:
+    display_name: Confirm product switch
+    state_ui:
+      ui_panels:
+        - panel_id: new_mortgage_terms
+          display_name: New mortgage terms
+          json_definition:
+            key_value_table:
+              items:
+                Fixed rate: ${fixed_interest_rate}%
+                Adjustment to be added to variable interest rate (negative or positive value): ${variable_rate_adjustment} %
+                Fixed rate term: ${fixed_interest_term} months
+                Interest only term: ${interest_only_term} months
+                Total mortgage term: ${total_term} months
+      ui_actions:
+        - action_id: confirm_product_switch
+          event: product_switch_confirmed
+          display_name: Confirm
+    transitions:
+      - to: update_mortgage_terms
+        trigger: product_switch_confirmed
+
+  update_mortgage_terms:
+    display_name: Update mortgage terms
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/account-updates
+        method: POST
+        arguments:
+          request_id: generate_uuid()
+          account_update:
+            id: generate_uuid()
+            account_id: ${account_id}
+            instance_param_vals_update:
+              instance_param_vals:
+                mortgage_start_date: ${mortgage_start_date}
+                fixed_interest_rate: ${fixed_interest_rate}
+                variable_rate_adjustment: ${variable_rate_adjustment}
+                fixed_interest_term: ${fixed_interest_term}
+                interest_only_term: ${interest_only_term}
+                total_term: ${total_term}
+                principal: ${remaining_principal}
+    transitions:
+      - to: product_switched
+        trigger: account_update_success
+        auto_trigger_conditions:
+          streaming_api_conditions:
+            topic: vault.api.v1.accounts.account.instance_param_vals.updated
+            message_content:
+              - path: update_status
+                values:
+                  - ACCOUNT_UPDATE_STATUS_COMPLETED
+                quantifier: any
+      - to: product_switching_failed
+        trigger: account_update_failure
+        auto_trigger_conditions:
+          streaming_api_conditions:
+            topic: vault.api.v1.accounts.account.instance_param_vals.updated
+            message_content:
+              - path: update_status
+                values:
+                  - ACCOUNT_UPDATE_STATUS_COMPLETED
+                quantifier: none
+
+  product_switched:
+    display_name: Successfully switched to new mortgage
+    entry_actions:
+      add_or_replace_global_ui_panels:
+        - panel_id: display_message_panel
+          display_name: Display message
+          json_definition:
+            key_value_table:
+              items:
+                Message: Mortgage switched successfully.
+        - panel_id: account_panel
+          display_name: New mortgage details
+          json_definition:
+            account:
+              account_id: ${account_id}
+              show_contract_parameters: true
+
+  product_switching_failed:
+    display_name: Mortgage switching failed whilst updating parameters
+    entry_actions:
+      add_or_replace_global_ui_panels:
+        - panel_id: account_error_panel
+          display_name: Mortgage parameter update failed
+          json_definition:
+            key_value_table:
+              items:
+                Error message: Failed to update mortgage terms.
+
+  account_is_not_open_error:
+    display_name: Account is not open error
+    entry_actions:
+      add_or_replace_global_ui_panels:
+        - panel_id: account_error_panel
+          display_name: Account is not open error
+          json_definition:
+            key_value_table:
+              items:
+                Error message: Cannot switch mortgage as the account status is not open.
+
+transforms:
+  process_account_details: |
+    new_context = {}
+
+    if context.get('account_status') != 'ACCOUNT_STATUS_OPEN':
+      return 'account_is_not_open', {}
+
+    instance_param_vals = json.loads(context['instance_param_vals'])
+    derived_instance_param_vals = json.loads(context['derived_instance_param_vals'])
+
+    new_context['total_outstanding_debt'] = derived_instance_param_vals['total_outstanding_debt']
+    new_context['outstanding_payments'] = derived_instance_param_vals['outstanding_payments']
+    new_context['overpayment_allowance_remaining'] = derived_instance_param_vals['overpayment_allowance_remaining']
+    new_context['overpayment_fee_percentage'] = instance_param_vals['overpayment_fee_percentage']
+    new_context['overpaid_this_period'] = derived_instance_param_vals['overpaid_this_period']
+    new_context['remaining_principal'] = derived_instance_param_vals['remaining_principal']
+    new_context['mortgage_start_date'] = datetime.strftime(datetime.utcnow(), '%Y-%m-%d')
+
+    if decimal.greaterthan(derived_instance_param_vals['outstanding_payments'], '0'):
+      return ['has_outstanding_payments', new_context]
+    else:
+      return ['no_outstanding_payments', new_context]
+
+  check_if_overpaid_in_period_transform: |
+    new_context = {}
+
+    overpayment_allowance_remaining = context['overpayment_allowance_remaining']
+    fee_percentage = context['overpayment_fee_percentage']
+
+    if decimal.lessthan(overpayment_allowance_remaining, '0'):
+        if overpayment_allowance_remaining[0] in ('-', '+'):
+          overpayment_allowance_remaining = overpayment_allowance_remaining[1:]
+        fee_amount = decimal.mul(overpayment_allowance_remaining, fee_percentage)
+        fee_amount = decimal.quantize(fee_amount, '.01')
+        new_context['fee_amount'] = fee_amount
+        return ['fee_required', new_context]
+    else:
+        return ['fee_not_required', {}]
+
+  check_input_are_valid: |
+    error_list = []
+    variable_interest_rate = context.get('variable_interest_rate')
+    if int(context['fixed_interest_term']) > int(context['total_term']):
+      error_list.append(' - Fixed interest term cannot be greater than total term')
+    if int(context['interest_only_term']) > int(context['total_term']):
+      error_list.append(' - Interest only term cannot be greater than total term')
+    if decimal.lessthan(decimal.add(variable_interest_rate, context.get('variable_rate_adjustment')), '0'):
+      error_list.append(' - Sum of variable rate and adjustment cannot be less than 0')
+
+    if not error_list:
+      return ['valid_input', {}]
+    else:
+      error_message = 'Invalid input:\n' + '\n'.join(error_list)
+      return ['invalid_input', {'error_message': error_message}]
+
+  verify_product_existing: |
+    variable_interest_rate = json.loads(context.get('variable_interest_rate'))
+    if variable_interest_rate:
+      variable_interest_rate= variable_interest_rate[0]
+      return ['product_valid', {'variable_interest_rate': variable_interest_rate}]
+
+    next_page_token = context.get('next_page_token')
+
+    if next_page_token:
+      return ['product_invalid', {'next_page_token': next_page_token}]
+    else:
+      return ['no_valid_contract', {'rejection_message}': 'Cannot retrieve variable interest rate for current product version'}]

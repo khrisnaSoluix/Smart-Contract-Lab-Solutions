@@ -1,0 +1,11 @@
+# Copyright @ 2022 Thought Machine Group Limited. All rights reserved.
+---
+type: INTERNAL_ACCOUNT
+id: TAWIDH_FEE_INCOME_ACCOUNT
+vault_id: TAWIDH_FEE_INCOME_ACCOUNT
+payload: |
+  internal_account:
+      id: TAWIDH_FEE_INCOME_ACCOUNT
+      product_id: tawidh_fee_income_account_contract
+      accounting:
+        tside: TSIDE_ASSET

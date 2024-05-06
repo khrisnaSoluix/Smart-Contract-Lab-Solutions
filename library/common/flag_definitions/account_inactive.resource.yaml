@@ -1,0 +1,10 @@
+---
+type: FLAG_DEFINITION
+id: ACCOUNT_INACTIVE
+payload: |
+  flag_definition:
+    id: ACCOUNT_INACTIVE
+    name: ACCOUNT_INACTIVE
+    description: Inactive account is subject to inactivity fees
+    required_flag_level: FLAG_LEVEL_ACCOUNT
+    flag_visibility: FLAG_VISIBILITY_OPERATOR

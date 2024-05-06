@@ -1,0 +1,260 @@
+dataloader_setup:
+  contract_name: "time_deposit"
+  dependency_groups:
+    - customer:
+        id_base: 400
+      flags: []
+      accounts:
+        - account_opening_timestamp:
+            delta:
+              days: -34
+          instance_param_vals: &instance_param_vals
+            interest_application_frequency: "monthly"
+            interest_application_day: "1"
+            gross_interest_rate: "0.149"
+            term: "1"
+            term_unit: "months"
+            deposit_period: "10"
+            grace_period: "0"
+            cool_off_period: "0"
+            fee_free_percentage_limit: "0"
+            withdrawal_fee: "10"
+            withdrawal_percentage_fee: "0"
+            account_closure_period: "7"
+            period_end_hour: "0"
+            auto_rollover_type: "no_rollover"
+            partial_principal_amount: "0.01"
+            rollover_term_unit: "months"
+            rollover_term: "1"
+            rollover_gross_interest_rate: "0.149"
+            rollover_interest_application_day: "1"
+            rollover_interest_application_frequency: "monthly"
+            rollover_grace_period: "0"
+            rollover_period_end_hour: "0"
+            rollover_account_closure_period: "7"
+simulation_setup:
+  start:
+    delta:
+      days: -35
+  end:
+    delta:
+      days: -1
+  events:
+    - type: create_account_instruction
+      timestamp: start
+      account_id: "Main account"
+      product_id: "2"
+      instance_param_vals: *instance_param_vals
+    - type: create_inbound_hard_settlement_instruction
+      amount: "700"
+      event_datetime: start
+      denomination: "GBP"
+      client_transaction_id: "1"
+      client_batch_id: "123"
+    - type: create_inbound_hard_settlement_instruction
+      amount: "100"
+      event_datetime:
+        delta:
+          days: 2
+      denomination: "GBP"
+      client_transaction_id: "2"
+      client_batch_id: "123"
+    - type: create_inbound_hard_settlement_instruction
+      amount: "100"
+      event_datetime:
+        delta:
+          days: 4
+      denomination: "GBP"
+      client_transaction_id: "3"
+      client_batch_id: "123"
+    - type: create_inbound_hard_settlement_instruction
+      amount: "100"
+      event_datetime:
+        delta:
+          days: 6
+      denomination: "GBP"
+      client_transaction_id: "4"
+      client_batch_id: "123"
+    - type: create_inbound_hard_settlement_instruction
+      amount: "100"
+      event_datetime:
+        delta:
+          days: 8
+      denomination: "GBP"
+      client_transaction_id: "5"
+      client_batch_id: "123"
+    # outside deposit period
+    - type: create_inbound_hard_settlement_instruction
+      amount: "100"
+      event_datetime:
+        delta:
+          days: 12
+      denomination: "GBP"
+      client_transaction_id: "6"
+      client_batch_id: "123"
+    - type: create_inbound_hard_settlement_instruction
+      amount: "100"
+      event_datetime:
+        delta:
+          days: 16
+      denomination: "GBP"
+      client_transaction_id: "7"
+      client_batch_id: "123"
+    # before maturity period
+    - type: create_outbound_hard_settlement_instruction
+      amount: "100"
+      event_datetime:
+        delta:
+          days: 20
+      denomination: "GBP"
+      client_transaction_id: "8"
+      client_batch_id: "123"
+    - type: create_outbound_hard_settlement_instruction
+      amount: "100"
+      event_datetime:
+        delta:
+          days: 24
+      denomination: "GBP"
+      client_transaction_id: "9"
+      client_batch_id: "123"
+    # after maturity period
+    - type: create_outbound_hard_settlement_instruction
+      amount: "200"
+      event_datetime:
+        delta:
+          days: 32
+      denomination: "GBP"
+      client_transaction_id: "10"
+      client_batch_id: "123"
+    - type: create_outbound_hard_settlement_instruction
+      amount: "200"
+      event_datetime:
+        delta:
+          days: 34
+      denomination: "GBP"
+      client_transaction_id: "11"
+      client_batch_id: "123"
+postings_setup:
+  stage_range:
+    start: 50
+    stop: 101
+    step: 25
+    duration: 300
+    timeout: 600
+  pib_template:
+  # The postings include large deposits that would push the balance over the maximum limit and
+  # also withdrawals that can take place either before or after account maturity
+    - client_id: "AsyncCreatePostingInstructionBatch"
+      client_batch_id: "123__tps3_33"
+      posting_instructions:
+        - client_transaction_id: "123456__tps3_33"
+          inbound_hard_settlement:
+            amount: "800"
+            denomination: "GBP"
+            target_account:
+              account_id: "Main account"
+            advice: False
+          pics: []
+          instruction_details:
+            description: "Deposit"
+          override:
+            restrictions:
+          transaction_code:
+      batch_details:
+        description: "test"
+      dry_run: False
+    - client_id: "AsyncCreatePostingInstructionBatch"
+      client_batch_id: "123__tps3_33"
+      posting_instructions:
+        - client_transaction_id: "123456__tps3_33"
+          inbound_hard_settlement:
+            amount: "800"
+            denomination: "GBP"
+            target_account:
+              account_id: "Main account"
+            advice: False
+          pics: []
+          instruction_details:
+            description: "Deposit"
+          override:
+            restrictions:
+          transaction_code:
+      batch_details:
+        description: "test"
+      dry_run: False
+    - client_id: "AsyncCreatePostingInstructionBatch"
+      client_batch_id: "123__tps3_33"
+      posting_instructions:
+        - client_transaction_id: "123456__tps3_33"
+          inbound_hard_settlement:
+            amount: "40"
+            denomination: "GBP"
+            target_account:
+              account_id: "Main account"
+            advice: False
+          pics: []
+          instruction_details:
+            description: "Below min first deposit"
+          override:
+            restrictions:
+          transaction_code:
+      batch_details:
+        description: "test"
+      dry_run: False
+    - client_id: "AsyncCreatePostingInstructionBatch"
+      client_batch_id: "123__tps3_33"
+      posting_instructions:
+        - client_transaction_id: "123456__tps3_33"
+          inbound_hard_settlement:
+            amount: "1200"
+            denomination: "GBP"
+            target_account:
+              account_id: "Main account"
+            advice: False
+          pics: []
+          instruction_details:
+            description: "Over max balance"
+          override:
+            restrictions:
+          transaction_code:
+      batch_details:
+        description: "test"
+      dry_run: False
+    - client_id: "AsyncCreatePostingInstructionBatch"
+      client_batch_id: "123__tps3_33"
+      posting_instructions:
+        - client_transaction_id: "123456__tps3_33"
+          outbound_hard_settlement:
+            amount: "500"
+            denomination: "GBP"
+            target_account:
+              account_id: "Main account"
+            advice: False
+          pics: []
+          instruction_details:
+            description: "Withdrawal"
+          override:
+            restrictions:
+          transaction_code:
+      batch_details:
+        description: "test"
+      dry_run: False
+    - client_id: "AsyncCreatePostingInstructionBatch"
+      client_batch_id: "123__tps3_33"
+      posting_instructions:
+        - client_transaction_id: "123456__tps3_33"
+          outbound_hard_settlement:
+            amount: "500"
+            denomination: "GBP"
+            target_account:
+              account_id: "Main account"
+            advice: False
+          pics: []
+          instruction_details:
+            description: "Withdrawal"
+          override:
+            restrictions:
+          transaction_code:
+      batch_details:
+        description: "test"
+      dry_run: False

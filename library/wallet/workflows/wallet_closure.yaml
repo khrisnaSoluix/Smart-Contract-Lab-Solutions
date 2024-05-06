@@ -1,0 +1,255 @@
+# Copyright @ 2021 Thought Machine Group Limited. All rights reserved.
+---
+name: Wallet Closure
+instance_title: Wallet Closure
+description: A workflow to close a Wallet account.
+schema_version: 3.2.0
+definition_version: 1.2.0
+starting_state: retrieve_initial_account_details
+end_states:
+  - state: account_closed_successfully
+    result: SUCCESSFUL
+  - state: account_closure_failure
+    result: FAILED
+  - state: account_already_closed
+    result: SUCCESSFUL
+states:
+  retrieve_initial_account_details:
+    display_name: Retrieve account details
+    description: Retrieve account details
+    expected_context_keys:
+      - account_id
+    entry_actions:
+      save_to_global_state:
+        context_keys:
+          - account_id
+      vault_callback:
+        path: core-api/v1/accounts/{id}
+        method: GET
+        arguments:
+          id: ${account_id}
+        response_fields:
+          - key_name: instance_param_vals
+            response_json_path: instance_param_vals
+            extract_singleton_element: true
+          - key_name: product_id
+            response_json_path: product_id
+            extract_singleton_element: true
+          - key_name: account_status
+            response_json_path: status
+            extract_singleton_element: true
+        response_event: accounts_retrieved
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - instance_param_vals
+          - product_id
+          - account_status
+    transitions:
+      - to: check_account_is_closed
+        description: Accounts retrieved
+        trigger: accounts_retrieved
+
+  check_account_is_closed:
+    display_name: Verify account is closed
+    description: Verify account is closed
+    type: transform
+    transform_ref: verify_account_closed
+    transitions:
+      - to: authorise_account_closure
+        description: Balance retrieved
+        trigger: account_open
+      - to: account_already_closed
+        description: Account was already closed
+        trigger: account_closed
+
+  authorise_account_closure:
+    display_name: Authorise wallet closure request
+    description: |
+      Closing the wallet is pending approval and must be approved via the associated ticket.
+      The approval can be cancelled if required.
+    entry_actions:
+      create_ticket:
+        title: Wallet closure for ${account_id} pending approval
+        description: |
+          Approve or reject the updates associated with this ticket.
+        assigned_roles: [ops_user]
+        ticket_ui:
+          ui_panels:
+            - panel_id: account_id
+              display_name: Wallet account ID
+              json_definition:
+                text:
+                  value: "Account ID: ${account_id}"
+          ui_actions:
+            - action_id: approve
+              target_status: CLOSED
+              display_name: Approve changes
+            - action_id: reject
+              target_status: CANCELLED
+              display_name: Reject changes
+              ui_inputs:
+                - key: rejection_message
+                  string_input: {}
+                  display_name: Rejection reason
+    transitions:
+      - to: retrieve_source_account_balances
+        trigger: autotrigger_ticket_close
+        auto_trigger_conditions:
+          ticket_conditions:
+            quantifier: all
+            ticket_end_statuses: CLOSED
+      - to: account_closure_failure
+        trigger: autotrigger_ticket_cancel
+        auto_trigger_conditions:
+          ticket_conditions:
+            quantifier: all
+            ticket_end_statuses: CANCELLED
+
+  retrieve_source_account_balances:
+    display_name: Retrieve balances
+    description: Retrieve account balances
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/balances/live
+        method: GET
+        arguments:
+          account_ids: 
+            - ${account_id}
+          page_size: 100
+        response_event: balance_retrieved
+        response_fields:
+          - key_name: live_balance
+            response_json_path: balances
+            extract_singleton_element: true
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - live_balance
+    transitions:
+      - to: check_balances
+        description: Balance retrieved
+        trigger: balance_retrieved
+
+  check_balances:
+    display_name: Check balances
+    description:  Check balances
+    type: transform
+    transform_ref: check_balances
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - final_balance
+    transitions:
+      - to: update_account_status_to_pending_closure
+        trigger: account_zero
+      - to: update_account_status_to_closed
+        trigger: account_zero_and_pending
+      - to: account_closure_failure
+        trigger: account_nonzero
+
+  update_account_status_to_pending_closure:
+    display_name: Update account status to pending closure
+    description: Update account status to pending closure
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/accounts/{account.id}
+        method: PUT
+        arguments:
+          request_id: generate_uuid()
+          account:
+            id: ${account_id}
+            status: ACCOUNT_STATUS_PENDING_CLOSURE
+          update_mask: status
+    transitions:
+      - to: update_account_status_to_closed
+        trigger: account_pending_closure
+        auto_trigger_conditions:
+          streaming_api_conditions:
+            topic: vault.core_api.v1.accounts.account_update.events
+            message_content:
+              - path: "['*'].account_update.status"
+                values:
+                  - ACCOUNT_UPDATE_STATUS_COMPLETED
+                quantifier: any
+      - to: account_closure_failure
+        trigger: account_update_failure
+        auto_trigger_conditions:
+          streaming_api_conditions:
+            topic: vault.core_api.v1.accounts.account_update.events
+            message_content:
+              - path: "['*'].account_update.status"
+                values:
+                  - ACCOUNT_UPDATE_STATUS_COMPLETED
+                  - ACCOUNT_UPDATE_STATUS_PENDING_EXECUTION
+                quantifier: none
+
+  update_account_status_to_closed:
+    display_name: Update account status to closed
+    description: Update account status to closed via synchronous API call (no need to wait for topic msg)
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/accounts/{account.id}
+        method: PUT
+        arguments:
+          request_id: generate_uuid()
+          account:
+            id: ${account_id}
+            status: ACCOUNT_STATUS_CLOSED
+          update_mask: status
+        response_event: account_is_closed
+    transitions:
+      - to: account_closed_successfully
+        trigger: account_is_closed
+        description: Account closed
+
+  account_closed_successfully:
+    display_name: Account closed successfully
+    description: Account closed successfully
+    state_ui:
+      ui_panels:
+        - panel_id: account_closed_panel
+          display_name: Account closure successful
+          json_definition:
+            text:
+              value: Account has been successfully closed.
+
+  account_closure_failure:
+    display_name: Account closure rejected
+    state_ui:
+      ui_panels:
+        - panel_id: account_closure_failure_panel
+          display_name: Account closure rejected
+          json_definition:
+            text:
+              value: ${rejection_reason:Account closure rejected}
+
+  account_already_closed:
+    display_name: Account was already closed
+    description: Account was already closed previously
+    state_ui:
+      ui_panels:
+        - panel_id: account_already_closed_panel
+          display_name: Account was already closed previously
+          json_definition:
+            text:
+              value: Account was already closed previously.
+
+transforms:
+  check_balances: |
+    new_context = {}
+    live_balances = json.loads(context['live_balance'])
+    exclusion_balance_check_list = ['duplication', 'todays_spending']
+    for posting in live_balances:
+      if not decimal.iszero(posting.get('amount')) and posting.get('account_address') not in exclusion_balance_check_list:
+        return ['account_nonzero', new_context]
+    if context['account_status'] == 'ACCOUNT_STATUS_PENDING_CLOSURE':
+      return ['account_zero_and_pending', new_context]
+    else:
+      return ['account_zero', new_context]
+
+  verify_account_closed: |
+    if context['account_status'] == 'ACCOUNT_STATUS_CLOSED':
+      return ['account_closed', {}]
+    else:
+      return ['account_open', {}]

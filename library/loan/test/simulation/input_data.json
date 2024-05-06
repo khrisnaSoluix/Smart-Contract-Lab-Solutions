@@ -1,0 +1,45 @@
+{
+    "change_repayment_day_after": [
+        ["repayment_postings", "1", "3140.01", "2020", "2", "20"],
+        ["repayment_postings", "1", "2910.69", "2020", "3", "20"],
+        ["repayment_day_change", "2020", "4", "10", "22"],
+        ["repayment_postings", "1", "2960.92", "2020", "4", "22"],
+        ["repayment_postings", "1", "2910.69", "2020", "5", "22"],
+        ["repayment_day_change", "2020", "6", "18", "26"],
+        ["repayment_postings", "1", "3009.69", "2020", "6", "26"],
+        ["repayment_postings", "6", "2910.69", "2020", "7", "26"]
+    ],
+    "change_repayment_day_before": [
+        ["repayment_postings", "1", "3140.01", "2020", "2", "20"],
+        ["repayment_postings", "1", "2910.69", "2020", "3", "20"],
+        ["repayment_day_change", "2020", "4", "10", "18"],
+        ["repayment_postings", "1", "3639.01", "2020", "5", "18"],
+        ["repayment_postings", "1", "2910.69", "2020", "6", "18"],
+        ["repayment_postings", "1", "2910.69", "2020", "7", "18"],
+        ["repayment_postings", "1", "2910.69", "2020", "8", "18"],
+        ["repayment_postings", "1", "2910.69", "2020", "9", "18"],
+        ["repayment_day_change", "2020", "10", "1", "10"],
+        ["repayment_postings", "1", "2910.69", "2020", "11", "10"]
+    ],
+    "monthly_due_for_variable_rate_with_overpayment": [
+        ["variable_rate_change", "2020", "2", "5", "0.039"],
+        ["repayment_postings", "1", "3034.40", "2020", "2"],
+        ["repayment_postings", "1", "13535.24", "2020", "3"],
+        ["variable_rate_change", "2020", "3", "15", "0.041"],
+        ["variable_rate_change", "2020", "4", "10", "0.0322"],
+        ["repayment_postings", "3", "2913.37", "2020", "4"],
+        ["repayment_postings", "1", "3966", "2020", "7"],
+        ["repayment_postings", "2", "2913.37", "2020", "8"],
+        ["variable_rate_change", "2020", "10", "11", "0.0278"],
+        ["repayment_postings", "15", "2858.79", "2020", "10"]
+    ],
+    "repayment_holiday_test_monthly_interest_accrual_variable_increase_emi": [
+        ["variable_rate_change", "2020", "2", "5", "0.039"],
+        ["repayment_postings", "1", "3034.40", "2020", "2"],
+        ["repayment_postings", "1", "13535.24", "2020", "3"],
+        ["variable_rate_change", "2020", "3", "15", "0.041"],
+        ["variable_rate_change", "2020", "4", "10", "0.0322"],
+        ["repayment_postings", "3", "2913.37", "2020", "4"],
+        ["repayment_postings", "6", "3099.41", "2021", "1"]
+    ]
+}

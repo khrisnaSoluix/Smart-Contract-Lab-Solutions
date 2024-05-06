@@ -1,0 +1,32 @@
+# Copyright @ 2021 Thought Machine Group Limited. All rights reserved.
+---
+pack_version: 1.0.0
+pack_name: GPL Shariah Savings Account
+resource_ids:
+  # --------- CALENDARS
+  - PUBLIC_HOLIDAYS
+
+  # --------- FLAG DEFINITIONS
+  # common
+  - LOWER_TIER
+  - MIDDLE_TIER
+  - UPPER_TIER
+
+  # --------- SMART CONTRACTS
+  - shariah_savings_account
+
+  # --------- ACCOUNT SCHEDULE TAGS
+  - SHARIAH_SAVINGS_ACCOUNT_ACCRUE_PROFIT_AST
+  - SHARIAH_SAVINGS_ACCOUNT_APPLY_ACCRUED_PROFIT_AST
+
+  # --------- INTERNAL ACCOUNT SMART CONTRACTS
+  - accrued_profit_payable_account_contract
+  - early_closure_fee_income_account_contract
+  - payment_type_fee_income_account_contract
+  - profit_paid_account_contract
+
+  # --------- INTERNAL ACCOUNTS
+  - ACCRUED_PROFIT_PAYABLE_ACCOUNT
+  - EARLY_CLOSURE_FEE_INCOME_ACCOUNT
+  - PAYMENT_TYPE_FEE_INCOME_ACCOUNT
+  - PROFIT_PAID_ACCOUNT

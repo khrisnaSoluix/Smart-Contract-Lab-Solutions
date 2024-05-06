@@ -1,0 +1,680 @@
+# Copyright @ 2020 Thought Machine Group Limited. All rights reserved.
+---
+name: Time Deposit Account Maturity
+instance_title: Time deposit account maturity
+description: Simple time deposit account maturity process for disbursing account funds as per customer preference.
+schema_version: 3.2.0
+definition_version: 1.1.0
+
+starting_state: confirm_product_id
+end_states:
+  - state: account_closed_successfully
+    result: SUCCESSFUL
+  - state: invalid_preference
+    result: FAILED
+  - state: account_not_opened
+    result: FAILED
+  - state: transfer_failed
+    result: FAILED
+  - state: account_closure_failure
+    result: FAILED
+  - state: pending_accrued_interest_wait_timeout
+    result: FAILED
+  - state: transfer_applied_interest_failed
+    result: FAILED
+
+states:
+  confirm_product_id:
+    display_name: Confirm product id
+    description: Confirm product id by checking context or defaulting to 'time_deposit'
+    type: transform
+    transform_ref: confirm_product_id
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - product_id
+    transitions:
+      - to: get_account_details
+        trigger: product_id_confirmed
+
+  get_account_details:
+    display_name: Get account details
+    description: Get account maturity process preferences
+    entry_actions:
+      save_to_global_state:
+        context_keys:
+          - account_id
+          - applied_interest_amount
+      vault_callback:
+        path: core-api/v1/accounts/{id}
+        method: GET
+        arguments:
+          id: ${account_id}
+        response_event: account_details_retrieved
+        response_fields:
+          - key_name: account_details
+            response_json_path: details
+            extract_singleton_element: true
+          - key_name: customer_id
+            response_json_path: stakeholder_ids[0]
+            extract_singleton_element: true
+          - key_name: auto_rollover_type
+            response_json_path: instance_param_vals.auto_rollover_type
+            extract_singleton_element: true
+          - key_name: partial_principal_amount
+            response_json_path: instance_param_vals.partial_principal_amount
+            extract_singleton_element: true
+    transitions:
+      - to: retrieve_source_account_balances
+        trigger: account_details_retrieved
+        actions:
+          save_to_global_state:
+            context_keys:
+              - account_details
+              - customer_id
+              - auto_rollover_type
+              - partial_principal_amount
+
+  retrieve_source_account_balances:
+    display_name: Retrieve balances
+    description: Retrieve account balances
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/balances/live
+        method: GET
+        arguments:
+          account_ids: 
+            - ${account_id}
+          page_size: 100
+        response_event: balance_retrieved
+        response_fields:
+          - key_name: available_balance
+            response_json_path: balances[?(@.phase == 'POSTING_PHASE_COMMITTED' & @.account_address == 'DEFAULT')].amount
+            extract_singleton_element: true
+          - key_name: accrued_incoming_balance
+            response_json_path: balances[?(@.phase == 'POSTING_PHASE_COMMITTED' & @.account_address == 'ACCRUED_INCOMING')].amount
+          - key_name: account_denomination
+            response_json_path: balances[?(@.phase == 'POSTING_PHASE_COMMITTED' & @.account_address == 'DEFAULT')].denomination
+            extract_singleton_element: true
+    transitions:
+      - to: check_if_pending_accrued_interest
+        description: Balance retrieved
+        trigger: balance_retrieved
+        actions:
+          save_to_global_state:
+            context_keys:
+              - available_balance
+              - accrued_incoming_balance
+              - account_denomination
+
+  check_if_pending_accrued_interest:
+    display_name: Check if pending accrued interest
+    type: transform
+    transform_ref: check_if_pending_accrued_interest
+    transitions:
+      - to: wait_time
+        trigger: pending_accrued_interest_found
+        actions:
+          save_to_global_state:
+            context_keys:
+              - pending_accrued_interest_checks
+      - to: get_remaining_balance
+        trigger: no_applied_interest
+      - to: transfer_applied_interest
+        trigger: no_pending_accrued_interest
+      - to: pending_accrued_interest_wait_timeout
+        trigger: pending_accrued_interest_timed_out
+
+  # This state will not be necessary when streaming autotriggers are added
+  wait_time:
+    display_name: Waiting
+    description: Allow some time for balance request to complete
+    transitions:
+      - to: get_account_details
+        trigger: complete
+        auto_trigger_conditions:
+          schedule_expiry:
+            days: 0
+            hours: 0
+            minutes: 0
+            seconds: 1
+
+  transfer_applied_interest:
+    display_name: Transfer applied interest
+    entry_actions:
+      instantiate_workflow:
+        definition_id: TIME_DEPOSIT_APPLIED_INTEREST_TRANSFER
+        definition_version: 1.0.1
+        child_context:
+          account_id: ${account_id}
+          applied_interest_amount: ${applied_interest_amount}
+    transitions:
+      - to: get_remaining_balance
+        trigger: applied_interest_transferred
+        auto_trigger_conditions:
+          children_end_states:
+            - interest_applied
+            - no_transfer_needed
+      - to: transfer_applied_interest_failed
+        trigger: applied_interest_transfer_failed
+        auto_trigger_conditions:
+          children_end_states:
+            - transfer_failed
+            - invalid_preference
+
+  # available_balance returning a single value due to extract_singleton_element: true
+  # capitalised_interest_balances returning a list + filter, extract_singleton_element: true
+  # can't be sent to true as this address is only created when apply interest schedule have been run
+  get_remaining_balance:
+    display_name: Get account remaining balance
+    description: Get balance remaining on account after applied interest transferred
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/balances/live
+        method: GET
+        arguments:
+          account_ids: 
+            - ${account_id}
+          page_size: 100
+        response_event: remaining_balance_retrieved
+        response_fields:
+          - key_name: available_balance
+            response_json_path: balances[?(@.phase == 'POSTING_PHASE_COMMITTED' & @.account_address == 'DEFAULT')].amount
+            extract_singleton_element: true
+          - key_name: capitalised_interest_balances
+            response_json_path: balances[?(@.phase == 'POSTING_PHASE_COMMITTED' & @.account_address == 'CAPITALISED_INTEREST')].amount
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - available_balance
+          - capitalised_interest_balances
+    transitions:
+      - to: check_available_balance
+        trigger: remaining_balance_retrieved
+
+  check_available_balance:
+    display_name: Check value of available balance
+    type: transform
+    transform_ref: check_available_balance
+    transitions:
+      - to: parse_maturity_disbursement_destination
+        trigger: available_balance_positive
+      - to: update_account_status_to_pending_closure
+        trigger: available_balance_zero
+
+  parse_maturity_disbursement_destination:
+    display_name: Parse maturity preference
+    type: transform
+    transform_ref: parse_maturity_disbursement_destination
+    transitions:
+      - to: rollover_time_deposit
+        trigger: new_td_account
+        actions:
+          save_to_global_state:
+            context_keys:
+              - rollover_amount
+      - to: disburse_vault_account
+        trigger: vault_account
+        actions:
+          save_to_global_state:
+            context_keys:
+              - vault_account_id
+      - to: invalid_preference
+        trigger: invalid_preference
+
+  rollover_time_deposit:
+    display_name: Rollover to new Time Deposit account
+    description: Rollover to new Time Desposit account for customer
+    entry_actions:
+      instantiate_workflow:
+        definition_id: TIME_DEPOSIT_ROLLOVER
+        definition_version: 1.0.2
+        child_context:
+          user_id: ${customer_id}
+          current_account_id: ${account_id}
+          account_denomination: ${account_denomination}
+    transitions:
+      - to: get_rollover_td_account_id
+        trigger: account_opened_successfully
+        auto_trigger_conditions:
+          children_end_states:
+            - account_opened_successfully
+      - to: account_not_opened
+        trigger: account_not_opened
+        auto_trigger_conditions:
+          children_end_states:
+            - account_application_rejected
+
+  get_rollover_td_account_id:
+    display_name: Get rollover Time Deposit account ID
+    type: transform
+    transform_ref: get_rollover_td_account_id
+    transitions:
+      - to: transfer_funds
+        trigger: account_id_retrieved
+      - to: account_not_opened
+        trigger: account_id_not_retrieved
+
+  transfer_funds:
+    display_name: Transfer funds
+    description: Transfer funds from matured account to rollover Time Deposit
+    expected_context_keys:
+      - created_account_id
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/posting-instruction-batches:asyncCreate
+        method: POST
+        arguments:
+          request_id: generate_uuid()
+          posting_instruction_batch:
+            client_id: AsyncCreatePostingInstructionBatch
+            client_batch_id: generate_uuid()
+            posting_instructions:
+              - client_transaction_id: generate_uuid()
+                transfer:
+                  amount: ${rollover_amount}
+                  denomination: ${account_denomination}
+                  debtor_target_account:
+                    account_id: ${account_id}
+                  creditor_target_account:
+                    account_id: ${created_account_id}
+            batch_details:
+              note: Initial deposit for migrating matured Time Deposit
+              withdrawal_override: "true"
+              calendar_override: "true"
+              auto_rollover_type: ${auto_rollover_type}
+    transitions:
+      - to: get_remaining_balance_after_transfer
+        trigger: initial_transfer_made
+        auto_trigger_conditions:
+          streaming_api_conditions:
+            topic: vault.api.v1.postings.posting_instruction_batch.created
+            message_content:
+              - path: "posting_instruction_batch.status"
+                values:
+                  - POSTING_INSTRUCTION_BATCH_STATUS_ACCEPTED
+                quantifier: any
+        actions:
+          save_to_global_state:
+            new_key_value_pairs:
+              balance_check_counter: 1
+      - to: transfer_failed
+        trigger: initial_transfer_failed
+        actions:
+          save_to_global_state:
+            new_key_value_pairs:
+              transfer_failure_reason: Transfer of maturity to new Time Deposit failed
+        auto_trigger_conditions:
+          streaming_api_conditions:
+            topic: vault.api.v1.postings.posting_instruction_batch.created
+            message_content:
+              - path: "posting_instruction_batch.status"
+                values:
+                  - POSTING_INSTRUCTION_BATCH_STATUS_REJECTED
+                quantifier: any
+
+  get_remaining_balance_after_transfer:
+    display_name: Get account remaining balance
+    description: Get balance remaining on account after applied interest transferred
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/balances/live
+        method: GET
+        arguments:
+          account_ids: 
+            - ${account_id}
+          page_size: 100
+        response_event: remaining_balance_retrieved_after_transfer
+        response_fields:
+          - key_name: available_balance
+            response_json_path: balances[?(@.phase == 'POSTING_PHASE_COMMITTED' & @.account_address == 'DEFAULT')].amount
+            extract_singleton_element: true
+          - key_name: capitalised_interest_balances
+            response_json_path: balances[?(@.phase == 'POSTING_PHASE_COMMITTED' & @.account_address == 'CAPITALISED_INTEREST')].amount
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - available_balance
+          - capitalised_interest_balances
+    transitions:
+      - to: check_require_disbursement
+        trigger: remaining_balance_retrieved_after_transfer
+
+  check_require_disbursement:
+    display_name: check if there is remaining available balance
+    type: transform
+    transform_ref: check_require_disbursement
+    transitions:
+      - to: disburse_vault_account
+        trigger: disbursement_fund_vault
+      - to: check_capitalised_interest
+        trigger: no_disbursement_required
+
+  disburse_vault_account:
+    display_name: Disburse maturity to Vault Account
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/posting-instruction-batches:asyncCreate
+        method: POST
+        arguments:
+          request_id: generate_uuid()
+          posting_instruction_batch:
+            client_id: AsyncCreatePostingInstructionBatch
+            client_batch_id: generate_uuid()
+            posting_instructions:
+              - client_transaction_id: generate_uuid()
+                transfer:
+                  amount: ${available_balance}
+                  denomination: ${account_denomination}
+                  debtor_target_account:
+                    account_id: ${account_id}
+                  creditor_target_account:
+                    account_id: ${vault_account_id}
+            batch_details:
+              note: Vault disbursement for matured Time Deposit
+              withdrawal_override: "true"
+              calendar_override: "true"
+    transitions:
+      - to: check_capitalised_interest
+        trigger: initial_transfer_made_to_vault_acc
+        auto_trigger_conditions:
+          streaming_api_conditions:
+            topic: vault.api.v1.postings.posting_instruction_batch.created
+            message_content:
+              - path: "posting_instruction_batch.status"
+                values:
+                  - POSTING_INSTRUCTION_BATCH_STATUS_ACCEPTED
+                quantifier: any
+      - to: transfer_failed
+        trigger: initial_transfer_to_vault_acc_failed
+        actions:
+          save_to_global_state:
+            new_key_value_pairs:
+              transfer_failure_reason: Transfer of maturity to existing vault account failed
+        auto_trigger_conditions:
+          streaming_api_conditions:
+            topic: vault.api.v1.postings.posting_instruction_batch.created
+            message_content:
+              - path: "posting_instruction_batch.status"
+                values:
+                  - POSTING_INSTRUCTION_BATCH_STATUS_ACCEPTED
+                quantifier: none
+
+  check_capitalised_interest:
+    display_name: Check capitalised interest balance
+    type: transform
+    transform_ref: check_capitalised_interest
+    transitions:
+      - to: get_remaining_balance_after_transfer
+        trigger: positive_capitalised_interest
+        actions:
+          save_to_global_state:
+            context_keys:
+              - balance_check_counter
+      - to: capitalised_interest_stuck_after_posting
+        trigger: capitalised_interest_stuck
+      - to: update_account_status_to_pending_closure
+        trigger: no_capitalised_interest
+
+  capitalised_interest_stuck_after_posting:
+    display_name: Capitalised interest stuck after posting
+    state_ui:
+      ui_panels:
+        - panel_id: choose_action_after_stuck_interest
+          display_name: Choose action after stuck interest
+          json_definition:
+            text:
+              value: >
+                Capitalised interest is stuck after posting.
+                You may retry another ${balance_check_counter} attempts in case this was
+                due to a transient issue. Otherwise it is recommended you check with support to
+                determine the root cause before retrying further or cancelling the workflow.
+      ui_actions:
+        - action_id: retry_check_interest
+          event: retry_check_interest
+          display_name: Retry checking capitalised interest updated
+    transitions:
+      - to: get_remaining_balance_after_transfer
+        description: Retry check balances updated after posting
+        trigger: retry_check_interest
+        actions:
+          save_to_global_state:
+            new_key_value_pairs:
+              balance_check_counter: 1
+
+  update_account_status_to_pending_closure:
+    display_name: Update account status to pending closure
+    description: Update account status to pending closure
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/accounts/{account.id}
+        method: PUT
+        arguments:
+          request_id: generate_uuid()
+          account:
+            id: ${account_id}
+            status: ACCOUNT_STATUS_PENDING_CLOSURE
+          update_mask: status
+    transitions:
+      - to: update_account_status_to_closed
+        trigger: account_pending_closure
+        auto_trigger_conditions:
+          streaming_api_conditions:
+            topic: vault.core_api.v1.accounts.account_update.events
+            message_content:
+              - path: "['*'].account_update.status"
+                values:
+                  - ACCOUNT_UPDATE_STATUS_COMPLETED
+                quantifier: any
+      - to: account_closure_failure
+        trigger: account_update_failure
+        auto_trigger_conditions:
+          streaming_api_conditions:
+            topic: vault.core_api.v1.accounts.account_update.events
+            message_content:
+              - path: "['*'].account_update.status"
+                values:
+                  - ACCOUNT_UPDATE_STATUS_COMPLETED
+                  - ACCOUNT_UPDATE_STATUS_PENDING_EXECUTION
+                quantifier: none
+
+  update_account_status_to_closed:
+    display_name: Update account status to closed
+    description: Update account status to closed via synchronous API call (no need to wait for topic msg)
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/accounts/{account.id}
+        method: PUT
+        arguments:
+          request_id: generate_uuid()
+          account:
+            id: ${account_id}
+            status: ACCOUNT_STATUS_CLOSED
+          update_mask: status
+        response_event: account_closed
+    transitions:
+      - to: account_closed_successfully
+        trigger: account_closed
+        description: Account closed
+
+  account_closed_successfully:
+    display_name: Account closed successfully
+    description: Account closed successfully
+    state_ui:
+      ui_panels:
+        - panel_id: account_closed_panel
+          display_name: Account closure successful
+          json_definition:
+            text:
+              value: Account has been successfully closed.
+
+  invalid_preference:
+    display_name: Invalid preference
+    state_ui:
+      ui_panels:
+        - panel_id: error_message
+          display_name: Error
+          json_definition:
+            text:
+              value: "Invalid account details for maturity process: ${account_details}"
+              is_error: true
+
+  account_not_opened:
+    display_name: Account not opened
+    state_ui:
+      ui_panels:
+        - panel_id: error_message
+          display_name: Error
+          json_definition:
+            text:
+              value: "Could not open new Time Deposit account for customer. Funds not transferred"
+              is_error: true
+
+  transfer_failed:
+    display_name: Transfer failed
+    state_ui:
+      ui_panels:
+        - panel_id: transfer_failed_error
+          display_name: Error
+          json_definition:
+            text:
+              value: ${transfer_failure_reason}
+              is_error: true
+
+  account_closure_failure:
+    display_name: Account closure rejected
+    state_ui:
+      ui_panels:
+        - panel_id: account_closure_failure_panel
+          display_name: Account closure rejected
+          json_definition:
+            text:
+              value: ${Account closure rejected}
+
+  transfer_applied_interest_failed:
+    display_name: Transfer applied interest failed
+    state_ui:
+      ui_panels:
+        - panel_id: transfer_applied_interest_failed
+          display_name: Transfer applied interest failed
+          json_definition:
+            text:
+              value: Failed to transfer applied interest
+
+  pending_accrued_interest_wait_timeout:
+    display_name: Pending accrued interest wait timeout
+    state_ui:
+      ui_panels:
+        - panel_id: pending_accrue_interest_wait_timeout
+          display_name: Pending accrued interest wait timeout
+          json_definition:
+            text:
+              value: Timed out waiting for pending interest accrual application to be committed
+
+transforms:
+  confirm_product_id: |
+    context['product_id'] = context.get('product_id', 'time_deposit')
+    return ['product_id_confirmed', context]
+
+  check_if_pending_accrued_interest: |
+    accrued_incoming_balance_json = json.loads(context['accrued_incoming_balance'])
+    applied_interest_amount = context['applied_interest_amount']
+    if accrued_incoming_balance_json:
+      accrued_incoming_balance = accrued_incoming_balance_json[0]
+    else:
+      accrued_incoming_balance = '0'
+    pending_accrued_interest_checks = int(context.get('pending_accrued_interest_checks', '0'))
+
+    MAX_PENDING_INTEREST_CHECKS = 5
+
+    if decimal.iszero(applied_interest_amount):
+      return ['no_applied_interest', {}]
+    if decimal.greaterthan(accrued_incoming_balance, '0') and pending_accrued_interest_checks < MAX_PENDING_INTEREST_CHECKS:
+      pending_accrued_interest_checks += 1
+      return ['pending_accrued_interest_found', {'pending_accrued_interest_checks': str(pending_accrued_interest_checks)}]
+    elif pending_accrued_interest_checks >= MAX_PENDING_INTEREST_CHECKS:
+      return ['pending_accrued_interest_timed_out', {}]
+    else:
+      return ['no_pending_accrued_interest', {}]
+
+  check_available_balance: |
+    available_balance = context['available_balance']
+
+    if decimal.equal(available_balance, '0'):
+      return ['available_balance_zero', {}]
+    else:
+      return ['available_balance_positive', {}]
+
+  parse_maturity_disbursement_destination: |
+    account_details = json.loads(context['account_details'])
+    auto_rollover_type = context['auto_rollover_type']
+    partial_principal_amount = context['partial_principal_amount']
+    interest_preference = account_details.get('interest_payment_destination')
+
+    capitalised_interest_balances = json.loads(context['capitalised_interest_balances'])
+    if capitalised_interest_balances:
+      capitalised_interest_balance = capitalised_interest_balances[0]
+    else:
+      capitalised_interest_balance = '0'
+
+    available_balance = context['available_balance']
+    rollover_amount = 0
+
+    if(auto_rollover_type=='principal_and_interest'):
+      rollover_amount = available_balance
+      return ['new_td_account', {'rollover_amount': rollover_amount}]
+    elif(auto_rollover_type=='principal'):
+      if interest_preference == 'retain_on_account':
+        rollover_amount = decimal.minus(available_balance, capitalised_interest_balance)
+      else:
+        rollover_amount = available_balance
+      return ['new_td_account', {'rollover_amount': rollover_amount}]
+    elif(auto_rollover_type=='partial_principal'):
+      rollover_amount = partial_principal_amount
+      return ['new_td_account', {'rollover_amount': rollover_amount}]
+    elif(auto_rollover_type=='no_rollover'):
+      if account_details.get('maturity_vault_account_id'):
+        return ['vault_account', {'vault_account_id': account_details['maturity_vault_account_id']}]
+      return ['invalid_preference', {}]
+
+  get_rollover_td_account_id: |
+    children_statuses = json.loads(context['children_statuses'])
+    child_global_context = json.loads(children_statuses[children_statuses.keys()[0]])['global_state']
+    created_account_id = child_global_context['account_id']
+
+    if created_account_id:
+      return ['account_id_retrieved', {'created_account_id': created_account_id}]
+    else:
+      return ['account_id_not_retrieved', {}]
+
+  check_require_disbursement: |
+    available_balance = context['available_balance']
+    account_details = json.loads(context['account_details'])
+
+    if decimal.greaterthan(available_balance, '0'):
+      if account_details.get('maturity_vault_account_id'):
+        return ['disbursement_fund_vault', {'vault_account_id': account_details['maturity_vault_account_id']}]
+    else:
+      return ['no_disbursement_required', {}]
+
+  check_capitalised_interest: |
+    available_interest = json.loads(context['capitalised_interest_balances'])
+    if available_interest:
+      available_interest = available_interest[0]
+    else:
+      available_interest = '0'
+
+    if decimal.greaterthan(available_interest, '0'):
+      balance_check_counter = int(context.get('balance_check_counter', 1)) + 1
+      if balance_check_counter <= 20:
+        return [
+          'positive_capitalised_interest',
+          {'balance_check_counter': balance_check_counter}
+        ]
+      else:
+        return [
+          'capitalised_interest_stuck',
+          {'balance_check_counter': balance_check_counter}
+        ]
+    else:
+      return ['no_capitalised_interest', {}]

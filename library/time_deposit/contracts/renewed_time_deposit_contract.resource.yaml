@@ -1,0 +1,65 @@
+# Copyright @ 2023 Thought Machine Group Limited. All rights reserved.
+---
+type: SMART_CONTRACT_VERSION
+id: renewed_time_deposit
+payload: |
+  product_version:
+      display_name: Renewed Time Deposit
+      code: '@{time_deposit_rendered.py}'
+      product_id: renewed_time_deposit
+      params:
+      - name: number_of_interest_days_early_withdrawal_fee
+        value: '0'
+      - name: denomination
+        value: 'GBP'
+      - name: term_unit
+        value: 'months'
+      - name: cooling_off_period
+        value: '0'
+      - name: maturity_notice_period
+        value: '1'
+      - name: deposit_period
+        value: '0'
+      - name: number_of_permitted_deposits
+        value: 'unlimited'
+      - name: accrued_interest_payable_account
+        value: '&{ACCRUED_INTEREST_PAYABLE_ACCOUNT}'
+      - name: accrued_interest_receivable_account
+        value: '&{ACCRUED_INTEREST_RECEIVABLE_ACCOUNT}'
+      - name: days_in_year
+        value: '365'
+      - name: accrual_precision
+        value: '5'
+      - name: interest_accrual_hour
+        value: '0'
+      - name: interest_accrual_minute
+        value: '0'
+      - name: interest_accrual_second
+        value: '0'
+      - name: grace_period
+        value: '7'
+      - name: application_precision
+        value: '2'
+      - name: interest_paid_account
+        value: '&{INTEREST_PAID_ACCOUNT}'
+      - name: interest_received_account
+        value: '&{INTEREST_RECEIVED_ACCOUNT}'
+      - name: interest_application_frequency
+        value: 'monthly'
+      - name: interest_application_hour
+        value: '0'
+      - name: interest_application_minute
+        value: '0'
+      - name: interest_application_second
+        value: '1'
+      - name: maximum_balance
+        value: '10000'
+      - name: minimum_initial_deposit
+        value: '20.00'
+      - name: early_withdrawal_flat_fee
+        value: '10.00'
+      - name: early_withdrawal_percentage_fee
+        value: '0.01'
+      - name: maximum_withdrawal_percentage_limit
+        value: '0'
+  migration_strategy: PRODUCT_VERSION_MIGRATION_STRATEGY_ADD_VERSION_APPLY_NEW_USERS

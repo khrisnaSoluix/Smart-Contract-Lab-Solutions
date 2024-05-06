@@ -1,0 +1,434 @@
+# Copyright @ 2021 Thought Machine Group Limited. All rights reserved.
+---
+name: Wallet Application
+instance_title: Wallet Application
+description: A workflow to open a Wallet account.
+schema_version: 3.2.0
+definition_version: 1.1.1
+
+starting_state: confirm_product_id
+end_states:
+  - state: account_opened_successfully
+    result: SUCCESSFUL
+  - state: no_nominated_account
+    result: FAILED
+  - state: wallet_already_exists
+    result: FAILED
+  - state: account_opening_failed
+    result: FAILED
+
+states:
+  confirm_product_id:
+    display_name: Confirm product id
+    description: Confirm product id by checking context or defaulting to 'wallet'
+    expected_context_keys:
+      - user_id
+    type: transform
+    transform_ref: confirm_product_id
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - user_id
+          - product_id
+    transitions:
+      - to: check_if_customer_has_wallet
+        trigger: product_id_confirmed
+
+  check_if_customer_has_wallet:
+    display_name: Check if the customer has a pre-existing wallet account
+    description: Check if the customer has a pre-existing wallet account
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/accounts
+        method: GET
+        arguments:
+          page_size: 1000
+          stakeholder_id: ${user_id}
+        response_event: accounts_listed_retrieved
+        response_fields:
+          - key_name: accounts
+            response_json_path: accounts[?(@.status == 'ACCOUNT_STATUS_OPEN')].product_id
+    transitions:
+      - to: validate_if_wallet_exists
+        trigger: accounts_listed_retrieved
+        actions:
+          save_to_global_state:
+            new_key_value_pairs:
+              accounts: ${accounts}
+
+  validate_if_wallet_exists:
+    display_name: Validate listed accounts
+    description: Validate whether accounts listed include a wallet account
+    type: transform
+    transform_ref: validate_listed_accounts
+    expected_context_keys:
+      - accounts
+    transitions:
+      - to: select_nominated_account
+        trigger: wallet_doesnt_exist
+      - to: wallet_already_exists
+        trigger: wallet_exists
+
+  select_nominated_account:
+    display_name: Select nominated account
+    state_ui:
+      ui_panels:
+        - panel_id: customers_accounts
+          display_name: Customer's accounts
+          json_definition:
+            customer_accounts:
+              customer_id: ${user_id}
+      ui_actions:
+        - action_id: select_nominated_account
+          event: nominated_account_specified
+          display_name: Select nominated account
+          ui_inputs:
+            - key: nominated_account_id
+              string_input: {}
+              display_name: Account that will be linked to the wallet
+              json_definition:
+                account_selector:
+                  customer_id: ${user_id}
+                  account_statuses_to_include:
+                    - ACCOUNT_STATUS_OPEN
+        - action_id: no_nominated_account
+          event: no_nominated_account
+          display_name: No nominated account available
+    transitions:
+      - to: validate_nominated_account
+        description: Nominated account specified
+        trigger: nominated_account_specified
+        actions:
+          save_to_global_state:
+            new_key_value_pairs:
+              nominated_account_id: ${nominated_account_id}
+      - to: no_nominated_account
+        description: No nominated account available
+        trigger: no_nominated_account
+
+  validate_nominated_account:
+    display_name: Validate nominated account
+    description: Validate whether nominated is a CASA account
+    type: transform
+    transform_ref: validate_nominated_account
+    expected_context_keys:
+      - nominated_account_id
+    transitions:
+      - to: select_nominated_account
+        trigger: nominated_account_not_a_casa
+      - to: retrieve_product
+        trigger: nominated_account_is_a_casa
+
+  retrieve_product:
+    display_name: Retrieve product
+    description: Retrieve product from Core API
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/products:batchGet
+        method: GET
+        arguments:
+          ids:
+            - ${product_id}
+        response_event: product_retrieved
+        response_fields:
+          - key_name: current_version_id
+            response_json_path: products.${product_id}.current_version_id
+            extract_singleton_element: true
+    transitions:
+      - to: retrieve_product_version
+        trigger: product_retrieved
+
+  retrieve_product_version:
+    display_name: Retrieve product version
+    description: Retrieve product version from Core API
+    expected_context_keys:
+      - current_version_id
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/product-versions:batchGet
+        method: GET
+        arguments:
+          ids:
+            - ${current_version_id}
+        response_event: product_version_retrieved
+        response_fields:
+          - key_name: supported_denominations
+            response_json_path: product_versions.'${current_version_id}'.supported_denominations
+            extract_singleton_element: true
+    transitions:
+      - to: process_supported_denominations
+        trigger: product_version_retrieved
+
+  process_supported_denominations:
+    display_name: Process supported denominations
+    description: Takes the product version supported denominations and converts to a list for dropdown purposes
+    type: transform
+    transform_ref: convert_additional_denominations
+    expected_context_keys:
+      - supported_denominations
+    transitions:
+      - to: get_main_denomination_from_nominated_account
+        trigger: additional_denominations_converted
+        actions:
+          save_to_global_state:
+            new_key_value_pairs:
+              denomination_list: ${denomination_list}
+              wallet_denominations: ${wallet_denominations}
+              wallet_denominations_str: ${wallet_denominations_str}
+
+  get_main_denomination_from_nominated_account:
+    display_name: Retrieve nominated account denomination
+    description: Retrieve nominated account denomination to set as main wallet denomination
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/accounts/{id}
+        method: GET
+        arguments:
+          id: ${nominated_account_id}
+        response_event: main_denom_received
+        response_fields:
+          - key_name: main_denom_from_nominated_account
+            response_json_path: permitted_denominations[0]
+            extract_singleton_element: true
+    transitions:
+      - to: choose_additional_denominations
+        trigger: main_denom_received
+        actions:
+          save_to_global_state:
+            new_key_value_pairs:
+              main_denomination: ${main_denom_from_nominated_account}
+
+  choose_additional_denominations:
+    display_name: Choose a set of denominations
+    description: Choose wallet denominations from supported denominations
+    state_ui:
+      ui_panels:
+        - panel_id: wallet_denominations
+          display_name: Choose wallet denominations
+          json_definition:
+            key_value_table:
+              items:
+                Current denominations: ${wallet_denominations_str}
+      ui_actions:
+        - action_id: add_extra_denomination
+          event: add_extra_denomination
+          display_name: Add a denomination
+          ui_inputs:
+            - key: denomination_to_add
+              display_name: Denomination
+              string_input: {}
+              json_definition:
+                value_selector:
+                  values: json_object(${denomination_list})
+        - action_id: confirm_denominations
+          event: confirm_denominations
+          display_name: Confirm denomination selection
+    transitions:
+      - to: choose_instance_params
+        trigger: confirm_denominations
+      - to: add_wallet_denomination
+        trigger: add_extra_denomination
+
+  add_wallet_denomination:
+    type: transform
+    transform_ref: add_wallet_denomination
+    expected_context_keys:
+      - denomination_to_add
+    transitions:
+      - to: choose_additional_denominations
+        trigger: denomination_added
+        actions:
+          save_to_global_state:
+            context_keys:
+              - denomination_list
+              - wallet_denominations
+              - wallet_denominations_str
+
+  choose_instance_params:
+    display_name: Set contract parameters
+    description: Set contract parameters
+    state_ui:
+      ui_actions:
+        - action_id: set_instance_parameters
+          event: instance_parameters_set
+          display_name: Set instance level parameters
+          ui_inputs:
+            - key: daily_spending_limit
+              display_name: Allowed daily spending amount.
+              number_input:
+                default_value: 999
+                min_value: 0
+                max_value: 2000
+                precision: 2
+                step: 0.01
+            - key: customer_wallet_limit
+              display_name: Maximum balance set by the customer.
+              number_input:
+                default_value: 1000
+                min_value: 0
+                max_value: 2000
+                precision: 2
+                step: 0.01
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - daily_spending_limit
+          - customer_wallet_limit
+    transitions:
+      - to: create_account
+        trigger: instance_parameters_set
+
+  create_account:
+    display_name: Create the account
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/accounts
+        method: POST
+        arguments:
+          request_id: generate_uuid()
+          account:
+            id: generate_uuid()
+            product_id: ${product_id}
+            status: ACCOUNT_STATUS_PENDING
+            stakeholder_ids:
+              - ${user_id}
+            permitted_denominations: json_object(${wallet_denominations})
+            instance_param_vals:
+              denomination: ${main_denomination}
+              additional_denominations: ${wallet_denominations}
+              customer_wallet_limit: ${customer_wallet_limit}
+              nominated_account: ${nominated_account_id}
+              daily_spending_limit: ${daily_spending_limit}
+            details: {}
+        response_fields:
+          - key_name: account_id
+            response_json_path: id
+            extract_singleton_element: true
+        response_event: account_created
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - account_id
+    transitions:
+      - to: open_account
+        description: Account created
+        trigger: account_created
+
+  open_account:
+    display_name: Open account
+    description: Open account
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/accounts/{account.id}
+        method: PUT
+        arguments:
+          request_id: generate_uuid()
+          account:
+            id: ${account_id}
+            status: ACCOUNT_STATUS_OPEN
+          update_mask: status
+        response_event: account_opened
+    transitions:
+      - to: account_opened_successfully
+        description: Account opened
+        trigger: account_open_successful
+        auto_trigger_conditions:
+          streaming_api_conditions:
+            topic: vault.core_api.v1.accounts.account_update.events
+            message_content:
+              - path: "['*'].account_update.status"
+                values:
+                  - ACCOUNT_UPDATE_STATUS_COMPLETED
+                quantifier: any
+      - to: account_opening_failed
+        trigger: account_open_failure
+        auto_trigger_conditions:
+          streaming_api_conditions:
+            topic: vault.core_api.v1.accounts.account_update.events
+            message_content:
+              - path: "['*'].account_update.status"
+                values:
+                  - ACCOUNT_UPDATE_STATUS_COMPLETED
+                  - ACCOUNT_UPDATE_STATUS_PENDING_EXECUTION
+                quantifier: none
+        actions:
+          save_to_global_state:
+            new_key_value_pairs:
+              failure_message: "Failed to activate account, please retry."
+
+  account_opened_successfully:
+    display_name: Account opened successfully
+    description: Final workflow state reached after the account has been opened
+    state_ui:
+      ui_panels:
+        - panel_id: account_ui_panel
+          display_name: Account Details
+          json_definition:
+            key_value_table:
+              items:
+                Account id: ${account_id}
+
+  account_opening_failed:
+    display_name: Account opening failed
+    state_ui:
+      ui_panels:
+        - panel_id: account_opening_failure_panel
+          display_name: Account opening failed
+          json_definition:
+            text:
+              value: ${failure_message}
+              is_error: true
+
+  no_nominated_account:
+    display_name: Account opening failure
+    description: A nominated account was not selected
+
+  wallet_already_exists:
+    display_name: Account opening failure
+    description: A wallet already exists for this customer
+
+transforms:
+  confirm_product_id: |
+    context['product_id'] = context.get('product_id', 'wallet')
+    return ['product_id_confirmed', context]
+
+  validate_listed_accounts: |
+    list_of_accounts = context['accounts']
+    wallet_id = context['product_id']
+    if wallet_id in list_of_accounts:
+      return ['wallet_exists', {}]
+    else:
+      return ['wallet_doesnt_exist', {}]
+
+  validate_nominated_account: |
+    nominated_account = context['nominated_account_id']
+    if nominated_account == 'current_account' or 'savings_account':
+      return ['nominated_account_is_a_casa', {}]
+    else:
+      return ['nominated_account_not_a_casa', {}]
+
+  convert_additional_denominations: |
+    context = {
+        'denomination_list': json.dumps(
+            [{'value': denomination, 'label': denomination}
+             for denomination in json.loads(context['supported_denominations'])]
+        ),
+        'wallet_denominations': json.dumps([]),
+        'wallet_denominations_str': ''
+    }
+
+    return ['additional_denominations_converted', context]
+
+  add_wallet_denomination: |
+    denomination_to_add = context['denomination_to_add']
+    wallet_denominations = json.loads(context['wallet_denominations'])
+    wallet_denominations.append(denomination_to_add)
+    denomination_list = json.loads(context['denomination_list'])
+    denomination_list.remove({'value': denomination_to_add, 'label': denomination_to_add})
+
+    context = {
+        'wallet_denominations': json.dumps(wallet_denominations),
+        'wallet_denominations_str': ', '.join(wallet_denominations),
+        'denomination_list': json.dumps(denomination_list)
+    }
+    return ['denomination_added', context]

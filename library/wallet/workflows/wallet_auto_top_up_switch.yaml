@@ -1,0 +1,107 @@
+# Copyright @ 2021 Thought Machine Group Limited. All rights reserved.
+---
+name: Wallet Auto Top Up Switch
+instance_title: Wallet Auto Top Up Switch
+description: A workflow to change the value of the auto top up flag.
+schema_version: 3.2.0
+definition_version: 1.1.0
+starting_state: get_auto_top_up_flag
+end_states:
+  - state: auto_top_up_changed
+    result: SUCCESSFUL
+states:
+  get_auto_top_up_flag:
+    display_name: Get auto top up flag
+    expected_context_keys:
+      - account_id
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/flags
+        method: GET
+        arguments:
+          account_ids:
+            - ${account_id}
+          includeInactive: true
+          pageSize: 100
+        response_fields:
+          - key_name: flags
+            response_json_path: flags
+            extract_singleton_element: true
+        response_event: flags_retrieved
+      save_to_global_state:
+        new_key_value_pairs:
+          account_id: ${account_id}
+    transitions:
+      - to: check_flag
+        trigger: flags_retrieved
+
+  check_flag:
+    display_name: Check flag status
+    expected_context_keys:
+      - flags
+    type: transform
+    transform_ref: check_flag
+    transitions:
+      - to: update_auto_top_up_flag_true
+        trigger: update_auto_top_up_flag_true
+      - to: update_auto_top_up_flag_false
+        trigger: update_auto_top_up_flag_false
+    exit_actions:
+      save_to_global_state:
+        context_keys:
+          - flag_id
+
+  update_auto_top_up_flag_true:
+    display_name: Create auto top up flag
+    description: Create a customer flag
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/flags
+        method: POST
+        arguments:
+          flag:
+            flag_definition_id: "&{AUTO_TOP_UP_WALLET}"
+            description: Auto top up
+            account_id: ${account_id}
+          request_id: generate_uuid()
+        response_event: auto_top_up_changed
+    transitions:
+      - to: auto_top_up_changed
+        trigger: auto_top_up_changed
+
+  update_auto_top_up_flag_false:
+    display_name: Deactivate flag
+    entry_actions:
+      vault_callback:
+        path: core-api/v1/flags/{flag.id}
+        method: PUT
+        arguments:
+          request_id: generate_uuid()
+          flag:
+            id: ${flag_id}
+            is_active: false
+          update_mask: isActive
+        response_fields:
+          - key_name: updated_flag_status
+            response_json_path: is_active
+            extract_singleton_element: true
+        response_event: flag_updated
+    transitions:
+      - to: auto_top_up_changed
+        trigger: flag_updated
+
+  auto_top_up_changed:
+    display_name: Changed auto top up status
+
+transforms:
+  check_flag: |
+    flags = json.loads(context['flags'])
+    new_context = {}
+    if not flags:
+      return ['update_auto_top_up_flag_true', new_context]
+    else:
+      for flag in flags:
+        if flag.get('flag_definition_id') == '&{AUTO_TOP_UP_WALLET}' and flag.get('is_active') == True:
+          new_context['flag_id'] = flag.get('id')
+          return ['update_auto_top_up_flag_false', new_context]
+    return ['update_auto_top_up_flag_true', new_context]

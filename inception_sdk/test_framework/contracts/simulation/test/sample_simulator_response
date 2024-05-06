@@ -1,0 +1,4827 @@
+[{
+    'result': {
+        'timestamp': '2019-01-01T00:00:00Z',
+        'logs': ['created flag definition "debug_flag"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {},
+        'instantiate_workflow_requests': {},
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-01-01T00:00:00Z',
+        'logs': ['created account "1"', 'set account parameter "interest_payment_day" value to "1"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {},
+        'instantiate_workflow_requests': {},
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-01-01T00:00:00Z',
+        'logs': ['created account "Main account"', 'set account parameter "interest_payment_day" value to "1"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {},
+        'instantiate_workflow_requests': {},
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-01-01T00:00:00Z',
+        'logs': ['created 64 scheduled event jobs for account "1"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {},
+        'instantiate_workflow_requests': {},
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-01-01T00:00:00Z',
+        'logs': ['created 64 scheduled event jobs for account "Main account"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {},
+        'instantiate_workflow_requests': {},
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-01-01T00:00:00Z',
+        'logs': ['created flag with definition "debug_flag" for account "Main account"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {},
+        'instantiate_workflow_requests': {},
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-01-01T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "1"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            '1': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': '1',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-01-01 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-01-01T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            '1': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': '1',
+                        'amount_to_accrue': '0',
+                        'end_of_day_datetime': '2019-01-01'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-01-01T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "Main account"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            'Main account': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': 'Main account',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-01-01 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-01-01T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            'Main account': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': 'Main account',
+                        'amount_to_accrue': '0',
+                        'end_of_day_datetime': '2019-01-01'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-01-01T00:00:00Z',
+        'logs': [],
+        'posting_instruction_batches': [{
+            'id': '564c3bcc-7825-42b2-96e4-e94df6a97a80',
+            'create_request_id': '',
+            'client_id': 'AsyncCreatePostingInstructionBatch',
+            'client_batch_id': '123',
+            'posting_instructions': [{
+                'id': 'eab9e87b-e17e-4036-89de-54be203ecca7',
+                'client_transaction_id': '123456',
+                'outbound_hard_settlement': {
+                    'amount': '110',
+                    'denomination': 'GBP',
+                    'target_account': {
+                        'account_id': 'Main account'
+                    },
+                    'internal_account_id': '1',
+                    'advice': False,
+                    'target_account_id': 'Main account'
+                },
+                'pics': [],
+                'instruction_details': {
+                    'description': 'test2'
+                },
+                'committed_postings': [{
+                    'credit': False,
+                    'amount': '110',
+                    'denomination': 'GBP',
+                    'account_id': 'Main account',
+                    'account_address': 'DEFAULT',
+                    'asset': 'COMMERCIAL_BANK_MONEY',
+                    'phase': 'POSTING_PHASE_COMMITTED'
+                }, {
+                    'credit': True,
+                    'amount': '110',
+                    'denomination': 'GBP',
+                    'account_id': '1',
+                    'account_address': 'DEFAULT',
+                    'asset': 'COMMERCIAL_BANK_MONEY',
+                    'phase': 'POSTING_PHASE_COMMITTED'
+                }],
+                'posting_violations': [],
+                'account_violations': [],
+                'restriction_violations': [],
+                'contract_violations': [],
+                'override': {
+                    'restrictions': None
+                },
+                'transaction_code': None
+            }],
+            'batch_details': {
+                'description': 'test'
+            },
+            'value_timestamp': '2019-01-01T00:00:00Z',
+            'status': 'POSTING_INSTRUCTION_BATCH_STATUS_UNKNOWN',
+            'error': None,
+            'insertion_timestamp': '2019-01-01T00:00:00Z',
+            'dry_run': False
+        }],
+        'balances': {
+            '1': {
+                'balances': [{
+                    'id': '',
+                    'account_id': '1',
+                    'account_address': 'DEFAULT',
+                    'phase': 'POSTING_PHASE_COMMITTED',
+                    'asset': 'COMMERCIAL_BANK_MONEY',
+                    'denomination': 'GBP',
+                    'posting_instruction_batch_id': '',
+                    'update_posting_instruction_batch_id': '',
+                    'value_time': '2019-01-01T00:00:00Z',
+                    'amount': '110',
+                    'total_debit': '0',
+                    'total_credit': '110'
+                }]
+            },
+            'Main account': {
+                'balances': [{
+                    'id': '',
+                    'account_id': 'Main account',
+                    'account_address': 'DEFAULT',
+                    'phase': 'POSTING_PHASE_COMMITTED',
+                    'asset': 'COMMERCIAL_BANK_MONEY',
+                    'denomination': 'GBP',
+                    'posting_instruction_batch_id': '',
+                    'update_posting_instruction_batch_id': '',
+                    'value_time': '2019-01-01T00:00:00Z',
+                    'amount': '-110',
+                    'total_debit': '110',
+                    'total_credit': '0'
+                }]
+            }
+        },
+        'account_notes': {},
+        'instantiate_workflow_requests': {},
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-01-01T00:00:00Z',
+        'logs': [],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {},
+        'instantiate_workflow_requests': {
+            'Main account': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_FULL_CONTRACT_OVERDRAFT_FEE_NOTIFICATION',
+                    'context': {
+                        'account_id': 'Main account',
+                        'fee_effective_date': '2019-01-01',
+                        'overdraft_fee': '20'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-01-01T00:01:00Z',
+        'logs': ['processed scheduled event "APPLY_ACCRUED_INTEREST" for account "1"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            '1': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': '1',
+                    'body': 'Account note APPLY_ACCRUED_INTEREST - 2019-01-01 00:01:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-01-01T00:01:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {},
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-01-01T00:01:00Z',
+        'logs': ['processed scheduled event "APPLY_ACCRUED_INTEREST" for account "Main account"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            'Main account': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': 'Main account',
+                    'body': 'Account note APPLY_ACCRUED_INTEREST - 2019-01-01 00:01:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-01-01T00:01:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {},
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-01-01T00:01:00Z',
+        'logs': [],
+        'posting_instruction_batches': [{
+            'id': '48ce5058-4bab-4ba0-a39e-1cd98f31bc2e',
+            'create_request_id': '',
+            'client_id': 'CoreContracts',
+            'client_batch_id': 'BATCH_Main account_13__1546300800000000000_OVERDRAFT_FEE',
+            'posting_instructions': [{
+                'id': '1f12fddd-e004-483f-b6ea-9b8b5d2c3237',
+                'client_transaction_id': 'Main account_13__1546300800000000000_OVERDRAFT_FEE',
+                'custom_instruction': {
+                    'postings': [{
+                        'credit': False,
+                        'amount': '20',
+                        'denomination': 'GBP',
+                        'account_id': 'Main account',
+                        'account_address': 'DEFAULT',
+                        'asset': 'COMMERCIAL_BANK_MONEY',
+                        'phase': 'POSTING_PHASE_COMMITTED'
+                    }, {
+                        'credit': True,
+                        'amount': '20',
+                        'denomination': 'GBP',
+                        'account_id': '1',
+                        'account_address': 'DEFAULT',
+                        'asset': 'COMMERCIAL_BANK_MONEY',
+                        'phase': 'POSTING_PHASE_COMMITTED'
+                    }]
+                },
+                'pics': [],
+                'instruction_details': {
+                    'description': 'Overdraft fee charged',
+                    'originating_account_id': 'Main account'
+                },
+                'committed_postings': [{
+                    'credit': False,
+                    'amount': '20',
+                    'denomination': 'GBP',
+                    'account_id': 'Main account',
+                    'account_address': 'DEFAULT',
+                    'asset': 'COMMERCIAL_BANK_MONEY',
+                    'phase': 'POSTING_PHASE_COMMITTED'
+                }, {
+                    'credit': True,
+                    'amount': '20',
+                    'denomination': 'GBP',
+                    'account_id': '1',
+                    'account_address': 'DEFAULT',
+                    'asset': 'COMMERCIAL_BANK_MONEY',
+                    'phase': 'POSTING_PHASE_COMMITTED'
+                }],
+                'posting_violations': [],
+                'account_violations': [],
+                'restriction_violations': [],
+                'contract_violations': [],
+                'override': None,
+                'transaction_code': None
+            }],
+            'batch_details': {},
+            'value_timestamp': '2019-01-01T00:01:00Z',
+            'status': 'POSTING_INSTRUCTION_BATCH_STATUS_UNKNOWN',
+            'error': None,
+            'insertion_timestamp': '2019-01-01T00:01:00Z',
+            'dry_run': False
+        }],
+        'balances': {
+            '1': {
+                'balances': [{
+                    'id': '',
+                    'account_id': '1',
+                    'account_address': 'DEFAULT',
+                    'phase': 'POSTING_PHASE_COMMITTED',
+                    'asset': 'COMMERCIAL_BANK_MONEY',
+                    'denomination': 'GBP',
+                    'posting_instruction_batch_id': '',
+                    'update_posting_instruction_batch_id': '',
+                    'value_time': '2019-01-01T00:01:00Z',
+                    'amount': '130',
+                    'total_debit': '0',
+                    'total_credit': '130'
+                }]
+            },
+            'Main account': {
+                'balances': [{
+                    'id': '',
+                    'account_id': 'Main account',
+                    'account_address': 'DEFAULT',
+                    'phase': 'POSTING_PHASE_COMMITTED',
+                    'asset': 'COMMERCIAL_BANK_MONEY',
+                    'denomination': 'GBP',
+                    'posting_instruction_batch_id': '',
+                    'update_posting_instruction_batch_id': '',
+                    'value_time': '2019-01-01T00:01:00Z',
+                    'amount': '-130',
+                    'total_debit': '130',
+                    'total_credit': '0'
+                }]
+            }
+        },
+        'account_notes': {},
+        'instantiate_workflow_requests': {},
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-01-02T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "1"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            '1': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': '1',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-01-02 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-01-02T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            '1': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': '1',
+                        'amount_to_accrue': '0',
+                        'end_of_day_datetime': '2019-01-02'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-01-02T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "Main account"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            'Main account': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': 'Main account',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-01-02 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-01-02T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            'Main account': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': 'Main account',
+                        'amount_to_accrue': '-0',
+                        'end_of_day_datetime': '2019-01-02'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-01-03T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "1"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            '1': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': '1',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-01-03 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-01-03T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            '1': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': '1',
+                        'amount_to_accrue': '0',
+                        'end_of_day_datetime': '2019-01-03'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-01-03T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "Main account"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            'Main account': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': 'Main account',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-01-03 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-01-03T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            'Main account': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': 'Main account',
+                        'amount_to_accrue': '-0',
+                        'end_of_day_datetime': '2019-01-03'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-01-04T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "1"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            '1': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': '1',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-01-04 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-01-04T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            '1': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': '1',
+                        'amount_to_accrue': '0',
+                        'end_of_day_datetime': '2019-01-04'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-01-04T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "Main account"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            'Main account': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': 'Main account',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-01-04 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-01-04T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            'Main account': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': 'Main account',
+                        'amount_to_accrue': '-0',
+                        'end_of_day_datetime': '2019-01-04'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-01-05T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "1"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            '1': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': '1',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-01-05 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-01-05T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            '1': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': '1',
+                        'amount_to_accrue': '0',
+                        'end_of_day_datetime': '2019-01-05'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-01-05T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "Main account"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            'Main account': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': 'Main account',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-01-05 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-01-05T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            'Main account': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': 'Main account',
+                        'amount_to_accrue': '-0',
+                        'end_of_day_datetime': '2019-01-05'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-01-06T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "1"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            '1': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': '1',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-01-06 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-01-06T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            '1': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': '1',
+                        'amount_to_accrue': '0',
+                        'end_of_day_datetime': '2019-01-06'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-01-06T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "Main account"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            'Main account': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': 'Main account',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-01-06 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-01-06T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            'Main account': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': 'Main account',
+                        'amount_to_accrue': '-0',
+                        'end_of_day_datetime': '2019-01-06'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-01-07T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "1"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            '1': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': '1',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-01-07 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-01-07T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            '1': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': '1',
+                        'amount_to_accrue': '0',
+                        'end_of_day_datetime': '2019-01-07'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-01-07T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "Main account"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            'Main account': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': 'Main account',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-01-07 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-01-07T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            'Main account': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': 'Main account',
+                        'amount_to_accrue': '-0',
+                        'end_of_day_datetime': '2019-01-07'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-01-08T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "1"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            '1': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': '1',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-01-08 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-01-08T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            '1': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': '1',
+                        'amount_to_accrue': '0',
+                        'end_of_day_datetime': '2019-01-08'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-01-08T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "Main account"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            'Main account': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': 'Main account',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-01-08 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-01-08T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            'Main account': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': 'Main account',
+                        'amount_to_accrue': '-0',
+                        'end_of_day_datetime': '2019-01-08'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-01-09T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "1"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            '1': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': '1',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-01-09 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-01-09T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            '1': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': '1',
+                        'amount_to_accrue': '0',
+                        'end_of_day_datetime': '2019-01-09'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-01-09T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "Main account"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            'Main account': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': 'Main account',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-01-09 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-01-09T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            'Main account': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': 'Main account',
+                        'amount_to_accrue': '-0',
+                        'end_of_day_datetime': '2019-01-09'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-01-10T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "1"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            '1': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': '1',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-01-10 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-01-10T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            '1': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': '1',
+                        'amount_to_accrue': '0',
+                        'end_of_day_datetime': '2019-01-10'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-01-10T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "Main account"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            'Main account': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': 'Main account',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-01-10 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-01-10T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            'Main account': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': 'Main account',
+                        'amount_to_accrue': '-0',
+                        'end_of_day_datetime': '2019-01-10'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-01-11T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "1"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            '1': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': '1',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-01-11 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-01-11T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            '1': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': '1',
+                        'amount_to_accrue': '0',
+                        'end_of_day_datetime': '2019-01-11'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-01-11T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "Main account"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            'Main account': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': 'Main account',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-01-11 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-01-11T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            'Main account': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': 'Main account',
+                        'amount_to_accrue': '-0',
+                        'end_of_day_datetime': '2019-01-11'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-01-11T00:00:00Z',
+        'logs': [],
+        'posting_instruction_batches': [{
+            'id': '348e6853-99e3-47fa-a9c4-67e4d78fce92',
+            'create_request_id': '',
+            'client_id': 'AsyncCreatePostingInstructionBatch',
+            'client_batch_id': '1232',
+            'posting_instructions': [{
+                'id': '2cd823bc-aa33-4f7c-ae4b-c241d759c427',
+                'client_transaction_id': 'Visa2',
+                'inbound_hard_settlement': {
+                    'amount': '1000',
+                    'denomination': 'GBP',
+                    'target_account': {
+                        'account_id': 'Main account'
+                    },
+                    'internal_account_id': '1',
+                    'advice': False,
+                    'target_account_id': 'Main account'
+                },
+                'pics': [],
+                'instruction_details': {
+                    'description': 'test2'
+                },
+                'committed_postings': [{
+                    'credit': True,
+                    'amount': '1000',
+                    'denomination': 'GBP',
+                    'account_id': 'Main account',
+                    'account_address': 'DEFAULT',
+                    'asset': 'COMMERCIAL_BANK_MONEY',
+                    'phase': 'POSTING_PHASE_COMMITTED'
+                }, {
+                    'credit': False,
+                    'amount': '1000',
+                    'denomination': 'GBP',
+                    'account_id': '1',
+                    'account_address': 'DEFAULT',
+                    'asset': 'COMMERCIAL_BANK_MONEY',
+                    'phase': 'POSTING_PHASE_COMMITTED'
+                }],
+                'posting_violations': [],
+                'account_violations': [],
+                'restriction_violations': [],
+                'contract_violations': [],
+                'override': {
+                    'restrictions': None
+                },
+                'transaction_code': None
+            }],
+            'batch_details': {
+                'description': 'test'
+            },
+            'value_timestamp': '2019-01-11T00:00:00Z',
+            'status': 'POSTING_INSTRUCTION_BATCH_STATUS_UNKNOWN',
+            'error': None,
+            'insertion_timestamp': '2019-01-11T00:00:00Z',
+            'dry_run': False
+        }],
+        'balances': {
+            '1': {
+                'balances': [{
+                    'id': '',
+                    'account_id': '1',
+                    'account_address': 'DEFAULT',
+                    'phase': 'POSTING_PHASE_COMMITTED',
+                    'asset': 'COMMERCIAL_BANK_MONEY',
+                    'denomination': 'GBP',
+                    'posting_instruction_batch_id': '',
+                    'update_posting_instruction_batch_id': '',
+                    'value_time': '2019-01-11T00:00:00Z',
+                    'amount': '-870',
+                    'total_debit': '1000',
+                    'total_credit': '130'
+                }]
+            },
+            'Main account': {
+                'balances': [{
+                    'id': '',
+                    'account_id': 'Main account',
+                    'account_address': 'DEFAULT',
+                    'phase': 'POSTING_PHASE_COMMITTED',
+                    'asset': 'COMMERCIAL_BANK_MONEY',
+                    'denomination': 'GBP',
+                    'posting_instruction_batch_id': '',
+                    'update_posting_instruction_batch_id': '',
+                    'value_time': '2019-01-11T00:00:00Z',
+                    'amount': '870',
+                    'total_debit': '130',
+                    'total_credit': '1000'
+                }]
+            }
+        },
+        'account_notes': {},
+        'instantiate_workflow_requests': {},
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-01-12T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "1"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            '1': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': '1',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-01-12 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-01-12T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            '1': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': '1',
+                        'amount_to_accrue': '-0',
+                        'end_of_day_datetime': '2019-01-12'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-01-12T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "Main account"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            'Main account': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': 'Main account',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-01-12 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-01-12T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            'Main account': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': 'Main account',
+                        'amount_to_accrue': '0',
+                        'end_of_day_datetime': '2019-01-12'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-01-13T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "1"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            '1': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': '1',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-01-13 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-01-13T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            '1': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': '1',
+                        'amount_to_accrue': '-0',
+                        'end_of_day_datetime': '2019-01-13'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-01-13T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "Main account"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            'Main account': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': 'Main account',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-01-13 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-01-13T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            'Main account': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': 'Main account',
+                        'amount_to_accrue': '0',
+                        'end_of_day_datetime': '2019-01-13'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-01-14T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "1"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            '1': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': '1',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-01-14 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-01-14T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            '1': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': '1',
+                        'amount_to_accrue': '-0',
+                        'end_of_day_datetime': '2019-01-14'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-01-14T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "Main account"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            'Main account': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': 'Main account',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-01-14 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-01-14T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            'Main account': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': 'Main account',
+                        'amount_to_accrue': '0',
+                        'end_of_day_datetime': '2019-01-14'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-01-15T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "1"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            '1': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': '1',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-01-15 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-01-15T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            '1': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': '1',
+                        'amount_to_accrue': '-0',
+                        'end_of_day_datetime': '2019-01-15'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-01-15T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "Main account"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            'Main account': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': 'Main account',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-01-15 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-01-15T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            'Main account': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': 'Main account',
+                        'amount_to_accrue': '0',
+                        'end_of_day_datetime': '2019-01-15'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-01-16T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "1"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            '1': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': '1',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-01-16 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-01-16T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            '1': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': '1',
+                        'amount_to_accrue': '-0',
+                        'end_of_day_datetime': '2019-01-16'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-01-16T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "Main account"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            'Main account': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': 'Main account',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-01-16 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-01-16T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            'Main account': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': 'Main account',
+                        'amount_to_accrue': '0',
+                        'end_of_day_datetime': '2019-01-16'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-01-17T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "1"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            '1': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': '1',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-01-17 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-01-17T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            '1': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': '1',
+                        'amount_to_accrue': '-0',
+                        'end_of_day_datetime': '2019-01-17'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-01-17T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "Main account"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            'Main account': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': 'Main account',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-01-17 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-01-17T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            'Main account': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': 'Main account',
+                        'amount_to_accrue': '0',
+                        'end_of_day_datetime': '2019-01-17'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-01-18T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "1"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            '1': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': '1',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-01-18 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-01-18T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            '1': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': '1',
+                        'amount_to_accrue': '-0',
+                        'end_of_day_datetime': '2019-01-18'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-01-18T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "Main account"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            'Main account': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': 'Main account',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-01-18 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-01-18T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            'Main account': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': 'Main account',
+                        'amount_to_accrue': '0',
+                        'end_of_day_datetime': '2019-01-18'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-01-19T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "1"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            '1': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': '1',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-01-19 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-01-19T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            '1': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': '1',
+                        'amount_to_accrue': '-0',
+                        'end_of_day_datetime': '2019-01-19'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-01-19T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "Main account"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            'Main account': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': 'Main account',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-01-19 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-01-19T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            'Main account': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': 'Main account',
+                        'amount_to_accrue': '0',
+                        'end_of_day_datetime': '2019-01-19'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-01-20T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "1"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            '1': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': '1',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-01-20 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-01-20T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            '1': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': '1',
+                        'amount_to_accrue': '-0',
+                        'end_of_day_datetime': '2019-01-20'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-01-20T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "Main account"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            'Main account': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': 'Main account',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-01-20 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-01-20T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            'Main account': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': 'Main account',
+                        'amount_to_accrue': '0',
+                        'end_of_day_datetime': '2019-01-20'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-01-21T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "1"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            '1': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': '1',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-01-21 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-01-21T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            '1': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': '1',
+                        'amount_to_accrue': '-0',
+                        'end_of_day_datetime': '2019-01-21'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-01-21T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "Main account"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            'Main account': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': 'Main account',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-01-21 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-01-21T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            'Main account': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': 'Main account',
+                        'amount_to_accrue': '0',
+                        'end_of_day_datetime': '2019-01-21'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-01-21T00:00:00Z',
+        'logs': ['rejected posting instruction batch "d712beba-7c82-4976-836b-9b93976b58bd"', 'account "Main account" rejected with rejection type "WrongDenomination" and reason "Cannot make transactions in given denomination; transactions must be in GBP"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {},
+        'instantiate_workflow_requests': {},
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-01-22T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "1"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            '1': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': '1',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-01-22 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-01-22T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            '1': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': '1',
+                        'amount_to_accrue': '-0',
+                        'end_of_day_datetime': '2019-01-22'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-01-22T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "Main account"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            'Main account': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': 'Main account',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-01-22 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-01-22T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            'Main account': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': 'Main account',
+                        'amount_to_accrue': '0',
+                        'end_of_day_datetime': '2019-01-22'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-01-23T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "1"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            '1': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': '1',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-01-23 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-01-23T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            '1': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': '1',
+                        'amount_to_accrue': '-0',
+                        'end_of_day_datetime': '2019-01-23'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-01-23T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "Main account"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            'Main account': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': 'Main account',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-01-23 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-01-23T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            'Main account': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': 'Main account',
+                        'amount_to_accrue': '0',
+                        'end_of_day_datetime': '2019-01-23'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-01-24T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "1"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            '1': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': '1',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-01-24 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-01-24T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            '1': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': '1',
+                        'amount_to_accrue': '-0',
+                        'end_of_day_datetime': '2019-01-24'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-01-24T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "Main account"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            'Main account': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': 'Main account',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-01-24 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-01-24T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            'Main account': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': 'Main account',
+                        'amount_to_accrue': '0',
+                        'end_of_day_datetime': '2019-01-24'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-01-25T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "1"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            '1': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': '1',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-01-25 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-01-25T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            '1': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': '1',
+                        'amount_to_accrue': '-0',
+                        'end_of_day_datetime': '2019-01-25'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-01-25T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "Main account"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            'Main account': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': 'Main account',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-01-25 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-01-25T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            'Main account': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': 'Main account',
+                        'amount_to_accrue': '0',
+                        'end_of_day_datetime': '2019-01-25'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-01-26T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "1"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            '1': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': '1',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-01-26 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-01-26T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            '1': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': '1',
+                        'amount_to_accrue': '-0',
+                        'end_of_day_datetime': '2019-01-26'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-01-26T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "Main account"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            'Main account': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': 'Main account',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-01-26 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-01-26T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            'Main account': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': 'Main account',
+                        'amount_to_accrue': '0',
+                        'end_of_day_datetime': '2019-01-26'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-01-27T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "1"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            '1': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': '1',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-01-27 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-01-27T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            '1': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': '1',
+                        'amount_to_accrue': '-0',
+                        'end_of_day_datetime': '2019-01-27'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-01-27T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "Main account"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            'Main account': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': 'Main account',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-01-27 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-01-27T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            'Main account': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': 'Main account',
+                        'amount_to_accrue': '0',
+                        'end_of_day_datetime': '2019-01-27'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-01-28T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "1"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            '1': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': '1',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-01-28 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-01-28T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            '1': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': '1',
+                        'amount_to_accrue': '-0',
+                        'end_of_day_datetime': '2019-01-28'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-01-28T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "Main account"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            'Main account': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': 'Main account',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-01-28 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-01-28T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            'Main account': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': 'Main account',
+                        'amount_to_accrue': '0',
+                        'end_of_day_datetime': '2019-01-28'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-01-29T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "1"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            '1': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': '1',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-01-29 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-01-29T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            '1': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': '1',
+                        'amount_to_accrue': '-0',
+                        'end_of_day_datetime': '2019-01-29'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-01-29T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "Main account"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            'Main account': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': 'Main account',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-01-29 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-01-29T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            'Main account': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': 'Main account',
+                        'amount_to_accrue': '0',
+                        'end_of_day_datetime': '2019-01-29'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-01-30T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "1"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            '1': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': '1',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-01-30 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-01-30T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            '1': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': '1',
+                        'amount_to_accrue': '-0',
+                        'end_of_day_datetime': '2019-01-30'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-01-30T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "Main account"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            'Main account': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': 'Main account',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-01-30 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-01-30T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            'Main account': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': 'Main account',
+                        'amount_to_accrue': '0',
+                        'end_of_day_datetime': '2019-01-30'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-01-31T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "1"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            '1': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': '1',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-01-31 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-01-31T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            '1': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': '1',
+                        'amount_to_accrue': '-0',
+                        'end_of_day_datetime': '2019-01-31'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-01-31T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "Main account"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            'Main account': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': 'Main account',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-01-31 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-01-31T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            'Main account': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': 'Main account',
+                        'amount_to_accrue': '0',
+                        'end_of_day_datetime': '2019-01-31'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-01-31T00:00:00Z',
+        'logs': [],
+        'posting_instruction_batches': [{
+            'id': '5878dd0e-9450-4402-a234-8a7f63706076',
+            'create_request_id': '',
+            'client_id': 'AsyncCreatePostingInstructionBatch',
+            'client_batch_id': '1234',
+            'posting_instructions': [{
+                'id': 'a141c8dd-04a4-463a-885e-5e7e6c813249',
+                'client_transaction_id': 'Visa4',
+                'inbound_hard_settlement': {
+                    'amount': '160',
+                    'denomination': 'GBP',
+                    'target_account': {
+                        'account_id': 'Main account'
+                    },
+                    'internal_account_id': '1',
+                    'advice': False,
+                    'target_account_id': 'Main account'
+                },
+                'pics': [],
+                'instruction_details': {
+                    'description': 'test2'
+                },
+                'committed_postings': [{
+                    'credit': True,
+                    'amount': '160',
+                    'denomination': 'GBP',
+                    'account_id': 'Main account',
+                    'account_address': 'DEFAULT',
+                    'asset': 'COMMERCIAL_BANK_MONEY',
+                    'phase': 'POSTING_PHASE_COMMITTED'
+                }, {
+                    'credit': False,
+                    'amount': '160',
+                    'denomination': 'GBP',
+                    'account_id': '1',
+                    'account_address': 'DEFAULT',
+                    'asset': 'COMMERCIAL_BANK_MONEY',
+                    'phase': 'POSTING_PHASE_COMMITTED'
+                }],
+                'posting_violations': [],
+                'account_violations': [],
+                'restriction_violations': [],
+                'contract_violations': [],
+                'override': {
+                    'restrictions': None
+                },
+                'transaction_code': None
+            }],
+            'batch_details': {
+                'description': 'test'
+            },
+            'value_timestamp': '2019-01-31T00:00:00Z',
+            'status': 'POSTING_INSTRUCTION_BATCH_STATUS_UNKNOWN',
+            'error': None,
+            'insertion_timestamp': '2019-01-31T00:00:00Z',
+            'dry_run': False
+        }],
+        'balances': {
+            '1': {
+                'balances': [{
+                    'id': '',
+                    'account_id': '1',
+                    'account_address': 'DEFAULT',
+                    'phase': 'POSTING_PHASE_COMMITTED',
+                    'asset': 'COMMERCIAL_BANK_MONEY',
+                    'denomination': 'GBP',
+                    'posting_instruction_batch_id': '',
+                    'update_posting_instruction_batch_id': '',
+                    'value_time': '2019-01-31T00:00:00Z',
+                    'amount': '-1030',
+                    'total_debit': '1160',
+                    'total_credit': '130'
+                }]
+            },
+            'Main account': {
+                'balances': [{
+                    'id': '',
+                    'account_id': 'Main account',
+                    'account_address': 'DEFAULT',
+                    'phase': 'POSTING_PHASE_COMMITTED',
+                    'asset': 'COMMERCIAL_BANK_MONEY',
+                    'denomination': 'GBP',
+                    'posting_instruction_batch_id': '',
+                    'update_posting_instruction_batch_id': '',
+                    'value_time': '2019-01-31T00:00:00Z',
+                    'amount': '1030',
+                    'total_debit': '130',
+                    'total_credit': '1160'
+                }]
+            }
+        },
+        'account_notes': {},
+        'instantiate_workflow_requests': {},
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-02-01T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "1"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            '1': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': '1',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-02-01 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-02-01T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            '1': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': '1',
+                        'amount_to_accrue': '-0',
+                        'end_of_day_datetime': '2019-02-01'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-02-01T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "Main account"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            'Main account': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': 'Main account',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-02-01 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-02-01T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            'Main account': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': 'Main account',
+                        'amount_to_accrue': '0',
+                        'end_of_day_datetime': '2019-02-01'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-02-01T00:01:00Z',
+        'logs': ['processed scheduled event "APPLY_ACCRUED_INTEREST" for account "1"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            '1': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': '1',
+                    'body': 'Account note APPLY_ACCRUED_INTEREST - 2019-02-01 00:01:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-02-01T00:01:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {},
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-02-01T00:01:00Z',
+        'logs': ['processed scheduled event "APPLY_ACCRUED_INTEREST" for account "Main account"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            'Main account': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': 'Main account',
+                    'body': 'Account note APPLY_ACCRUED_INTEREST - 2019-02-01 00:01:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-02-01T00:01:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {},
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-02-02T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "1"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            '1': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': '1',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-02-02 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-02-02T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            '1': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': '1',
+                        'amount_to_accrue': '-0',
+                        'end_of_day_datetime': '2019-02-02'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-02-02T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "Main account"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            'Main account': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': 'Main account',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-02-02 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-02-02T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            'Main account': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': 'Main account',
+                        'amount_to_accrue': '0',
+                        'end_of_day_datetime': '2019-02-02'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-02-03T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "1"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            '1': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': '1',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-02-03 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-02-03T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            '1': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': '1',
+                        'amount_to_accrue': '-0',
+                        'end_of_day_datetime': '2019-02-03'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-02-03T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "Main account"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            'Main account': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': 'Main account',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-02-03 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-02-03T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            'Main account': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': 'Main account',
+                        'amount_to_accrue': '0',
+                        'end_of_day_datetime': '2019-02-03'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-02-04T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "1"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            '1': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': '1',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-02-04 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-02-04T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            '1': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': '1',
+                        'amount_to_accrue': '-0',
+                        'end_of_day_datetime': '2019-02-04'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-02-04T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "Main account"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            'Main account': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': 'Main account',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-02-04 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-02-04T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            'Main account': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': 'Main account',
+                        'amount_to_accrue': '0',
+                        'end_of_day_datetime': '2019-02-04'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-02-05T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "1"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            '1': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': '1',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-02-05 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-02-05T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            '1': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': '1',
+                        'amount_to_accrue': '-0',
+                        'end_of_day_datetime': '2019-02-05'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-02-05T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "Main account"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            'Main account': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': 'Main account',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-02-05 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-02-05T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            'Main account': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': 'Main account',
+                        'amount_to_accrue': '0',
+                        'end_of_day_datetime': '2019-02-05'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-02-06T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "1"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            '1': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': '1',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-02-06 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-02-06T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            '1': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': '1',
+                        'amount_to_accrue': '-0',
+                        'end_of_day_datetime': '2019-02-06'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-02-06T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "Main account"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            'Main account': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': 'Main account',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-02-06 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-02-06T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            'Main account': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': 'Main account',
+                        'amount_to_accrue': '0',
+                        'end_of_day_datetime': '2019-02-06'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-02-07T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "1"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            '1': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': '1',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-02-07 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-02-07T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            '1': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': '1',
+                        'amount_to_accrue': '-0',
+                        'end_of_day_datetime': '2019-02-07'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-02-07T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "Main account"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            'Main account': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': 'Main account',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-02-07 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-02-07T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            'Main account': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': 'Main account',
+                        'amount_to_accrue': '0',
+                        'end_of_day_datetime': '2019-02-07'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-02-08T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "1"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            '1': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': '1',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-02-08 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-02-08T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            '1': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': '1',
+                        'amount_to_accrue': '-0',
+                        'end_of_day_datetime': '2019-02-08'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-02-08T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "Main account"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            'Main account': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': 'Main account',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-02-08 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-02-08T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            'Main account': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': 'Main account',
+                        'amount_to_accrue': '0',
+                        'end_of_day_datetime': '2019-02-08'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-02-09T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "1"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            '1': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': '1',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-02-09 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-02-09T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            '1': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': '1',
+                        'amount_to_accrue': '-0',
+                        'end_of_day_datetime': '2019-02-09'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-02-09T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "Main account"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            'Main account': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': 'Main account',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-02-09 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-02-09T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            'Main account': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': 'Main account',
+                        'amount_to_accrue': '0',
+                        'end_of_day_datetime': '2019-02-09'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-02-10T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "1"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            '1': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': '1',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-02-10 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-02-10T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            '1': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': '1',
+                        'amount_to_accrue': '-0',
+                        'end_of_day_datetime': '2019-02-10'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-02-10T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "Main account"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            'Main account': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': 'Main account',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-02-10 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-02-10T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            'Main account': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': 'Main account',
+                        'amount_to_accrue': '0',
+                        'end_of_day_datetime': '2019-02-10'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-02-11T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "1"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            '1': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': '1',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-02-11 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-02-11T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            '1': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': '1',
+                        'amount_to_accrue': '-0',
+                        'end_of_day_datetime': '2019-02-11'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-02-11T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "Main account"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            'Main account': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': 'Main account',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-02-11 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-02-11T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            'Main account': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': 'Main account',
+                        'amount_to_accrue': '0',
+                        'end_of_day_datetime': '2019-02-11'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-02-12T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "1"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            '1': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': '1',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-02-12 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-02-12T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            '1': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': '1',
+                        'amount_to_accrue': '-0',
+                        'end_of_day_datetime': '2019-02-12'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-02-12T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "Main account"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            'Main account': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': 'Main account',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-02-12 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-02-12T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            'Main account': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': 'Main account',
+                        'amount_to_accrue': '0',
+                        'end_of_day_datetime': '2019-02-12'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-02-13T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "1"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            '1': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': '1',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-02-13 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-02-13T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            '1': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': '1',
+                        'amount_to_accrue': '-0',
+                        'end_of_day_datetime': '2019-02-13'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-02-13T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "Main account"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            'Main account': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': 'Main account',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-02-13 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-02-13T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            'Main account': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': 'Main account',
+                        'amount_to_accrue': '0',
+                        'end_of_day_datetime': '2019-02-13'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-02-14T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "1"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            '1': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': '1',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-02-14 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-02-14T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            '1': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': '1',
+                        'amount_to_accrue': '-0',
+                        'end_of_day_datetime': '2019-02-14'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-02-14T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "Main account"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            'Main account': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': 'Main account',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-02-14 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-02-14T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            'Main account': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': 'Main account',
+                        'amount_to_accrue': '0',
+                        'end_of_day_datetime': '2019-02-14'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-02-15T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "1"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            '1': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': '1',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-02-15 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-02-15T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            '1': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': '1',
+                        'amount_to_accrue': '-0',
+                        'end_of_day_datetime': '2019-02-15'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-02-15T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "Main account"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            'Main account': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': 'Main account',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-02-15 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-02-15T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            'Main account': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': 'Main account',
+                        'amount_to_accrue': '0',
+                        'end_of_day_datetime': '2019-02-15'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-02-16T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "1"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            '1': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': '1',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-02-16 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-02-16T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            '1': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': '1',
+                        'amount_to_accrue': '-0',
+                        'end_of_day_datetime': '2019-02-16'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-02-16T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "Main account"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            'Main account': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': 'Main account',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-02-16 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-02-16T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            'Main account': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': 'Main account',
+                        'amount_to_accrue': '0',
+                        'end_of_day_datetime': '2019-02-16'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-02-17T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "1"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            '1': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': '1',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-02-17 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-02-17T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            '1': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': '1',
+                        'amount_to_accrue': '-0',
+                        'end_of_day_datetime': '2019-02-17'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-02-17T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "Main account"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            'Main account': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': 'Main account',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-02-17 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-02-17T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            'Main account': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': 'Main account',
+                        'amount_to_accrue': '0',
+                        'end_of_day_datetime': '2019-02-17'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-02-18T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "1"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            '1': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': '1',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-02-18 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-02-18T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            '1': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': '1',
+                        'amount_to_accrue': '-0',
+                        'end_of_day_datetime': '2019-02-18'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-02-18T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "Main account"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            'Main account': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': 'Main account',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-02-18 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-02-18T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            'Main account': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': 'Main account',
+                        'amount_to_accrue': '0',
+                        'end_of_day_datetime': '2019-02-18'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-02-19T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "1"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            '1': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': '1',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-02-19 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-02-19T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            '1': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': '1',
+                        'amount_to_accrue': '-0',
+                        'end_of_day_datetime': '2019-02-19'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-02-19T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "Main account"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            'Main account': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': 'Main account',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-02-19 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-02-19T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            'Main account': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': 'Main account',
+                        'amount_to_accrue': '0',
+                        'end_of_day_datetime': '2019-02-19'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-02-20T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "1"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            '1': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': '1',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-02-20 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-02-20T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            '1': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': '1',
+                        'amount_to_accrue': '-0',
+                        'end_of_day_datetime': '2019-02-20'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-02-20T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "Main account"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            'Main account': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': 'Main account',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-02-20 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-02-20T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            'Main account': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': 'Main account',
+                        'amount_to_accrue': '0',
+                        'end_of_day_datetime': '2019-02-20'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-02-21T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "1"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            '1': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': '1',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-02-21 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-02-21T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            '1': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': '1',
+                        'amount_to_accrue': '-0',
+                        'end_of_day_datetime': '2019-02-21'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-02-21T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "Main account"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            'Main account': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': 'Main account',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-02-21 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-02-21T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            'Main account': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': 'Main account',
+                        'amount_to_accrue': '0',
+                        'end_of_day_datetime': '2019-02-21'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-02-22T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "1"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            '1': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': '1',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-02-22 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-02-22T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            '1': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': '1',
+                        'amount_to_accrue': '-0',
+                        'end_of_day_datetime': '2019-02-22'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-02-22T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "Main account"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            'Main account': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': 'Main account',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-02-22 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-02-22T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            'Main account': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': 'Main account',
+                        'amount_to_accrue': '0',
+                        'end_of_day_datetime': '2019-02-22'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-02-23T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "1"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            '1': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': '1',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-02-23 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-02-23T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            '1': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': '1',
+                        'amount_to_accrue': '-0',
+                        'end_of_day_datetime': '2019-02-23'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-02-23T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "Main account"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            'Main account': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': 'Main account',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-02-23 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-02-23T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            'Main account': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': 'Main account',
+                        'amount_to_accrue': '0',
+                        'end_of_day_datetime': '2019-02-23'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-02-24T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "1"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            '1': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': '1',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-02-24 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-02-24T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            '1': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': '1',
+                        'amount_to_accrue': '-0',
+                        'end_of_day_datetime': '2019-02-24'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-02-24T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "Main account"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            'Main account': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': 'Main account',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-02-24 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-02-24T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            'Main account': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': 'Main account',
+                        'amount_to_accrue': '0',
+                        'end_of_day_datetime': '2019-02-24'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-02-25T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "1"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            '1': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': '1',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-02-25 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-02-25T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            '1': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': '1',
+                        'amount_to_accrue': '-0',
+                        'end_of_day_datetime': '2019-02-25'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-02-25T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "Main account"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            'Main account': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': 'Main account',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-02-25 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-02-25T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            'Main account': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': 'Main account',
+                        'amount_to_accrue': '0',
+                        'end_of_day_datetime': '2019-02-25'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-02-26T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "1"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            '1': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': '1',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-02-26 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-02-26T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            '1': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': '1',
+                        'amount_to_accrue': '-0',
+                        'end_of_day_datetime': '2019-02-26'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-02-26T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "Main account"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            'Main account': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': 'Main account',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-02-26 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-02-26T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            'Main account': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': 'Main account',
+                        'amount_to_accrue': '0',
+                        'end_of_day_datetime': '2019-02-26'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-02-27T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "1"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            '1': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': '1',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-02-27 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-02-27T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            '1': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': '1',
+                        'amount_to_accrue': '-0',
+                        'end_of_day_datetime': '2019-02-27'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-02-27T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "Main account"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            'Main account': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': 'Main account',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-02-27 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-02-27T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            'Main account': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': 'Main account',
+                        'amount_to_accrue': '0',
+                        'end_of_day_datetime': '2019-02-27'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-02-28T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "1"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            '1': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': '1',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-02-28 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-02-28T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            '1': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': '1',
+                        'amount_to_accrue': '-0',
+                        'end_of_day_datetime': '2019-02-28'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-02-28T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "Main account"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            'Main account': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': 'Main account',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-02-28 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-02-28T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            'Main account': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': 'Main account',
+                        'amount_to_accrue': '0',
+                        'end_of_day_datetime': '2019-02-28'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-03-01T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "1"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            '1': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': '1',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-03-01 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-03-01T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            '1': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': '1',
+                        'amount_to_accrue': '-0',
+                        'end_of_day_datetime': '2019-03-01'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-03-01T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "Main account"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            'Main account': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': 'Main account',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-03-01 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-03-01T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            'Main account': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': 'Main account',
+                        'amount_to_accrue': '0',
+                        'end_of_day_datetime': '2019-03-01'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-03-01T00:01:00Z',
+        'logs': ['processed scheduled event "APPLY_ACCRUED_INTEREST" for account "1"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            '1': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': '1',
+                    'body': 'Account note APPLY_ACCRUED_INTEREST - 2019-03-01 00:01:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-03-01T00:01:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {},
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-03-01T00:01:00Z',
+        'logs': ['processed scheduled event "APPLY_ACCRUED_INTEREST" for account "Main account"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            'Main account': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': 'Main account',
+                    'body': 'Account note APPLY_ACCRUED_INTEREST - 2019-03-01 00:01:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-03-01T00:01:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {},
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-03-02T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "1"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            '1': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': '1',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-03-02 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-03-02T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            '1': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': '1',
+                        'amount_to_accrue': '-0',
+                        'end_of_day_datetime': '2019-03-02'
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-03-02T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "Main account"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            'Main account': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': 'Main account',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-03-02 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-03-02T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            'Main account': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW',
+                    'context': {
+                        'account_id': 'Main account',
+                        'amount_to_accrue': '0',
+                        'end_of_day_datetime': '2019-03-02',
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    'result': {
+        'timestamp': '2019-03-02T00:00:00Z',
+        'logs': ['processed scheduled event "ACCRUE_INTEREST" for account "Main account"'],
+        'posting_instruction_batches': [],
+        'balances': {},
+        'account_notes': {
+            'Main account': {
+                'account_notes': [{
+                    'id': '0',
+                    'account_id': 'Main account',
+                    'body': 'Account note ACCRUE_INTEREST - 2019-03-02 00:00:00',
+                    'type': 'ACCOUNT_NOTE_TYPE_RAW_TEXT',
+                    'effective_timestamp': '2019-03-02T00:00:00Z',
+                    'is_visible_to_customer': True
+                }]
+            }
+        },
+        'instantiate_workflow_requests': {
+            'Main account': {
+                'instantiate_workflow_requests': [{
+                    'workflow_definition_id': 'MOCK_INTEREST_ACCRUAL_WORKFLOW_BATCH',
+                    'context': {
+                        'account_id': 'Main account',
+                        'amount_to_accrue': '0',
+                        'end_of_day_datetime': '2019-03-02',
+                        'batch_details': json.dumps({
+                            "accrual_type": "daily"
+                        })
+                    }
+                }]
+            }
+        },
+        'derived_params': {}
+    }
+}, {
+    "result":{
+        "timestamp": "2019-03-03T00:00:00Z",
+        "logs": [],
+        "posting_instruction_batches": [
+            {
+                "id": "5d87d41b-753d-4c94-a64b-1d4386096a35",
+                "create_request_id": "",
+                "client_id": "AsyncCreatePostingInstructionBatch",
+                "client_batch_id": "8a865568-73de-4837-9c19-5f3034c6adf3",
+                "posting_instructions": [
+                    {
+                        "id": "1bd45356-5071-4c96-bfe6-c0c6beadd21f",
+                        "client_transaction_id": "RELEASE_TEST_TRANSACTION",
+                        "release": {
+                            "amount": "100",
+                            "denomination": "GBP",
+                            "target_account_id": "Easy Access Saver Account",
+                            "internal_account_id": "DUMMY_DEPOSITING_ACCOUNT"
+                        },
+                        "pics": [],
+                        "instruction_details": {},
+                        "committed_postings": [
+                            {
+                                "credit": False,
+                                "amount": "100",
+                                "denomination": "GBP",
+                                "account_id": "Easy Access Saver Account",
+                                "account_address": "DEFAULT",
+                                "asset": "COMMERCIAL_BANK_MONEY",
+                                "phase": "POSTING_PHASE_PENDING_INCOMING"
+                            },
+                            {
+                                "credit": False,
+                                "amount": "100",
+                                "denomination": "GBP",
+                                "account_id": "DUMMY_DEPOSITING_ACCOUNT",
+                                "account_address": "DEFAULT",
+                                "asset": "COMMERCIAL_BANK_MONEY",
+                                "phase": "POSTING_PHASE_PENDING_INCOMING"
+                            }
+                        ],
+                        "posting_violations": [],
+                        "account_violations": [],
+                        "restriction_violations": [],
+                        "contract_violations": [],
+                        "override": {"restrictions": "None"},
+                        "transaction_code":"None"
+                    }
+                ]
+            }
+        ],
+        "balances": {},
+        "account_notes": {},
+        "instantiate_workflow_requests": {},
+        "derived_params": {}
+    }
+}, {
+    "result":{
+        "timestamp": "2019-03-03T00:00:00Z",
+        "logs": [],
+        "posting_instruction_batches": [
+            {
+                "id": "5d87d41b-753d-4c94-a64b-1d4386096a35",
+                "create_request_id": "",
+                "client_id": "AsyncCreatePostingInstructionBatch",
+                "client_batch_id": "8a865568-73de-4837-9c19-5f3034c6adf3",
+                "posting_instructions": [
+                    {
+                        "id": "1bd45356-5071-4c96-bfe6-c0c6beadd21f",
+                        "client_transaction_id": "RELEASE_TEST_TRANSACTION",
+                        "release": {
+                            "amount": "50",
+                            "denomination": "GBP",
+                            "target_account_id": "Easy Access Saver Account",
+                            "internal_account_id": "DUMMY_DEPOSITING_ACCOUNT"
+                        },
+                        "pics": [],
+                        "instruction_details": {},
+                        "committed_postings": [
+                            {
+                                "credit": False,
+                                "amount": "100",
+                                "denomination": "GBP",
+                                "account_id": "Easy Access Saver Account",
+                                "account_address": "DEFAULT",
+                                "asset": "COMMERCIAL_BANK_MONEY",
+                                "phase": "POSTING_PHASE_PENDING_INCOMING"
+                            },
+                            {
+                                "credit": False,
+                                "amount": "100",
+                                "denomination": "GBP",
+                                "account_id": "DUMMY_DEPOSITING_ACCOUNT",
+                                "account_address": "DEFAULT",
+                                "asset": "COMMERCIAL_BANK_MONEY",
+                                "phase": "POSTING_PHASE_PENDING_INCOMING"
+                            }
+                        ],
+                        "posting_violations": [],
+                        "account_violations": [],
+                        "restriction_violations": [],
+                        "contract_violations": [],
+                        "override": {"restrictions": "None"},
+                        "transaction_code":"None"
+                    }
+                ]
+            }
+        ],
+        "balances": {},
+        "account_notes": {},
+        "instantiate_workflow_requests": {},
+        "derived_params": {}
+    }
+}, {
+    "result":{
+        "timestamp": "2019-03-04T00:00:00Z",
+        "logs": [],
+        "posting_instruction_batches": [
+            {
+                "id": "5d87d41b-753d-4c94-a64b-1d4386096a35",
+                "create_request_id": "",
+                "client_id": "AsyncCreatePostingInstructionBatch",
+                "client_batch_id": "8a865568-73de-4837-9c19-5f3034c6adf3",
+                "posting_instructions": [
+                    {
+                        "id": "1bd45356-5071-4c96-bfe6-c0c6beadd21f",
+                        "client_transaction_id": "RELEASE_TEST_TRANSACTION",
+                        "release": {
+                            "amount": "80",
+                            "denomination": "GBP",
+                            "target_account_id": "Easy Access Saver Account",
+                            "internal_account_id": "DUMMY_DEPOSITING_ACCOUNT"
+                        },
+                        "pics": [],
+                        "instruction_details": {},
+                        "committed_postings": [
+                            {
+                                "credit": False,
+                                "amount": "100",
+                                "denomination": "GBP",
+                                "account_id": "Easy Access Saver Account",
+                                "account_address": "DEFAULT",
+                                "asset": "COMMERCIAL_BANK_MONEY",
+                                "phase": "POSTING_PHASE_PENDING_INCOMING"
+                            },
+                            {
+                                "credit": False,
+                                "amount": "100",
+                                "denomination": "GBP",
+                                "account_id": "DUMMY_DEPOSITING_ACCOUNT",
+                                "account_address": "DEFAULT",
+                                "asset": "COMMERCIAL_BANK_MONEY",
+                                "phase": "POSTING_PHASE_PENDING_INCOMING"
+                            }
+                        ],
+                        "posting_violations": [],
+                        "account_violations": [],
+                        "restriction_violations": [],
+                        "contract_violations": [],
+                        "override": {"restrictions": "None"},
+                        "transaction_code":"None"
+                    }
+                ]
+            }
+        ],
+        "balances": {},
+        "account_notes": {},
+        "instantiate_workflow_requests": {},
+        "derived_params": {}
+    }
+}, {
+    "result":{
+        "timestamp": "2019-03-04T00:00:00Z",
+        "logs": [],
+        "posting_instruction_batches": [],
+        "balances": {},
+        "account_notes": {},
+        "instantiate_workflow_requests": {},
+        "derived_params": {},
+        "contract_notification_events": {
+            "Easy Access Saver Account": {
+              "contract_notification_events": [
+                {
+                  "notification_type": "my_notification",
+                  "resource_id": "Easy Access Saver Account",
+                  "resource_type": "RESOURCE_ACCOUNT",
+                  "notification_details": {
+                    "some_key": "some_value"
+                  }
+                }
+              ]
+            }
+        }
+    }
+}, {
+    "result":{
+        "timestamp": "2019-03-05T00:00:00Z",
+        "logs": [],
+        "posting_instruction_batches": [],
+        "balances": {},
+        "account_notes": {},
+        "instantiate_workflow_requests": {},
+        "derived_params": {},
+        "contract_notification_events": {
+            "Easy Access Saver Account": {
+              "contract_notification_events": [
+                {
+                  "notification_type": "my_notification",
+                  "resource_id": "Easy Access Saver Account",
+                  "resource_type": "RESOURCE_ACCOUNT",
+                  "notification_details": {
+                    "some_key": "some_value"
+                  }
+                }
+              ]
+            }
+        }
+    }
+}, {
+    "result":{
+        "timestamp": "2019-03-06T00:00:00Z",
+        "logs": [],
+        "posting_instruction_batches": [],
+        "balances": {},
+        "account_notes": {},
+        "instantiate_workflow_requests": {},
+        "derived_params": {},
+        "contract_notification_events": {
+            "Easy Access Saver Account": {
+              "contract_notification_events": [
+                {
+                  "notification_type": "my_notification",
+                  "resource_id": "Easy Access Saver Account",
+                  "resource_type": "RESOURCE_ACCOUNT",
+                  "notification_details": {
+                    "some_key": "some_value"
+                  }
+                }
+              ]
+            }
+        }
+    }
+}, {
+    "result":{
+        "timestamp": "2019-03-06T00:00:00Z",
+        "logs": [],
+        "posting_instruction_batches": [],
+        "balances": {},
+        "account_notes": {},
+        "instantiate_workflow_requests": {},
+        "derived_params": {},
+        "contract_notification_events": {
+            "Easy Access Saver Account": {
+              "contract_notification_events": [
+                {
+                  "notification_type": "my_notification",
+                  "resource_id": "Easy Access Saver Account",
+                  "resource_type": "RESOURCE_ACCOUNT",
+                  "notification_details": {
+                    "some_key": "some_value"
+                  }
+                }
+              ]
+            }
+        }
+    }
+}
+]

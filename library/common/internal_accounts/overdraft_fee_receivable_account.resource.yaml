@@ -1,0 +1,11 @@
+# Copyright @ 2021 Thought Machine Group Limited. All rights reserved.
+---
+type: INTERNAL_ACCOUNT
+id: OVERDRAFT_FEE_RECEIVABLE_ACCOUNT
+vault_id: OVERDRAFT_FEE_RECEIVABLE
+payload: |
+  internal_account:
+      id: OVERDRAFT_FEE_RECEIVABLE
+      product_id: '&{overdraft_fee_receivable_account_contract:product_id}'
+      accounting:
+        tside: TSIDE_ASSET
