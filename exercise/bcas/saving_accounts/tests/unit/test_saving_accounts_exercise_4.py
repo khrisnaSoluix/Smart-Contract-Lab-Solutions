@@ -54,18 +54,14 @@ from inception_sdk.test_framework.contracts.unit.common import (
 )
 
 # import contract file
-from exercise.bcas.saving_accounts.contracts.template import saving_accounts as contract
+from exercise.bcas.saving_accounts.contracts.template import saving_accounts_exercise_4 as contract
 
 DEFAULT_DATETIME = datetime(2024, 1, 1, tzinfo=ZoneInfo("UTC"))
 DEFAULT_ACCOUNT_ID = "Main account"
 DEFAULT_INTERNAL_ACCOUNT = "1"
 DEFAULT_DEPOSIT_BONUS_PAYOUT_INTERNAL_ACCOUNT = DEFAULT_INTERNAL_ACCOUNT
-DEFAULT_ACCRUE_INTEREST_INTERNAL_ACCOUNT = DEFAULT_INTERNAL_ACCOUNT
 DEFAULT_ZAKAT_INTERNAL_ACCOUNT = DEFAULT_INTERNAL_ACCOUNT
 DEFAULT_OPENING_BONUS = Decimal("100")
-DEFAULT_FLAG_FREEZE_ACCOUNT = "FREEZE_ACCOUNT"
-DEFAULT_ACCRUE_INTEREST = "ACCRUE_INTEREST"
-DEFAULT_INTEREST_RATE = Decimal("0.01")
 DEFAULT_ZAKAT_RATE = Decimal("0.02")
 DEFAULT_MAXIMUM_BALANCE_LIMIT = Decimal("1000000")
 
@@ -75,9 +71,7 @@ DEFAULT_DENOMINATION = "IDR"
 default_template_params = {
     "denomination": DEFAULT_DENOMINATION,
     "deposit_bonus_payout_internal_account": DEFAULT_DEPOSIT_BONUS_PAYOUT_INTERNAL_ACCOUNT,
-    "accrue_interest_internal_account": DEFAULT_ACCRUE_INTEREST_INTERNAL_ACCOUNT,
     "zakat_internal_account": DEFAULT_ZAKAT_INTERNAL_ACCOUNT,
-    "interest_rate": DEFAULT_INTEREST_RATE,
     "zakat_rate":DEFAULT_ZAKAT_RATE,
     "maximum_balance_limit":DEFAULT_MAXIMUM_BALANCE_LIMIT,
 }
@@ -168,7 +162,7 @@ class SavingAccount(ContractTest):
 
         expected_response = PrePostingHookResult(
             rejection=Rejection(
-                message=f"Postings are not accpted. Only postings in {DEFAULT_DENOMINATION} are allowed.",
+                message=f"Postings are not allowed. Only postings in {DEFAULT_DENOMINATION} are accepted.",
                 reason_code=RejectionReason.WRONG_DENOMINATION,
             )
         )
@@ -252,47 +246,8 @@ class SavingAccount(ContractTest):
             expected_posting_instruction_directives,
             activation_response.posting_instructions_directives,
         )
-
+    
     # Exercise 3
-    def test_freeze_account_reject_any_transactions(self):
-
-        posting_amount = Decimal(10)
-
-        inbound_hard_settlement = self.inbound_hard_settlement(
-            amount=posting_amount,
-            denomination="IDR",
-            target_account_id=DEFAULT_ACCOUNT_ID,
-            internal_account_id=DEFAULT_INTERNAL_ACCOUNT,
-            own_account_id=DEFAULT_ACCOUNT_ID,
-        )
-        posting_instructions = [inbound_hard_settlement]
-
-        hook_args = PrePostingHookArguments(
-            effective_datetime=DEFAULT_DATETIME,
-            posting_instructions=posting_instructions,
-            client_transactions=ClientTransaction(
-                client_transaction_id="MOCK_POSTING",
-                account_id=DEFAULT_ACCOUNT_ID,
-                posting_instructions=posting_instructions,
-                tside=contract.tside,
-            ),
-        )
-        mock_vault = self.create_mock(
-            flags={DEFAULT_FLAG_FREEZE_ACCOUNT: FlagTimeseries([(DEFAULT_DATETIME, True)])},
-        )
-        pre_posting_response = contract.pre_posting_hook(mock_vault, hook_args)
-        expected_response = PrePostingHookResult(
-            rejection=Rejection(
-                message="Account is frozen. Does not accept any transactions.",
-                reason_code=RejectionReason.AGAINST_TNC,
-            )
-        )
-        self.assertEqual(
-            pre_posting_response,
-            expected_response,
-        )
-
-    # Exercise 4
     def test_reject_zakat_rate_update(self):
 
         mock_vault = self.create_mock()
@@ -318,93 +273,6 @@ class SavingAccount(ContractTest):
 
         self.assertEqual(pre_parameter_change_hook_response, expected_response)
     
-    # Exercise 5
-    def test_scheduled_code_hook_calculates_and_accrue_interest_correctly(self):
-        # start test in state where there is money in the account for interest to be accrued on
-        mock_vault = self.create_mock(
-            balances_observation_fetchers_mapping={
-                "live_balances": BalancesObservation(
-                    balances=BalanceDefaultDict(
-                        mapping={
-                            BalanceCoordinate(
-                                account_address=DEFAULT_ADDRESS,
-                                asset=DEFAULT_ASSET,
-                                denomination=DEFAULT_DENOMINATION,
-                                phase=Phase.COMMITTED,
-                            ): Balance(
-                                credit=Decimal(10000000), debit=Decimal(0), net=(10000000)
-                            ),
-                        }
-                    ),
-                    value_datetime=DEFAULT_DATETIME,
-                )
-            }
-        )
-        hook_args = ScheduledEventHookArguments(
-            effective_datetime=DEFAULT_DATETIME, event_type=DEFAULT_ACCRUE_INTEREST
-        )
-        scheduled_event_hook_response = contract.scheduled_event_hook(
-            mock_vault, hook_args
-        )
-        interest_amount = Decimal(274)
-        posting_instruction_directives = PostingInstructionsDirective(
-            posting_instructions=[
-                CustomInstruction(
-                    postings=[
-                        Posting(
-                            credit=True,
-                            amount=interest_amount,
-                            denomination=DEFAULT_DENOMINATION,
-                            account_id=DEFAULT_ACCOUNT_ID,
-                            account_address=DEFAULT_ADDRESS,
-                            asset=DEFAULT_ASSET,
-                            phase=Phase.COMMITTED,
-                        ),
-                        Posting(
-                            credit=False,
-                            amount=interest_amount,
-                            denomination=DEFAULT_DENOMINATION,
-                            account_id=DEFAULT_INTERNAL_ACCOUNT,
-                            account_address=DEFAULT_ADDRESS,
-                            asset=DEFAULT_ASSET,
-                            phase=Phase.COMMITTED,
-                        ),
-                    ],
-                    instruction_details={
-                        "ext_client_transaction_id": f"ACCRUE_INTEREST_{mock_vault.get_hook_execution_id()}",
-                        "description": (
-                            f"Accrueing interest of {interest_amount} {DEFAULT_DENOMINATION}"
-                            f" at yearly rate of {Decimal(DEFAULT_INTEREST_RATE)}."
-                        ),
-                        "event_type": f"ACCRUE_INTEREST",
-                    },
-                    override_all_restrictions=None,
-                ),
-            ],
-            client_batch_id=f"{DEFAULT_ACCRUE_INTEREST}_{mock_vault.get_hook_execution_id()}",
-            value_datetime=DEFAULT_DATETIME,
-        )
-        next_schedule_date = DEFAULT_DATETIME + relativedelta(months=1)
-        update_account_event_type_directives = UpdateAccountEventTypeDirective(
-            event_type=DEFAULT_ACCRUE_INTEREST,
-            expression=ScheduleExpression(
-                year=str(next_schedule_date.year),
-                month=str(next_schedule_date.month),
-                day=str(next_schedule_date.day),
-                hour="0",
-                minute="10",
-                second="0",
-            ),
-        )
-        expected_response = ScheduledEventHookResult(
-            posting_instructions_directives=[posting_instruction_directives],
-            update_account_event_type_directives=[update_account_event_type_directives],
-        )
-        self.assertEqual(
-            expected_response,
-            scheduled_event_hook_response,
-        )
-
     # Exercise 4
     def test_derived_parameter_hook_calculates_available_deposit_limit(self):
         def test_factory(current_default_balance):
@@ -457,4 +325,3 @@ class SavingAccount(ContractTest):
             Decimal(DEFAULT_MAXIMUM_BALANCE_LIMIT) + Decimal(100),
         ]:
             test_factory(possible_deposit_value)
-    
