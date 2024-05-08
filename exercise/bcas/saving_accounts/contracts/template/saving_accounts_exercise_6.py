@@ -53,9 +53,6 @@ from contracts_api import (
     DerivedParameterHookResult,
 )
 
-from inception_sdk.vault.contracts.extensions.contracts_api_extensions.vault_types import SmartContractVault
-
-
 api = "4.0.0"
 version = "1.0.0"
 display_name = "Saving Account"
@@ -176,7 +173,7 @@ data_fetchers = [
 
 @requires(parameters=True, flags=True)
 @fetch_account_data(balances=["live_balances"])
-def pre_posting_hook(vault: SmartContractVault, hook_arguments: PrePostingHookArguments):
+def pre_posting_hook(vault, hook_arguments: PrePostingHookArguments):
     denomination = vault.get_parameter_timeseries(name=PARAM_DENOMINATION).latest()
 
     # check denomination
@@ -231,7 +228,7 @@ def pre_posting_hook(vault: SmartContractVault, hook_arguments: PrePostingHookAr
 
 @requires(parameters=True)
 def activation_hook(
-    vault: SmartContractVault, hook_arguments: ActivationHookArguments
+    vault, hook_arguments: ActivationHookArguments
 ) -> Optional[ActivationHookResult]:
     denomination = vault.get_parameter_timeseries(name=PARAM_DENOMINATION).latest()
     opening_bonus = Decimal(
@@ -312,7 +309,7 @@ def scheduled_event_hook(vault, hook_arguments: ScheduledEventHookArguments):
 
 
 @requires(parameters=True)
-def pre_parameter_change_hook(vault: SmartContractVault, hook_arguments: PreParameterChangeHookArguments):
+def pre_parameter_change_hook(vault, hook_arguments: PreParameterChangeHookArguments):
     restricted_parameters = [PARAM_ZAKAT_RATE]
     updated_parameters = hook_arguments.updated_parameter_values
     if any(restricted_param in updated_parameters for restricted_param in restricted_parameters):
@@ -344,7 +341,7 @@ def derived_parameter_hook(vault, hook_arguments: DerivedParameterHookArguments)
     )
 
 
-def _handle_accrue_interest_schedule(vault:SmartContractVault, hook_arguments:ScheduledEventHookArguments):
+def _handle_accrue_interest_schedule(vault, hook_arguments:ScheduledEventHookArguments):
     denomination = vault.get_parameter_timeseries(name=PARAM_DENOMINATION).latest()
     interest_rate = vault.get_parameter_timeseries(name=PARAM_INTEREST_RATE).latest()
     interest_paid_internal_account = vault.get_parameter_timeseries(

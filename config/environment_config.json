@@ -1,7 +1,7 @@
 {
   "my_environment": {
       "ops_dash_url": "",
-      "core_api_url": "",
+      "core_api_url": "https://core-api.partner-shared-sandbox.thirsty-fish-dephub.tmachine.io",
       "data_loader_api_url": "",
       "workflow_api_url": "",
       "kafka": {
@@ -13,6 +13,6 @@
       },
       "service_account_name": "",
       "service_account_id": "",
-      "access_token": ""
+      "access_token": "A000989375332700283611!rYh0MwzV92aW1Bb9WGYT9uUG2nrPL3VWTteJvdzngls63umrh78pOOoi71zcn4It18JktD9fyx2Hem+ZqDOiRwhnWdM="
   }
 }
