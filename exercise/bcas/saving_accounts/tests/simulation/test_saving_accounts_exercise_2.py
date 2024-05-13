@@ -185,7 +185,7 @@ class SavingAccount(SimulationTestCase):
             sub_tests=sub_tests,
         )
         self.run_test_scenario(test_scenario)
-
+    
     def test_reject_wrong_denomination(self):
         """
         Test that posting denominations are checked and accepted or rejected where necessary

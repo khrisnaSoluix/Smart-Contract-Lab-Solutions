@@ -48,7 +48,7 @@ data_fetchers = [
 
 @requires(parameters=True)
 @fetch_account_data(balances=["live_balances"])
-def pre_posting_hook(vault: SmartContractVault, hook_arguments: PrePostingHookArguments):
+def pre_posting_hook(vault, hook_arguments: PrePostingHookArguments):
     denomination = vault.get_parameter_timeseries(name=PARAM_DENOMINATION).latest()
 
     # check denomination

@@ -1,10 +1,10 @@
 ---
 type: ACCOUNT_SCHEDULE_TAG
-id: SHARIAH_TIME_DEPOSIT_ACCRUE_PROFIT_AST
+id: SAVING_ACCOUNT_ACCRUE_INTEREST_AST
 payload: |
   account_schedule_tag:
-    id: SHARIAH_TIME_DEPOSIT_ACCRUE_PROFIT_AST
-    description: SHARIAH_TIME_DEPOSIT_ACCRUE_PROFIT
+    id: SAVING_ACCOUNT_ACCRUE_INTEREST_AST
+    description: SAVING_ACCOUNT_ACCRUE_INTEREST
     sends_scheduled_operation_reports: false
     schedule_status_override: ACCOUNT_SCHEDULE_TAG_SCHEDULE_STATUS_OVERRIDE_NO_OVERRIDE
     schedule_status_override_start_timestamp: null
