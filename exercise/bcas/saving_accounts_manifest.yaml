@@ -9,6 +9,9 @@ resource_ids:
   # --------- ACCOUNT SCHEDULE TAGS
   - SAVING_ACCOUNT_ACCRUE_INTEREST_AST
 
+  # --------- FLAG DEFINITIONS
+  - FREEZE_ACCOUNT
+
   # --------- INTERNAL ACCOUNT SMART CONTRACTS
   - bonus_payable_account_contract
   - accrue_interest_payable_account_contract
